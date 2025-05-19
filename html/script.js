@@ -3,6 +3,46 @@ let currentUIId = null;
 let cleanupHandlers = [];
 let listMenuStack = [];
 
+// Helper functions for better code reuse
+function resetUIState() {
+    currentUI = null;
+    currentUIId = null;
+}
+
+function animateUIClose(containerId, callback) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const win = container.querySelector('.window');
+    win.classList.remove('open');
+    win.classList.add('close');
+    setTimeout(() => {
+        container.style.display = 'none';
+        if (callback) callback();
+    }, 300);
+}
+
+function sendNUIMessage(endpoint, data = {}) {
+    return fetch(`https://${GetParentResourceName()}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+}
+
+function sendCloseMessage() {
+    sendNUIMessage('close');
+}
+
+function addEscapeHandler(handler) {
+    const escHandler = function(e) {
+        if (e.key === 'Escape') {
+            handler();
+        }
+    };
+    document.addEventListener('keyup', escHandler);
+    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
+}
+
 window.addEventListener('message', function(event) {
     const data = event.data;
     
@@ -34,15 +74,7 @@ function showUI(containerId) {
 }
 
 function hideUI(containerId, cb) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const win = container.querySelector('.window');
-    win.classList.remove('open');
-    win.classList.add('close');
-    setTimeout(() => {
-        container.style.display = 'none';
-        if (cb) cb();
-    }, 300);
+    animateUIClose(containerId, cb);
     if (currentUIId === containerId) currentUIId = null;
 }
 
@@ -55,8 +87,14 @@ function closeCurrentUI() {
     cleanupHandlers = [];
 }
 
+function closeAndSendData(containerId, endpoint, data) {
+    animateUIClose(containerId, () => {
+        resetUIState();
+        sendNUIMessage(endpoint, data);
+    });
+}
+
 function showAmountUI(title) {
-    console.log('showAmountUI called');
     currentUI = 'amount';
     showUI('amount-ui');
     document.getElementById('list-ui').style.display = 'none';
@@ -64,14 +102,8 @@ function showAmountUI(title) {
     document.querySelector('#amount-ui .titlebar-title').textContent = title;
     document.getElementById('amount-input').value = '';
     document.getElementById('amount-input').focus();
-    // Scoped Escape key handler
-    const escHandler = function(e) {
-        if (e.key === 'Escape') {
-            closeUI();
-        }
-    };
-    document.addEventListener('keyup', escHandler);
-    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
+    
+    addEscapeHandler(closeUI);
 }
 
 function showListUI(title, items, isSubmenu) {
@@ -141,19 +173,14 @@ function showListUI(title, items, isSubmenu) {
         }, 10);
     });
     
-    // Add escape key handler
-    const escHandler = function(e) {
-        if (e.key === 'Escape') {
-            if (listMenuStack.length > 0 && !isSubmenu) {
-                const prevMenu = listMenuStack.pop();
-                showListUI(prevMenu.title, prevMenu.items, true);
-            } else {
-                closeUI();
-            }
+    addEscapeHandler(() => {
+        if (listMenuStack.length > 0 && !isSubmenu) {
+            const prevMenu = listMenuStack.pop();
+            showListUI(prevMenu.title, prevMenu.items, true);
+        } else {
+            closeUI();
         }
-    };
-    document.addEventListener('keyup', escHandler);
-    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
+    });
 }
 
 function showSubMenu(title, items) {
@@ -221,163 +248,58 @@ function showDropdownUI(title, options, selectedIndex = -1) {
     
     // Cancel button
     cancelBtn.onclick = function() {
-        // Start closing animation first
-        const dropdownUI = document.getElementById('dropdown-ui');
-        const window = dropdownUI.querySelector('.window');
-        window.classList.remove('open');
-        window.classList.add('close');
-        
-        // Wait for animation to complete before sending data
-        setTimeout(() => {
-            // Reset UI state before fetch
-            currentUI = null;
-            currentUIId = null;
-            
-            // Send close event
-            fetch(`https://${GetParentResourceName()}/close`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-        }, 300);
+        closeAndSendData('dropdown-ui', 'close');
     };
     
     // Submit button
     submitBtn.onclick = function() {
-        // Start closing animation first
-        const dropdownUI = document.getElementById('dropdown-ui');
-        const window = dropdownUI.querySelector('.window');
-        window.classList.remove('open');
-        window.classList.add('close');
-        
-        // Wait for animation to complete before sending data
-        setTimeout(() => {
-            // Reset UI state before fetch
-            currentUI = null;
-            currentUIId = null;
-            
-            if (currentSelected >= 0) {
-                fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
-                });
-            } else {
-                // Just send the close event if nothing selected
-                fetch(`https://${GetParentResourceName()}/close`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-            }
-        }, 300);
-    };
-    
-    // Escape key handler
-    const escHandler = function(e) {
-        if (e.key === 'Escape') {
-            // If dropdown list is open, just close it
-            if (list.classList.contains('open')) {
-                list.classList.remove('open');
-                dropdownLabel.classList.remove('open');
-            } else {
-                // Otherwise close the whole UI
-                closeUI();
-            }
+        if (currentSelected >= 0) {
+            closeAndSendData('dropdown-ui', 'dropdownSelect', { 
+                index: currentSelected, 
+                value: options[currentSelected] 
+            });
+        } else {
+            closeAndSendData('dropdown-ui', 'close');
         }
     };
-    document.addEventListener('keyup', escHandler);
-    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
+    
+    addEscapeHandler(() => {
+        // If dropdown list is open, just close it
+        if (list.classList.contains('open')) {
+            list.classList.remove('open');
+            dropdownLabel.classList.remove('open');
+        } else {
+            // Otherwise close the whole UI
+            closeUI();
+        }
+    });
 }
 
 function selectListItem(index, item) {
-    const listUI = document.getElementById('list-ui');
-    const window = listUI.querySelector('.window');
-    
-    window.classList.remove('open');
-    window.classList.add('close');
-    
-    // Wait for animation to complete before sending data
-    setTimeout(() => {
-        fetch(`https://${GetParentResourceName()}/listSelect`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                index: index,
-                item: item
-            })
-        });
-        
-        // Reset UI state
-        currentUI = null;
-        currentUIId = null;
-    }, 300);
+    closeAndSendData('list-ui', 'listSelect', {
+        index: index,
+        item: item
+    });
 }
 
 function submitAmount() {
     const amount = document.getElementById('amount-input').value;
     if (amount && amount > 0) {
-        console.log('Amount entered:', amount);
-        const amountUI = document.getElementById('amount-ui');
-        const window = amountUI.querySelector('.window');
-        
-        window.classList.remove('open');
-        window.classList.add('close');
-        
-        // Wait for animation to complete before submitting
-        setTimeout(() => {
-            // Reset UI state before fetch
-            currentUI = null;
-            currentUIId = null;
-            
-            fetch(`https://${GetParentResourceName()}/amountSubmit`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    amount: amount
-                })
-            });
-        }, 300);
+        closeAndSendData('amount-ui', 'amountSubmit', {
+            amount: amount
+        });
     }
 }
 
 function closeUI() {
-    console.log('closeUI called');
-    const amountUI = document.getElementById('amount-ui');
-    const listUI = document.getElementById('list-ui');
-    const dropdownUI = document.getElementById('dropdown-ui');
-    const amountWindow = amountUI.querySelector('.window');
-    const listWindow = listUI.querySelector('.window');
-    const dropdownWindow = dropdownUI.querySelector('.window');
-    
-    amountWindow.classList.remove('open');
-    amountWindow.classList.add('close');
-    listWindow.classList.remove('open');
-    listWindow.classList.add('close');
-    dropdownWindow.classList.remove('open');
-    dropdownWindow.classList.add('close');
-    
-    setTimeout(() => {
-        amountUI.style.display = 'none';
-        listUI.style.display = 'none';
-        dropdownUI.style.display = 'none';
-    }, 300);
-    
-    fetch(`https://${GetParentResourceName()}/close`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
+    // Hide all UIs
+    ['amount-ui', 'list-ui', 'dropdown-ui'].forEach(id => {
+        animateUIClose(id);
     });
     
-    // Reset UI state
-    currentUI = null;
-    currentUIId = null;
+    // Send close message
+    resetUIState();
+    sendCloseMessage();
 }
 
 // Handle Enter key for amount input

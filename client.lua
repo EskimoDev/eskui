@@ -1,39 +1,35 @@
 local display = false
 
--- Register the NUI callback for amount input
-RegisterNUICallback('amountSubmit', function(data, cb)
-    print('NUI amountSubmit callback received')
-    display = false
-    SetNuiFocus(false, false) -- Restore this line to properly release NUI focus
-    cb('ok')
+-- Helper function to handle all NUI callbacks with common logic
+local function registerNUICallback(name, callback)
+    RegisterNUICallback(name, function(data, cb)
+        display = false
+        SetNuiFocus(false, false)
+        cb('ok')
+        if callback then
+            callback(data)
+        end
+    end)
+end
+
+-- Register NUI callbacks with consistent handling
+registerNUICallback('amountSubmit', function(data)
     TriggerEvent('eskui:amountCallback', data.amount)
 end)
 
--- Register the NUI callback for list selection
-RegisterNUICallback('listSelect', function(data, cb)
-    display = false
-    SetNuiFocus(false, false)
-    cb('ok')
+registerNUICallback('listSelect', function(data)
     TriggerEvent('eskui:listCallback', data.index, data.item)
 end)
 
--- Register the NUI callback for closing
-RegisterNUICallback('close', function(data, cb)
-    display = false
-    SetNuiFocus(false, false)
-    cb('ok')
+registerNUICallback('close', function()
     TriggerEvent('eskui:closeCallback')
 end)
 
--- Register the NUI callback for dropdown selection
-RegisterNUICallback('dropdownSelect', function(data, cb)
-    display = false
-    SetNuiFocus(false, false)
-    cb('ok')
+registerNUICallback('dropdownSelect', function(data)
     TriggerEvent('eskui:dropdownCallback', data.index, data.value)
 end)
 
--- NUI callback for server event execution
+-- NUI callback for server event execution (doesn't need the standard handling)
 RegisterNUICallback('eskui_serverEvent', function(data, cb)
     TriggerServerEvent(data.event, table.unpack(data.args or {}))
     cb('ok')
@@ -41,48 +37,59 @@ end)
 
 -- Utility to register and clean up eskui event handlers
 local function registerEskuiHandler(event, handler)
-    local handlerId
-    handlerId = AddEventHandler(event, function(...)
+    local handlerId = AddEventHandler(event, function(...)
         if handler(...) ~= false then
-            if handlerId then RemoveEventHandler(handlerId) end
+            RemoveEventHandler(handlerId)
         end
     end)
     return handlerId
 end
 
--- Export function for showing the amount input
-exports('ShowAmount', function(title, callback)
+-- Common function to show any UI type
+local function showUI(type, title, data, callback, additionalHandler)
     if display then return end
     display = true
     SetNuiFocus(true, true)
-    SendNUIMessage({
-        type = "showAmount",
+    
+    -- Prepare NUI message
+    local message = {
+        type = type,
         title = title
-    })
-    local handlerId
-    handlerId = AddEventHandler('eskui:amountCallback', function(amount)
-        if handlerId then RemoveEventHandler(handlerId) end
+    }
+    
+    -- Add data parameters based on UI type
+    for k, v in pairs(data or {}) do
+        message[k] = v
+    end
+    
+    -- Send message to NUI
+    SendNUIMessage(message)
+    
+    -- Register event handler for response
+    local eventName = 'eskui:' .. string.sub(type, 5) .. 'Callback'
+    return registerEskuiHandler(eventName, function(...)
+        if callback then
+            callback(...)
+        end
+        return true
+    end)
+end
+
+-- Export function for showing the amount input
+exports('ShowAmount', function(title, callback)
+    showUI('showAmount', title, {}, function(amount)
         if callback then
             callback(tonumber(amount))
         end
     end)
 end)
 
--- Export function for showing the list (with event, submenu, and optional fields support)
+-- Export function for showing the list
 exports('ShowList', function(title, items, callback, subMenuCallback)
-    if display then return end
-    display = true
-    SetNuiFocus(true, true)
-    SendNUIMessage({
-        type = "showList",
-        title = title,
-        items = items
-    })
-    local handlerId
-    handlerId = AddEventHandler('eskui:listCallback', function(index, item)
-        if handlerId then RemoveEventHandler(handlerId) end
+    showUI('showList', title, {items = items}, function(index, item)
         display = false
         SetNuiFocus(false, false)
+        
         -- Event support
         if item and item.event then
             if item.eventType == 'server' then
@@ -95,12 +102,14 @@ exports('ShowList', function(title, items, callback, subMenuCallback)
                 TriggerEvent(item.event, table.unpack(item.args or {}))
             end
         end
+        
         -- Submenu support (submenu field)
         if item and item.submenu then
             local submenuItems = type(item.submenu) == 'function' and item.submenu() or item.submenu
             exports['eskui']:ShowList(item.label, submenuItems, callback, subMenuCallback)
             return
         end
+        
         if callback then
             callback(index, item)
         end
@@ -109,20 +118,10 @@ end)
 
 -- Export function for showing the dropdown
 exports('ShowDropdown', function(title, options, callback, selectedIndex)
-    if display then return end
-    display = true
-    SetNuiFocus(true, true)
-    SendNUIMessage({
-        type = "showDropdown",
-        title = title,
+    showUI('showDropdown', title, {
         options = options,
         selectedIndex = selectedIndex
-    })
-    local handlerId
-    handlerId = AddEventHandler('eskui:dropdownCallback', function(index, value)
-        if handlerId then RemoveEventHandler(handlerId) end
-        display = false
-        SetNuiFocus(false, false)
+    }, function(index, value)
         if callback and (index ~= nil or value ~= nil) then
             callback(index, value)
         end
