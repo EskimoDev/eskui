@@ -30,6 +30,17 @@ RegisterNUICallback('dropdownSelect', function(data, cb)
     TriggerEvent('eskui:dropdownCallback', data.index, data.value)
 end)
 
+-- Utility to register and clean up eskui event handlers
+local function registerEskuiHandler(event, handler)
+    local handlerId
+    handlerId = AddEventHandler(event, function(...)
+        if handler(...) ~= false then
+            if handlerId then RemoveEventHandler(handlerId) end
+        end
+    end)
+    return handlerId
+end
+
 -- Export function for showing the amount input
 exports('ShowAmount', function(title, callback)
     if display then return end
@@ -39,11 +50,13 @@ exports('ShowAmount', function(title, callback)
         type = "showAmount",
         title = title
     })
-    
     RegisterNetEvent('eskui:amountCallback')
     AddEventHandler('eskui:amountCallback', function(amount)
         RemoveEventHandler('eskui:amountCallback')
-        callback(tonumber(amount))
+        if callback then
+            callback(tonumber(amount))
+        end
+        -- If no callback, just close (already closed by NUI callback)
     end)
 end)
 
@@ -57,30 +70,29 @@ exports('ShowList', function(title, items, callback, subMenuCallback)
         title = title,
         items = items
     })
-    
     RegisterNetEvent('eskui:listCallback')
     AddEventHandler('eskui:listCallback', function(index, item)
         if subMenuCallback then
-            -- If a subMenuCallback is provided, use it to determine if we should show a submenu
             local subMenu = subMenuCallback(index, item)
             if subMenu then
-                -- Show submenu
                 SendNUIMessage({
                     type = "showSubMenu",
                     title = subMenu.title,
                     items = subMenu.items
                 })
             else
-                -- No submenu, close the UI
                 display = false
                 SetNuiFocus(false, false)
-                callback(index, item)
+                if callback then
+                    callback(index, item)
+                end
             end
         else
-            -- No subMenuCallback provided, just close and return the selection
             display = false
             SetNuiFocus(false, false)
-            callback(index, item)
+            if callback then
+                callback(index, item)
+            end
         end
     end)
 end)
@@ -96,10 +108,15 @@ exports('ShowDropdown', function(title, options, callback, selectedIndex)
         options = options,
         selectedIndex = selectedIndex
     })
-    RegisterNetEvent('eskui:dropdownCallback')
-    AddEventHandler('eskui:dropdownCallback', function(index, value)
-        RemoveEventHandler('eskui:dropdownCallback')
-        callback(index, value)
+    local handlerId
+    handlerId = AddEventHandler('eskui:dropdownCallback', function(index, value)
+        if handlerId then RemoveEventHandler(handlerId) end
+        display = false
+        SetNuiFocus(false, false)
+        if callback and (index ~= nil or value ~= nil) then
+            callback(index, value)
+        end
+        -- If no callback or no data, just close (already closed by NUI callback)
     end)
 end)
 
@@ -160,6 +177,10 @@ RegisterCommand('testdropdown', function()
         'Option 5'
     }
     exports['eskui']:ShowDropdown('Select a Dropdown Option', options, function(index, value)
-        print(('Dropdown selected: %s (index %d)'):format(value, index))
+        if index ~= nil and value ~= nil then
+            print(('Dropdown selected: %s (index %d)'):format(value, index))
+        else
+            print('Dropdown cancelled or no selection made.')
+        end
     end)
 end) 
