@@ -178,9 +178,31 @@ function closeUI() {
     });
 }
 
+// Utility functions for UI show/hide with animation
+function showUI(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.style.display = 'flex';
+    const win = container.querySelector('.window');
+    win.classList.remove('close');
+    win.classList.add('open');
+}
+
+function hideUI(containerId, cb) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const win = container.querySelector('.window');
+    win.classList.remove('open');
+    win.classList.add('close');
+    setTimeout(() => {
+        container.style.display = 'none';
+        if (cb) cb();
+    }, 300);
+}
+
 function showDropdownUI(title, options, selectedIndex) {
     currentUI = 'dropdown';
-    document.getElementById('dropdown-ui').style.display = 'flex';
+    showUI('dropdown-ui');
     document.getElementById('amount-ui').style.display = 'none';
     document.getElementById('list-ui').style.display = 'none';
     document.querySelector('#dropdown-ui .titlebar-title').textContent = title;
@@ -227,7 +249,13 @@ function showDropdownUI(title, options, selectedIndex) {
     };
     // Cancel button
     cancelBtn.onclick = function() {
-        closeDropdownUI();
+        hideUI('dropdown-ui', () => {
+            fetch(`https://${GetParentResourceName()}/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+        });
     };
     // Submit button
     submitBtn.onclick = function() {
@@ -245,22 +273,19 @@ function showDropdownUI(title, options, selectedIndex) {
                 body: JSON.stringify({ index: null, value: null })
             });
         }
-        closeDropdownUI();
+        hideUI('dropdown-ui', () => {});
     };
     // Fix close button for dropdown
     const closeBtn = document.querySelector('#dropdown-ui .close-button');
     closeBtn.onclick = function() {
-        closeDropdownUI();
+        hideUI('dropdown-ui', () => {
+            fetch(`https://${GetParentResourceName()}/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+        });
     };
-}
-
-function closeDropdownUI() {
-    document.getElementById('dropdown-ui').style.display = 'none';
-    fetch(`https://${GetParentResourceName()}/close`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-    });
 }
 
 // Handle Enter key for amount input
