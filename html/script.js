@@ -1,4 +1,6 @@
 let currentUI = null;
+let currentUIId = null;
+let cleanupHandlers = [];
 
 window.addEventListener('message', function(event) {
     const data = event.data;
@@ -19,18 +21,44 @@ window.addEventListener('message', function(event) {
     }
 });
 
+function showUI(containerId) {
+    closeCurrentUI();
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.style.display = 'flex';
+    const win = container.querySelector('.window');
+    win.classList.remove('close');
+    win.classList.add('open');
+    currentUIId = containerId;
+}
+
+function hideUI(containerId, cb) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const win = container.querySelector('.window');
+    win.classList.remove('open');
+    win.classList.add('close');
+    setTimeout(() => {
+        container.style.display = 'none';
+        if (cb) cb();
+    }, 300);
+    if (currentUIId === containerId) currentUIId = null;
+}
+
+function closeCurrentUI() {
+    if (currentUIId) {
+        hideUI(currentUIId);
+    }
+    // Cleanup document-level handlers
+    cleanupHandlers.forEach(fn => fn());
+    cleanupHandlers = [];
+}
+
 function showAmountUI(title) {
     currentUI = 'amount';
-    const amountUI = document.getElementById('amount-ui');
-    const listUI = document.getElementById('list-ui');
-    
-    amountUI.style.display = 'flex';
-    listUI.style.display = 'none';
-    
-    const window = amountUI.querySelector('.window');
-    window.classList.remove('close');
-    window.classList.add('open');
-    
+    showUI('amount-ui');
+    document.getElementById('list-ui').style.display = 'none';
+    document.getElementById('dropdown-ui').style.display = 'none';
     document.querySelector('#amount-ui .titlebar-title').textContent = title;
     document.getElementById('amount-input').value = '';
     document.getElementById('amount-input').focus();
@@ -38,34 +66,20 @@ function showAmountUI(title) {
 
 function showListUI(title, items) {
     currentUI = 'list';
-    const listUI = document.getElementById('list-ui');
-    const amountUI = document.getElementById('amount-ui');
-    
-    listUI.style.display = 'flex';
-    amountUI.style.display = 'none';
-    
-    const window = listUI.querySelector('.window');
-    window.classList.remove('close');
-    window.classList.add('open');
-    
+    showUI('list-ui');
+    document.getElementById('amount-ui').style.display = 'none';
+    document.getElementById('dropdown-ui').style.display = 'none';
     document.querySelector('#list-ui .titlebar-title').textContent = title;
-    
     const listContainer = document.getElementById('list-items');
     listContainer.innerHTML = '';
-    
     items.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'list-item';
-        
         const contentDiv = document.createElement('div');
         contentDiv.className = 'list-item-content';
-        
-        // Force a reflow to get accurate measurements
         contentDiv.style.visibility = 'hidden';
         div.appendChild(contentDiv);
         listContainer.appendChild(div);
-        
-        // Check if text is too long
         let isLong = false;
         let span = null;
         contentDiv.textContent = item.label;
@@ -78,17 +92,15 @@ function showListUI(title, items) {
             contentDiv.appendChild(span);
         }
         contentDiv.style.visibility = 'visible';
-        
         if (isLong && span) {
             div.addEventListener('mouseenter', function() {
                 span.classList.add('scroll-animate');
             });
             div.addEventListener('mouseleave', function() {
                 span.classList.remove('scroll-animate');
-                span.style.transform = 'translateX(0)'; // Reset position
+                span.style.transform = 'translateX(0)';
             });
         }
-        
         if (item.price) {
             const priceDiv = document.createElement('div');
             priceDiv.style.fontSize = '0.9em';
@@ -96,7 +108,6 @@ function showListUI(title, items) {
             priceDiv.textContent = `$${item.price}`;
             div.appendChild(priceDiv);
         }
-        
         div.addEventListener('click', () => selectListItem(index, item));
     });
 }
@@ -178,28 +189,6 @@ function closeUI() {
     });
 }
 
-// Utility functions for UI show/hide with animation
-function showUI(containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.style.display = 'flex';
-    const win = container.querySelector('.window');
-    win.classList.remove('close');
-    win.classList.add('open');
-}
-
-function hideUI(containerId, cb) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    const win = container.querySelector('.window');
-    win.classList.remove('open');
-    win.classList.add('close');
-    setTimeout(() => {
-        container.style.display = 'none';
-        if (cb) cb();
-    }, 300);
-}
-
 function showDropdownUI(title, options, selectedIndex) {
     currentUI = 'dropdown';
     showUI('dropdown-ui');
@@ -241,12 +230,14 @@ function showDropdownUI(title, options, selectedIndex) {
         }
     };
     // Hide dropdown if clicking outside
-    document.body.onclick = function(e) {
+    const docClick = function(e) {
         if (!label.contains(e.target) && !list.contains(e.target)) {
             list.classList.remove('open');
             label.classList.remove('open');
         }
     };
+    document.body.addEventListener('click', docClick);
+    cleanupHandlers.push(() => document.body.removeEventListener('click', docClick));
     // Cancel button
     cancelBtn.onclick = function() {
         hideUI('dropdown-ui', () => {
@@ -266,7 +257,6 @@ function showDropdownUI(title, options, selectedIndex) {
                 body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
             });
         } else {
-            // Send null if nothing selected
             fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -275,7 +265,7 @@ function showDropdownUI(title, options, selectedIndex) {
         }
         hideUI('dropdown-ui', () => {});
     };
-    // Fix close button for dropdown
+    // Close button
     const closeBtn = document.querySelector('#dropdown-ui .close-button');
     closeBtn.onclick = function() {
         hideUI('dropdown-ui', () => {
