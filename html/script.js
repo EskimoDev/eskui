@@ -221,38 +221,56 @@ function showDropdownUI(title, options, selectedIndex = -1) {
     
     // Cancel button
     cancelBtn.onclick = function() {
-        hideUI('dropdown-ui', () => {
+        // Start closing animation first
+        const dropdownUI = document.getElementById('dropdown-ui');
+        const window = dropdownUI.querySelector('.window');
+        window.classList.remove('open');
+        window.classList.add('close');
+        
+        // Wait for animation to complete before sending data
+        setTimeout(() => {
+            // Reset UI state before fetch
+            currentUI = null;
+            currentUIId = null;
+            
+            // Send close event
             fetch(`https://${GetParentResourceName()}/close`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({})
             });
-        });
+        }, 300);
     };
     
     // Submit button
     submitBtn.onclick = function() {
-        const sendClose = () => {
-            fetch(`https://${GetParentResourceName()}/close`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-        };
-        if (currentSelected >= 0) {
-            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
-            }).then(() => {
-                // Reset UI state
-                currentUI = null;
-                currentUIId = null;
-                sendClose();
-            });
-        } else {
-            sendClose();
-        }
+        // Start closing animation first
+        const dropdownUI = document.getElementById('dropdown-ui');
+        const window = dropdownUI.querySelector('.window');
+        window.classList.remove('open');
+        window.classList.add('close');
+        
+        // Wait for animation to complete before sending data
+        setTimeout(() => {
+            // Reset UI state before fetch
+            currentUI = null;
+            currentUIId = null;
+            
+            if (currentSelected >= 0) {
+                fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
+                });
+            } else {
+                // Just send the close event if nothing selected
+                fetch(`https://${GetParentResourceName()}/close`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+            }
+        }, 300);
     };
     
     // Escape key handler
