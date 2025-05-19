@@ -244,4 +244,51 @@ input[type="number"]:focus {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.3);
+}
+
+/* Dropdown Styles */
+#dropdown-label {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: #333;
+    transition: background 0.2s;
+    border: 1px solid rgba(0,0,0,0.07);
+    margin-bottom: 8px;
+    user-select: none;
+}
+#dropdown-label:hover {
+    background: #e5e5e5;
+}
+.dropdown-list {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.07);
+    margin-top: 2px;
+    position: relative;
+    width: 100%;
+    left: 0;
+    z-index: 10;
+    max-height: 220px;
+    overflow-y: auto;
+    animation: windowAppear 0.2s;
+}
+.dropdown-item {
+    padding: 12px 16px;
+    font-size: 15px;
+    color: #333;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dropdown-item:hover, .dropdown-item.selected {
+    background: #007AFF;
+    color: #fff;
 } 

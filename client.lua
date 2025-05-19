@@ -22,6 +22,14 @@ RegisterNUICallback('close', function(data, cb)
     TriggerEvent('eskui:closeCallback')
 end)
 
+-- Register the NUI callback for dropdown selection
+RegisterNUICallback('dropdownSelect', function(data, cb)
+    display = false
+    SetNuiFocus(false, false)
+    cb('ok')
+    TriggerEvent('eskui:dropdownCallback', data.index, data.value)
+end)
+
 -- Export function for showing the amount input
 exports('ShowAmount', function(title, callback)
     if display then return end
@@ -77,6 +85,24 @@ exports('ShowList', function(title, items, callback, subMenuCallback)
     end)
 end)
 
+-- Export function for showing the dropdown
+exports('ShowDropdown', function(title, options, callback, selectedIndex)
+    if display then return end
+    display = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        type = "showDropdown",
+        title = title,
+        options = options,
+        selectedIndex = selectedIndex
+    })
+    RegisterNetEvent('eskui:dropdownCallback')
+    AddEventHandler('eskui:dropdownCallback', function(index, value)
+        RemoveEventHandler('eskui:dropdownCallback')
+        callback(index, value)
+    end)
+end)
+
 -- Test commands
 RegisterCommand('testamount', function()
     exports['eskui']:ShowAmount('Enter Amount', function(amount)
@@ -121,5 +147,19 @@ RegisterCommand('testsubmenu', function()
         end
         -- Return nil for other categories to close the UI
         return nil
+    end)
+end)
+
+-- Test command for dropdown
+RegisterCommand('testdropdown', function()
+    local options = {
+        'Option 1',
+        'Option 2',
+        'Option 3',
+        'A very long dropdown option that will be truncated',
+        'Option 5'
+    }
+    exports['eskui']:ShowDropdown('Select a Dropdown Option', options, function(index, value)
+        print(('Dropdown selected: %s (index %d)'):format(value, index))
     end)
 end) 

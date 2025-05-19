@@ -13,6 +13,9 @@ window.addEventListener('message', function(event) {
         case 'showSubMenu':
             showSubMenu(data.title, data.items);
             break;
+        case 'showDropdown':
+            showDropdownUI(data.title, data.options, data.selectedIndex);
+            break;
     }
 });
 
@@ -173,6 +176,42 @@ function closeUI() {
         },
         body: JSON.stringify({})
     });
+}
+
+function showDropdownUI(title, options, selectedIndex) {
+    currentUI = 'dropdown';
+    document.getElementById('dropdown-ui').style.display = 'flex';
+    document.getElementById('amount-ui').style.display = 'none';
+    document.getElementById('list-ui').style.display = 'none';
+    document.querySelector('#dropdown-ui .titlebar-title').textContent = title;
+    const label = document.getElementById('dropdown-label');
+    const list = document.getElementById('dropdown-list');
+    let currentSelected = typeof selectedIndex === 'number' ? selectedIndex : -1;
+    label.textContent = currentSelected >= 0 ? options[currentSelected] : 'Select an option';
+    list.innerHTML = '';
+    options.forEach((opt, idx) => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item' + (idx === currentSelected ? ' selected' : '');
+        item.textContent = opt;
+        item.onclick = function() {
+            label.textContent = opt;
+            list.style.display = 'none';
+            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index: idx, value: opt })
+            });
+        };
+        list.appendChild(item);
+    });
+    label.onclick = function(e) {
+        e.stopPropagation();
+        list.style.display = list.style.display === 'block' ? 'none' : 'block';
+    };
+    // Hide dropdown if clicking outside
+    document.body.onclick = function() {
+        list.style.display = 'none';
+    };
 }
 
 // Handle Enter key for amount input
