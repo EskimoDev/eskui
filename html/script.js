@@ -103,6 +103,7 @@ function showAmountUI(title) {
     document.getElementById('amount-input').value = '';
     document.getElementById('amount-input').focus();
     
+    setupMouseReactiveEffects();
     addEscapeHandler(closeUI);
 }
 
@@ -173,6 +174,7 @@ function showListUI(title, items, isSubmenu) {
         }, 10);
     });
     
+    setupMouseReactiveEffects();
     addEscapeHandler(() => {
         if (listMenuStack.length > 0 && !isSubmenu) {
             const prevMenu = listMenuStack.pop();
@@ -263,6 +265,7 @@ function showDropdownUI(title, options, selectedIndex = -1) {
         }
     };
     
+    setupMouseReactiveEffects();
     addEscapeHandler(() => {
         // If dropdown list is open, just close it
         if (list.classList.contains('open')) {
@@ -307,4 +310,22 @@ document.getElementById('amount-input').addEventListener('keypress', function(e)
     if (e.key === 'Enter') {
         submitAmount();
     }
-}); 
+});
+
+// Mouse tracking for reactive header effects - disabled
+function setupMouseReactiveEffects() {
+    // Effects removed
+}
+
+// Cloud pattern functions - disabled
+function createCloudPatterns() {
+    // Function disabled
+}
+
+function createStaticCloudPattern() {
+    // Function disabled
+}
+
+function createCloudPattern() {
+    // Function disabled
+} 
