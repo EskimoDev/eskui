@@ -2,6 +2,7 @@ let currentUI = null;
 let currentUIId = null;
 let cleanupHandlers = [];
 let listMenuStack = [];
+let darkMode = false;
 
 // Helper functions for better code reuse
 function resetUIState() {
@@ -58,6 +59,12 @@ window.addEventListener('message', function(event) {
             break;
         case 'showDropdown':
             showDropdownUI(data.title, data.options, data.selectedIndex);
+            break;
+        case 'showSettings':
+            showSettingsUI();
+            break;
+        case 'toggleDarkMode':
+            toggleDarkMode();
             break;
     }
 });
@@ -328,4 +335,67 @@ function createStaticCloudPattern() {
 
 function createCloudPattern() {
     // Function disabled
-} 
+}
+
+// Show settings UI
+function showSettingsUI() {
+    currentUI = 'settings';
+    showUI('settings-ui');
+    document.getElementById('amount-ui').style.display = 'none';
+    document.getElementById('list-ui').style.display = 'none';
+    document.getElementById('dropdown-ui').style.display = 'none';
+    
+    // Set the toggle to match current dark mode setting
+    document.getElementById('dark-mode-toggle').checked = darkMode;
+    
+    // Add event listeners
+    document.getElementById('dark-mode-toggle').addEventListener('change', function(e) {
+        // We don't toggle dark mode immediately - will be applied when Save is clicked
+    });
+    
+    addEscapeHandler(closeUI);
+}
+
+// Save settings from the settings UI
+function saveSettings() {
+    // Get toggle state
+    const darkModeToggle = document.getElementById('dark-mode-toggle');
+    const newDarkModeSetting = darkModeToggle.checked;
+    
+    // Only apply changes if different from current state
+    if (newDarkModeSetting !== darkMode) {
+        toggleDarkMode();
+    }
+    
+    // Close the settings UI
+    closeAndSendData('settings-ui', 'close');
+}
+
+// Dark mode toggle function
+function toggleDarkMode() {
+    darkMode = !darkMode;
+    
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+    } else {
+        document.body.classList.remove('dark-mode');
+    }
+    
+    // Save preference to localStorage
+    localStorage.setItem('eskui_darkMode', darkMode ? 'true' : 'false');
+    
+    // Notify client-side script of the change
+    sendNUIMessage('darkModeChanged', { darkMode: darkMode });
+}
+
+// Initialize dark mode from saved preference
+function initializeDarkMode() {
+    const savedMode = localStorage.getItem('eskui_darkMode');
+    if (savedMode === 'true') {
+        darkMode = true;
+        document.body.classList.add('dark-mode');
+    }
+}
+
+// Call initialization when the script loads
+initializeDarkMode(); 

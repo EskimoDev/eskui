@@ -1,4 +1,5 @@
 local display = false
+local darkMode = false
 
 -- Helper function to handle all NUI callbacks with common logic
 local function registerNUICallback(name, callback)
@@ -29,11 +30,42 @@ registerNUICallback('dropdownSelect', function(data)
     TriggerEvent('eskui:dropdownCallback', data.index, data.value)
 end)
 
+-- Dark mode callback handler
+RegisterNUICallback('darkModeChanged', function(data, cb)
+    darkMode = data.darkMode
+    cb('ok')
+end)
+
 -- NUI callback for server event execution (doesn't need the standard handling)
 RegisterNUICallback('eskui_serverEvent', function(data, cb)
     TriggerServerEvent(data.event, table.unpack(data.args or {}))
     cb('ok')
 end)
+
+-- Register darkmode command
+RegisterCommand('darkmode', function()
+    darkMode = not darkMode
+    SendNUIMessage({
+        type = 'toggleDarkMode'
+    })
+    TriggerEvent('chat:addMessage', {
+        color = {149, 107, 213},
+        args = {"ESKUI", "Dark mode " .. (darkMode and "enabled" or "disabled")}
+    })
+end, false)
+
+-- Register settings command
+RegisterCommand('uisettings', function()
+    SendNUIMessage({
+        type = 'showSettings'
+    })
+    SetNuiFocus(true, true)
+    display = true
+end, false)
+
+-- Add suggestion for commands
+TriggerEvent('chat:addSuggestion', '/darkmode', 'Toggle ESKUI dark mode')
+TriggerEvent('chat:addSuggestion', '/uisettings', 'Open ESKUI settings menu')
 
 -- Utility to register and clean up eskui event handlers
 local function registerEskuiHandler(event, handler)
@@ -126,6 +158,24 @@ exports('ShowDropdown', function(title, options, callback, selectedIndex)
             callback(index, value)
         end
     end)
+end)
+
+-- Export function to show the settings UI
+exports('ShowSettings', function()
+    display = true
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        type = 'showSettings'
+    })
+end)
+
+-- Export function to toggle dark mode
+exports('ToggleDarkMode', function()
+    darkMode = not darkMode
+    SendNUIMessage({
+        type = 'toggleDarkMode'
+    })
+    return darkMode
 end)
 
 -- Test commands

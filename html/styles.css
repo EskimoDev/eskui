@@ -342,4 +342,262 @@ input[type="number"]:focus {
 /* Remove all header effects */
 .cloud-layer, .cloud-pattern, .mouse-glow, .ink-overlay, .ink-drop {
     display: none;
+}
+
+/* Dark mode styles */
+body.dark-mode {
+    background: transparent;
+}
+
+body.dark-mode .window {
+    background: rgba(28, 28, 30, 0.95);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(149, 107, 213, 0.25);
+}
+
+body.dark-mode .titlebar {
+    background: rgba(40, 40, 45, 0.8);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .titlebar-title {
+    color: #fff;
+}
+
+body.dark-mode .close-button {
+    background: #ff453a;
+}
+
+body.dark-mode input[type="number"] {
+    background: rgba(45, 45, 50, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+body.dark-mode input[type="number"]::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+body.dark-mode input[type="number"]:focus {
+    border-color: #0a84ff;
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25);
+}
+
+body.dark-mode .button.cancel {
+    background: #3a3a3c;
+    color: #fff;
+}
+
+body.dark-mode .button.cancel:hover {
+    background: #4a4a4c;
+}
+
+body.dark-mode .button.submit {
+    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
+    color: white;
+}
+
+body.dark-mode .list-item {
+    background: #2c2c2e;
+    color: white;
+}
+
+body.dark-mode .list-item:hover {
+    background: #3a3a3c;
+}
+
+body.dark-mode .list-item.selected {
+    background: #0a84ff;
+}
+
+body.dark-mode .list-item-desc {
+    color: #999;
+}
+
+body.dark-mode .list-item-content.scroll::before {
+    background: linear-gradient(to right, rgba(44, 44, 46, 0) 85%, #2c2c2e 100%);
+}
+
+body.dark-mode .list-item:hover .list-item-content.scroll::before {
+    background: linear-gradient(to right, #3a3a3c 0%, rgba(58, 58, 60, 0) 10%, rgba(58, 58, 60, 0) 90%, #3a3a3c 100%);
+}
+
+body.dark-mode .dropdown-label {
+    background: #2c2c2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+body.dark-mode .dropdown-label:hover {
+    background: #3a3a3c;
+}
+
+body.dark-mode .dropdown-list {
+    background: #2c2c2e;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .dropdown-item {
+    color: white;
+}
+
+body.dark-mode .dropdown-item:hover, 
+body.dark-mode .dropdown-item.selected {
+    background: #0a84ff;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* Settings UI styles */
+.settings-container {
+    width: 100%;
+    max-width: 100%;
+}
+
+.settings-header {
+    font-size: 16px;
+    font-weight: 500;
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #333;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding-bottom: 8px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.setting-row:last-child {
+    border-bottom: none;
+}
+
+.setting-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+.setting-control {
+    display: flex;
+    align-items: center;
+}
+
+.settings-buttons {
+    margin-top: 20px;
+}
+
+/* Toggle Switch with Sun/Moon Icons */
+.toggle-container {
+    position: relative;
+    display: inline-block;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.toggle-switch input {
+    display: none;
+}
+
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 70px;
+    height: 34px;
+    background-color: #83d8ff;
+    border-radius: 34px;
+    transition: background-color 0.4s;
+}
+
+.toggle:before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background: linear-gradient(#86c3db, #427ece);
+    border-radius: 34px;
+    transform: translateX(0);
+    transition: transform 0.4s;
+}
+
+.toggle__handler {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #ffcf96;
+    transition: all 0.4s;
+    z-index: 1;
+}
+
+input:checked + .toggle:before {
+    background: linear-gradient(#2c3e50, #1a1e2a);
+}
+
+input:checked + .toggle .toggle__handler {
+    background-color: #546e96;
+    transform: translateX(36px);
+}
+
+.toggle-icon {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.4s;
+    color: #333;
+}
+
+.toggle-icon.sun {
+    opacity: 1;
+    color: #ff6a00;
+}
+
+.toggle-icon.moon {
+    opacity: 0;
+    color: #fff;
+}
+
+input:checked + .toggle .toggle-icon.sun {
+    opacity: 0;
+}
+
+input:checked + .toggle .toggle-icon.moon {
+    opacity: 1;
+}
+
+/* Dark mode styles for settings UI */
+body.dark-mode .settings-header {
+    color: #fff;
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .setting-row {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .setting-label {
+    color: #fff;
 } 
