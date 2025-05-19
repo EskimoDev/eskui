@@ -53,13 +53,48 @@ function showListUI(title, items) {
     items.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'list-item';
-        div.innerHTML = `
-            <div style="font-weight: 500;">${item.label}</div>
-            ${item.price ? `<div style="font-size: 0.9em; opacity: 0.7;">$${item.price}</div>` : ''}
-        `;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'list-item-content';
+        
+        // Force a reflow to get accurate measurements
+        contentDiv.style.visibility = 'hidden';
+        div.appendChild(contentDiv);
+        listContainer.appendChild(div);
+        
+        // Check if text is too long
+        let isLong = false;
+        let span = null;
+        contentDiv.textContent = item.label;
+        if (contentDiv.scrollWidth > contentDiv.clientWidth) {
+            isLong = true;
+            contentDiv.classList.add('scroll');
+            contentDiv.textContent = '';
+            span = document.createElement('span');
+            span.textContent = item.label;
+            contentDiv.appendChild(span);
+        }
+        contentDiv.style.visibility = 'visible';
+        
+        if (isLong && span) {
+            div.addEventListener('mouseenter', function() {
+                span.classList.add('scroll-animate');
+            });
+            div.addEventListener('mouseleave', function() {
+                span.classList.remove('scroll-animate');
+                span.style.transform = 'translateX(0)'; // Reset position
+            });
+        }
+        
+        if (item.price) {
+            const priceDiv = document.createElement('div');
+            priceDiv.style.fontSize = '0.9em';
+            priceDiv.style.opacity = '0.7';
+            priceDiv.textContent = `$${item.price}`;
+            div.appendChild(priceDiv);
+        }
         
         div.addEventListener('click', () => selectListItem(index, item));
-        listContainer.appendChild(div);
     });
 }
 

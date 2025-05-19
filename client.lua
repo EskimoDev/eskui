@@ -88,7 +88,7 @@ RegisterCommand('testlist', function()
     local items = {
         {label = 'Item 1', price = 100},
         {label = 'Item 2', price = 200},
-        {label = 'Item 3', price = 300},
+        {label = 'This is a very long item name that will trigger the scrolling text effect when hovered over', price = 300},
         {label = 'Item 4', price = 400},
         {label = 'Item 5', price = 500}
     }
