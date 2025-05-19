@@ -32,7 +32,7 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(149, 107, 213, 0.2);
     width: 400px;
     overflow: hidden;
-    transition: box-shadow 0.3s ease;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .window:hover {
@@ -648,4 +648,55 @@ body.dark-mode .setting-row {
 
 body.dark-mode .setting-label {
     color: #fff;
+}
+
+/* Opacity Slider Styles */
+.slider-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 180px;
+}
+
+.opacity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #f0f0f0;
+    outline: none;
+    margin-right: 10px;
+    transition: background 0.2s;
+}
+
+body.dark-mode .opacity-slider {
+    background: #3a3a3c;
+}
+
+.opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007AFF, #956bd5);
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .opacity-slider::-webkit-slider-thumb {
+    background: linear-gradient(135deg, #0a84ff, #956bd5);
+}
+
+.opacity-value {
+    min-width: 40px;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 500;
+    color: #444;
+}
+
+body.dark-mode .opacity-value {
+    color: #ddd;
 } 

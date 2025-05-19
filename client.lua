@@ -1,5 +1,6 @@
 local display = false
 local darkMode = false
+local windowOpacity = 1.0
 
 -- Helper function to handle all NUI callbacks with common logic
 local function registerNUICallback(name, callback)
@@ -33,6 +34,12 @@ end)
 -- Dark mode callback handler
 RegisterNUICallback('darkModeChanged', function(data, cb)
     darkMode = data.darkMode
+    cb('ok')
+end)
+
+-- Window opacity callback handler
+RegisterNUICallback('opacityChanged', function(data, cb)
+    windowOpacity = data.windowOpacity
     cb('ok')
 end)
 

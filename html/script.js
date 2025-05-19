@@ -3,6 +3,7 @@ let currentUIId = null;
 let cleanupHandlers = [];
 let listMenuStack = [];
 let darkMode = false;
+let windowOpacity = 0.95; // Default window opacity 95%
 
 // Helper functions for better code reuse
 function resetUIState() {
@@ -348,28 +349,44 @@ function showSettingsUI() {
     // Set the toggle to match current dark mode setting
     document.getElementById('dark-mode-toggle').checked = darkMode;
     
-    // Store original dark mode state to restore if canceled
-    const originalDarkMode = darkMode;
+    // Set the opacity slider to current opacity value
+    const opacitySlider = document.getElementById('opacity-slider');
+    const opacityValue = document.getElementById('opacity-value');
+    opacitySlider.value = Math.round(windowOpacity * 100);
+    opacityValue.textContent = `${opacitySlider.value}%`;
     
-    // Add event listeners
+    // Store original settings to restore if canceled
+    const originalDarkMode = darkMode;
+    const originalOpacity = windowOpacity;
+    
+    // Add event listeners for dark mode
     document.getElementById('dark-mode-toggle').addEventListener('change', function(e) {
         // Apply dark mode immediately for preview, but don't save to storage yet
         applyDarkMode(e.target.checked, false);
     });
     
-    // Override standard close handler to restore original mode if not saved
+    // Add event listener for opacity slider
+    opacitySlider.addEventListener('input', function() {
+        const value = parseInt(this.value);
+        opacityValue.textContent = `${value}%`;
+        applyOpacity(value / 100, false); // Preview opacity without saving
+    });
+    
+    // Override standard close handler to restore original settings if not saved
     addEscapeHandler(() => {
-        // Restore original dark mode if ESC is pressed without saving
+        // Restore original settings if ESC is pressed without saving
         applyDarkMode(originalDarkMode, false);
+        applyOpacity(originalOpacity, false);
         closeUI();
     });
     
-    // Override cancel button to restore original mode
+    // Override cancel button to restore original settings
     const cancelButton = document.querySelector('#settings-ui .button.cancel');
     if (cancelButton) {
         cancelButton.onclick = () => {
-            // Restore original dark mode if Cancel is pressed
+            // Restore original settings if Cancel is pressed
             applyDarkMode(originalDarkMode, false);
+            applyOpacity(originalOpacity, false);
             closeUI();
         };
     }
@@ -381,11 +398,42 @@ function saveSettings() {
     const darkModeToggle = document.getElementById('dark-mode-toggle');
     const newDarkModeSetting = darkModeToggle.checked;
     
-    // Apply and save the dark mode setting
+    // Get opacity value
+    const opacitySlider = document.getElementById('opacity-slider');
+    const newOpacity = parseInt(opacitySlider.value) / 100;
+    
+    // Apply and save both settings
     applyDarkMode(newDarkModeSetting, true);
+    applyOpacity(newOpacity, true);
     
     // Close the settings UI
     closeAndSendData('settings-ui', 'close');
+}
+
+// Apply opacity setting
+function applyOpacity(opacity, shouldSave) {
+    // Only update if the state is different or we're not saving
+    if (opacity !== windowOpacity || !shouldSave) {
+        // Update the state
+        windowOpacity = opacity;
+        
+        // Apply to all window elements
+        const windows = document.querySelectorAll('.window');
+        windows.forEach(win => {
+            win.style.backgroundColor = darkMode 
+                ? `rgba(28, 28, 30, ${opacity})` 
+                : `rgba(255, 255, 255, ${opacity})`;
+        });
+        
+        // Save preference if requested
+        if (shouldSave) {
+            // Save preference to localStorage
+            localStorage.setItem('eskui_windowOpacity', windowOpacity.toString());
+            
+            // Notify client-side script of the change
+            sendNUIMessage('opacityChanged', { windowOpacity });
+        }
+    }
 }
 
 // Apply dark mode without toggling
@@ -401,6 +449,9 @@ function applyDarkMode(enabled, shouldSave) {
         } else {
             document.body.classList.remove('dark-mode');
         }
+        
+        // Update opacity color based on theme
+        applyOpacity(windowOpacity, false);
         
         // Save preference if requested
         if (shouldSave) {
@@ -418,13 +469,23 @@ function toggleDarkMode() {
     applyDarkMode(!darkMode, true);
 }
 
-// Initialize dark mode from saved preference
-function initializeDarkMode() {
+// Initialize dark mode and opacity from saved preferences
+function initializeSettings() {
+    // Initialize dark mode
     const savedMode = localStorage.getItem('eskui_darkMode');
     if (savedMode === 'true') {
         applyDarkMode(true, false);
     }
+    
+    // Initialize opacity
+    const savedOpacity = localStorage.getItem('eskui_windowOpacity');
+    if (savedOpacity) {
+        applyOpacity(parseFloat(savedOpacity), false);
+    } else {
+        // Default opacity
+        applyOpacity(windowOpacity, false);
+    }
 }
 
 // Call initialization when the script loads
-initializeDarkMode(); 
+initializeSettings(); 
