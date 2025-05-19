@@ -4,6 +4,7 @@ let cleanupHandlers = [];
 let listMenuStack = [];
 let darkMode = false;
 let windowOpacity = 0.95; // Default window opacity 95%
+let freeDrag = false; // Default drag disabled
 
 // Helper functions for better code reuse
 function resetUIState() {
@@ -303,10 +304,19 @@ function submitAmount() {
 }
 
 function closeUI() {
+    // Check if we're in the middle of dragging
+    if (currentUIId && $(`#${currentUIId}`).data('isDragging')) {
+        return; // Don't close if dragging
+    }
+    
     // Hide all UIs
-    ['amount-ui', 'list-ui', 'dropdown-ui'].forEach(id => {
+    ['amount-ui', 'list-ui', 'dropdown-ui', 'settings-ui'].forEach(id => {
         animateUIClose(id);
     });
+    
+    // Cleanup document-level handlers
+    cleanupHandlers.forEach(fn => fn());
+    cleanupHandlers = [];
     
     // Send close message
     resetUIState();
@@ -338,6 +348,61 @@ function createCloudPattern() {
     // Function disabled
 }
 
+// Function to enable/disable draggable functionality
+function toggleDraggable(enable) {
+    const windows = document.querySelectorAll('.window');
+    windows.forEach(win => {
+        if (enable) {
+            win.classList.add('draggable');
+            // Initialize jQuery UI draggable
+            $(win).draggable({
+                handle: '.titlebar',
+                containment: 'window',
+                start: function() {
+                    // Prevent drag from closing UI
+                    $(this).parent().data('isDragging', true);
+                },
+                stop: function() {
+                    // Allow time for click events to process before resetting
+                    setTimeout(() => {
+                        $(this).parent().data('isDragging', false);
+                    }, 100);
+                }
+            });
+        } else {
+            win.classList.remove('draggable');
+            // Remove draggable functionality
+            if ($(win).hasClass('ui-draggable')) {
+                $(win).draggable('destroy');
+            }
+            // Reset position
+            win.style.top = '';
+            win.style.left = '';
+        }
+    });
+}
+
+// Apply free drag setting
+function applyFreeDrag(enabled, shouldSave) {
+    // Only update if the state is different or we're not saving
+    if (enabled !== freeDrag || !shouldSave) {
+        // Update the state
+        freeDrag = enabled;
+        
+        // Apply draggable functionality
+        toggleDraggable(enabled);
+        
+        // Save preference if requested
+        if (shouldSave) {
+            // Save preference to localStorage
+            localStorage.setItem('eskui_freeDrag', freeDrag ? 'true' : 'false');
+            
+            // Notify client-side script of the change
+            sendNUIMessage('freeDragChanged', { freeDrag });
+        }
+    }
+}
+
 // Show settings UI
 function showSettingsUI() {
     currentUI = 'settings';
@@ -345,6 +410,14 @@ function showSettingsUI() {
     document.getElementById('amount-ui').style.display = 'none';
     document.getElementById('list-ui').style.display = 'none';
     document.getElementById('dropdown-ui').style.display = 'none';
+    
+    // Add specific close button handler for settings UI
+    const settingsCloseBtn = document.querySelector('#settings-ui .close-button');
+    if (settingsCloseBtn) {
+        settingsCloseBtn.onclick = function() {
+            closeUI();
+        };
+    }
     
     // Set the toggle to match current dark mode setting
     document.getElementById('dark-mode-toggle').checked = darkMode;
@@ -355,9 +428,13 @@ function showSettingsUI() {
     opacitySlider.value = Math.round(windowOpacity * 100);
     opacityValue.textContent = `${opacitySlider.value}%`;
     
+    // Set the free drag toggle to current state
+    document.getElementById('free-drag-toggle').checked = freeDrag;
+    
     // Store original settings to restore if canceled
     const originalDarkMode = darkMode;
     const originalOpacity = windowOpacity;
+    const originalFreeDrag = freeDrag;
     
     // Add event listeners for dark mode
     document.getElementById('dark-mode-toggle').addEventListener('change', function(e) {
@@ -372,11 +449,18 @@ function showSettingsUI() {
         applyOpacity(value / 100, false); // Preview opacity without saving
     });
     
+    // Add event listener for free drag toggle
+    document.getElementById('free-drag-toggle').addEventListener('change', function(e) {
+        // Apply free drag immediately for preview, but don't save to storage yet
+        applyFreeDrag(e.target.checked, false);
+    });
+    
     // Override standard close handler to restore original settings if not saved
     addEscapeHandler(() => {
         // Restore original settings if ESC is pressed without saving
         applyDarkMode(originalDarkMode, false);
         applyOpacity(originalOpacity, false);
+        applyFreeDrag(originalFreeDrag, false);
         closeUI();
     });
     
@@ -387,6 +471,7 @@ function showSettingsUI() {
             // Restore original settings if Cancel is pressed
             applyDarkMode(originalDarkMode, false);
             applyOpacity(originalOpacity, false);
+            applyFreeDrag(originalFreeDrag, false);
             closeUI();
         };
     }
@@ -402,9 +487,14 @@ function saveSettings() {
     const opacitySlider = document.getElementById('opacity-slider');
     const newOpacity = parseInt(opacitySlider.value) / 100;
     
-    // Apply and save both settings
+    // Get free drag state
+    const freeDragToggle = document.getElementById('free-drag-toggle');
+    const newFreeDrag = freeDragToggle.checked;
+    
+    // Apply and save all settings
     applyDarkMode(newDarkModeSetting, true);
     applyOpacity(newOpacity, true);
+    applyFreeDrag(newFreeDrag, true);
     
     // Close the settings UI
     closeAndSendData('settings-ui', 'close');
@@ -484,6 +574,12 @@ function initializeSettings() {
     } else {
         // Default opacity
         applyOpacity(windowOpacity, false);
+    }
+    
+    // Initialize free drag
+    const savedFreeDrag = localStorage.getItem('eskui_freeDrag');
+    if (savedFreeDrag === 'true') {
+        applyFreeDrag(true, false);
     }
 }
 

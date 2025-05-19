@@ -650,6 +650,72 @@ body.dark-mode .setting-label {
     color: #fff;
 }
 
+/* Draggable styles */
+.draggable .titlebar {
+    cursor: move;
+}
+
+.window.draggable {
+    position: absolute;
+    margin: 0;
+}
+
+/* Free drag toggle styles - modified version of the dark mode toggle */
+.toggle.drag-toggle:before {
+    background: linear-gradient(#d64545, #a42e2e);
+}
+
+.toggle.drag-toggle:after {
+    background: radial-gradient(circle, rgba(255, 100, 100, 0.6) 0%, rgba(255, 100, 100, 0) 60%);
+}
+
+body:not(.dark-mode) .toggle.drag-toggle .toggle__handler {
+    background: linear-gradient(#ffaaaa, #ff6666);
+}
+
+body.dark-mode .toggle.drag-toggle .toggle__handler {
+    background: linear-gradient(#a34f4f, #803030);
+}
+
+input:checked + .toggle.drag-toggle:before {
+    background: linear-gradient(#43a047, #2e7d32);
+}
+
+input:checked + .toggle.drag-toggle:after {
+    background: radial-gradient(circle, rgba(100, 255, 100, 0.6) 0%, rgba(100, 255, 100, 0) 60%);
+    opacity: 0;
+    transform: translate(40px, 0) scale(0.1);
+}
+
+input:checked + .toggle.drag-toggle .toggle__handler {
+    background: linear-gradient(#81c784, #4caf50);
+    transform: translateX(36px);
+}
+
+.toggle-icon.drag-disabled {
+    opacity: 1;
+    color: #d32f2f;
+}
+
+.toggle-icon.drag-enabled {
+    opacity: 0;
+    color: #2e7d32;
+}
+
+input:checked + .toggle.drag-toggle .toggle-icon.drag-disabled {
+    opacity: 0;
+    transform: rotate(90deg);
+}
+
+input:checked + .toggle.drag-toggle .toggle-icon.drag-enabled {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+.toggle-icon.drag-enabled {
+    transform: rotate(-90deg);
+}
+
 /* Opacity Slider Styles */
 .slider-container {
     display: flex;

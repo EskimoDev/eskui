@@ -1,6 +1,7 @@
 local display = false
 local darkMode = false
-local windowOpacity = 1.0
+local windowOpacity = 0.95
+local freeDrag = false
 
 -- Helper function to handle all NUI callbacks with common logic
 local function registerNUICallback(name, callback)
@@ -40,6 +41,12 @@ end)
 -- Window opacity callback handler
 RegisterNUICallback('opacityChanged', function(data, cb)
     windowOpacity = data.windowOpacity
+    cb('ok')
+end)
+
+-- Free drag callback handler
+RegisterNUICallback('freeDragChanged', function(data, cb)
+    freeDrag = data.freeDrag
     cb('ok')
 end)
 

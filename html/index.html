@@ -6,6 +6,8 @@
     <title>ESKUI</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 </head>
 <body>
     <!-- Amount Input UI -->
@@ -127,6 +129,35 @@
                             <div class="slider-container">
                                 <input type="range" class="opacity-slider" id="opacity-slider" min="50" max="100" value="95">
                                 <div class="opacity-value" id="opacity-value">95%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Free Drag Toggle -->
+                    <div class="setting-row">
+                        <div class="setting-label">Free Drag</div>
+                        <div class="setting-control">
+                            <div class="toggle-container">
+                                <label class="toggle-switch" for="free-drag-toggle">
+                                    <input type="checkbox" id="free-drag-toggle">
+                                    <span class="toggle drag-toggle">
+                                        <span class="toggle__handler">
+                                            <!-- X icon (disabled) -->
+                                            <span class="toggle-icon drag-disabled">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                </svg>
+                                            </span>
+                                            <!-- Checkmark icon (enabled) -->
+                                            <span class="toggle-icon drag-enabled">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                                </svg>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </label>
                             </div>
                         </div>
                     </div>
