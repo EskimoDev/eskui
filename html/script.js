@@ -10,6 +10,9 @@ window.addEventListener('message', function(event) {
         case 'showList':
             showListUI(data.title, data.items);
             break;
+        case 'showSubMenu':
+            showSubMenu(data.title, data.items);
+            break;
     }
 });
 
@@ -60,31 +63,53 @@ function showListUI(title, items) {
     });
 }
 
-function selectListItem(index, item) {
-    fetch(`https://${GetParentResourceName()}/listSelect`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            index: index,
-            item: item
-        })
-    });
+function showSubMenu(title, items) {
+    showListUI(title, items);
 }
 
-function submitAmount() {
-    const amount = document.getElementById('amount-input').value;
-    if (amount && amount > 0) {
-        fetch(`https://${GetParentResourceName()}/amountSubmit`, {
+function selectListItem(index, item) {
+    const listUI = document.getElementById('list-ui');
+    const window = listUI.querySelector('.window');
+    
+    window.classList.remove('open');
+    window.classList.add('close');
+    
+    // Wait for animation to complete before sending data
+    setTimeout(() => {
+        fetch(`https://${GetParentResourceName()}/listSelect`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                amount: amount
+                index: index,
+                item: item
             })
         });
+    }, 300);
+}
+
+function submitAmount() {
+    const amount = document.getElementById('amount-input').value;
+    if (amount && amount > 0) {
+        const amountUI = document.getElementById('amount-ui');
+        const window = amountUI.querySelector('.window');
+        
+        window.classList.remove('open');
+        window.classList.add('close');
+        
+        // Wait for animation to complete before submitting
+        setTimeout(() => {
+            fetch(`https://${GetParentResourceName()}/amountSubmit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amount: amount
+                })
+            });
+        }, 300);
     }
 }
 
@@ -104,7 +129,7 @@ function closeUI() {
     setTimeout(() => {
         amountUI.style.display = 'none';
         listUI.style.display = 'none';
-    }, 300); // Match animation duration
+    }, 300);
     
     fetch(`https://${GetParentResourceName()}/close`, {
         method: 'POST',
