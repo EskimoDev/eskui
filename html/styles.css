@@ -517,9 +517,10 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     display: inline-block;
     width: 70px;
     height: 34px;
-    background-color: #83d8ff;
     border-radius: 34px;
-    transition: background-color 0.4s;
+    transition: all 0.4s ease;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 .toggle:before {
@@ -529,10 +530,25 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     height: 100%;
     left: 0;
     top: 0;
-    background: linear-gradient(#86c3db, #427ece);
+    background: linear-gradient(#86c3db, #5d9ece);
     border-radius: 34px;
     transform: translateX(0);
-    transition: transform 0.4s;
+    transition: all 0.4s ease;
+}
+
+/* Add sun rays around toggle when in light mode */
+.toggle:after {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 210, 100, 0.6) 0%, rgba(255, 210, 100, 0) 60%);
+    opacity: 1;
+    transition: all 0.6s ease;
+    z-index: 0;
 }
 
 .toggle__handler {
@@ -545,18 +561,35 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background-color: #ffcf96;
-    transition: all 0.4s;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+body:not(.dark-mode) .toggle__handler {
+    background: linear-gradient(#ffcf96, #ff9a40);
+}
+
+body.dark-mode .toggle__handler {
+    background: linear-gradient(#546e96, #3a4c6e);
+}
+
+input:checked + .toggle {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 input:checked + .toggle:before {
     background: linear-gradient(#2c3e50, #1a1e2a);
 }
 
+input:checked + .toggle:after {
+    opacity: 0;
+    transform: translate(40px, 0) scale(0.1);
+}
+
 input:checked + .toggle .toggle__handler {
-    background-color: #546e96;
     transform: translateX(36px);
+    background-color: #546e96;
 }
 
 .toggle-icon {
@@ -566,8 +599,7 @@ input:checked + .toggle .toggle__handler {
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: all 0.4s;
-    color: #333;
+    transition: all 0.5s ease;
 }
 
 .toggle-icon.sun {
@@ -582,10 +614,26 @@ input:checked + .toggle .toggle__handler {
 
 input:checked + .toggle .toggle-icon.sun {
     opacity: 0;
+    transform: rotate(90deg);
 }
 
 input:checked + .toggle .toggle-icon.moon {
     opacity: 1;
+    transform: rotate(0deg);
+}
+
+.toggle-icon.moon {
+    transform: rotate(-90deg);
+}
+
+/* Dark mode toggle improvements */
+body.dark-mode .toggle {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Settings UI animation for dark mode transition */
+body, .window, .titlebar, .content, input, .button, .list-item {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* Dark mode styles for settings UI */

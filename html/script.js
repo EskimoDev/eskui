@@ -348,12 +348,31 @@ function showSettingsUI() {
     // Set the toggle to match current dark mode setting
     document.getElementById('dark-mode-toggle').checked = darkMode;
     
+    // Store original dark mode state to restore if canceled
+    const originalDarkMode = darkMode;
+    
     // Add event listeners
     document.getElementById('dark-mode-toggle').addEventListener('change', function(e) {
-        // We don't toggle dark mode immediately - will be applied when Save is clicked
+        // Apply dark mode immediately for preview, but don't save to storage yet
+        applyDarkMode(e.target.checked, false);
     });
     
-    addEscapeHandler(closeUI);
+    // Override standard close handler to restore original mode if not saved
+    addEscapeHandler(() => {
+        // Restore original dark mode if ESC is pressed without saving
+        applyDarkMode(originalDarkMode, false);
+        closeUI();
+    });
+    
+    // Override cancel button to restore original mode
+    const cancelButton = document.querySelector('#settings-ui .button.cancel');
+    if (cancelButton) {
+        cancelButton.onclick = () => {
+            // Restore original dark mode if Cancel is pressed
+            applyDarkMode(originalDarkMode, false);
+            closeUI();
+        };
+    }
 }
 
 // Save settings from the settings UI
@@ -362,38 +381,48 @@ function saveSettings() {
     const darkModeToggle = document.getElementById('dark-mode-toggle');
     const newDarkModeSetting = darkModeToggle.checked;
     
-    // Only apply changes if different from current state
-    if (newDarkModeSetting !== darkMode) {
-        toggleDarkMode();
-    }
+    // Apply and save the dark mode setting
+    applyDarkMode(newDarkModeSetting, true);
     
     // Close the settings UI
     closeAndSendData('settings-ui', 'close');
 }
 
+// Apply dark mode without toggling
+function applyDarkMode(enabled, shouldSave) {
+    // Only update if the state is different
+    if (enabled !== darkMode || !shouldSave) {
+        // Update the state
+        darkMode = enabled;
+        
+        // Update the UI
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+        
+        // Save preference if requested
+        if (shouldSave) {
+            // Save preference to localStorage
+            localStorage.setItem('eskui_darkMode', darkMode ? 'true' : 'false');
+            
+            // Notify client-side script of the change
+            sendNUIMessage('darkModeChanged', { darkMode: darkMode });
+        }
+    }
+}
+
 // Dark mode toggle function
 function toggleDarkMode() {
-    darkMode = !darkMode;
-    
-    if (darkMode) {
-        document.body.classList.add('dark-mode');
-    } else {
-        document.body.classList.remove('dark-mode');
-    }
-    
-    // Save preference to localStorage
-    localStorage.setItem('eskui_darkMode', darkMode ? 'true' : 'false');
-    
-    // Notify client-side script of the change
-    sendNUIMessage('darkModeChanged', { darkMode: darkMode });
+    applyDarkMode(!darkMode, true);
 }
 
 // Initialize dark mode from saved preference
 function initializeDarkMode() {
     const savedMode = localStorage.getItem('eskui_darkMode');
     if (savedMode === 'true') {
-        darkMode = true;
-        document.body.classList.add('dark-mode');
+        applyDarkMode(true, false);
     }
 }
 
