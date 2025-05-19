@@ -1,120 +1,97 @@
-let currentAmount = 1;
-const maxAmount = 999999;
-let previousState = null;
+let currentUI = null;
 
-// UI Elements
-const app = document.getElementById('app');
-const backgroundEffect = document.getElementById('background-effect');
-const listContainer = document.getElementById('list-container');
-const amountContainer = document.getElementById('amount-container');
-const listTitle = document.getElementById('list-title');
-const listOptions = document.getElementById('list-options');
-const amountTitle = document.getElementById('amount-title');
-const amountInput = document.getElementById('amount-input');
-const decreaseBtn = document.getElementById('decrease-amount');
-const increaseBtn = document.getElementById('increase-amount');
-const confirmBtn = document.getElementById('confirm-amount');
-const cancelBtn = document.getElementById('cancel-amount');
-
-// Event Listeners
-decreaseBtn.addEventListener('click', () => updateAmount(-1));
-increaseBtn.addEventListener('click', () => updateAmount(1));
-amountInput.addEventListener('change', (e) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value)) {
-        currentAmount = Math.min(Math.max(1, value), maxAmount);
-        amountInput.value = currentAmount;
+window.addEventListener('message', function(event) {
+    const data = event.data;
+    
+    switch(data.type) {
+        case 'showAmount':
+            showAmountUI(data.title);
+            break;
+        case 'showList':
+            showListUI(data.title, data.items);
+            break;
     }
 });
-confirmBtn.addEventListener('click', () => {
-    if (previousState) {
-        // If there's a previous state, return to it
-        showList(previousState.title, previousState.options);
-        previousState = null;
-    } else {
-        // Otherwise, send the amount and exit
-        sendNUIMessage('amount', currentAmount);
-        hideUI();
-    }
-});
-cancelBtn.addEventListener('click', () => {
-    sendNUIMessage('cancel');
-    hideUI();
-});
 
-// Functions
-function updateAmount(change) {
-    currentAmount = Math.min(Math.max(1, currentAmount + change), maxAmount);
-    amountInput.value = currentAmount;
+function showAmountUI(title) {
+    currentUI = 'amount';
+    document.getElementById('amount-ui').style.display = 'flex';
+    document.getElementById('list-ui').style.display = 'none';
+    document.querySelector('#amount-ui .titlebar-title').textContent = title;
+    document.getElementById('amount-input').value = '';
+    document.getElementById('amount-input').focus();
 }
 
-function sendNUIMessage(type, data) {
-    fetch(`https://${GetParentResourceName()}/${type}`, {
+function showListUI(title, items) {
+    currentUI = 'list';
+    document.getElementById('list-ui').style.display = 'flex';
+    document.getElementById('amount-ui').style.display = 'none';
+    document.querySelector('#list-ui .titlebar-title').textContent = title;
+    
+    const listContainer = document.getElementById('list-items');
+    listContainer.innerHTML = '';
+    
+    items.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.innerHTML = `
+            <div style="font-weight: 500;">${item.label}</div>
+            ${item.price ? `<div style="font-size: 0.9em; opacity: 0.7;">$${item.price}</div>` : ''}
+        `;
+        
+        div.addEventListener('click', () => selectListItem(index, item));
+        listContainer.appendChild(div);
+    });
+}
+
+function selectListItem(index, item) {
+    fetch(`https://${GetParentResourceName()}/listSelect`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+            index: index,
+            item: item
+        })
     });
 }
 
-function showList(title, options) {
-    listTitle.textContent = title;
-    listOptions.innerHTML = '';
-    
-    options.forEach((option, index) => {
-        const optionElement = document.createElement('div');
-        optionElement.className = 'option-item';
-        optionElement.textContent = option;
-        optionElement.addEventListener('click', () => {
-            // Store current state before showing amount
-            previousState = {
-                title: title,
-                options: options
-            };
-            sendNUIMessage('select', index);
+function submitAmount() {
+    const amount = document.getElementById('amount-input').value;
+    if (amount && amount > 0) {
+        fetch(`https://${GetParentResourceName()}/amountSubmit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: amount
+            })
         });
-        listOptions.appendChild(optionElement);
+    }
+}
+
+function closeUI() {
+    fetch(`https://${GetParentResourceName()}/close`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
     });
-
-    app.classList.remove('hidden');
-    backgroundEffect.classList.remove('hidden');
-    listContainer.classList.remove('hidden');
-    amountContainer.classList.add('hidden');
 }
 
-function showAmount(title, initialAmount = 1) {
-    amountTitle.textContent = title;
-    currentAmount = Math.min(Math.max(1, initialAmount), maxAmount);
-    amountInput.value = currentAmount;
+// Handle Enter key for amount input
+document.getElementById('amount-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        submitAmount();
+    }
+});
 
-    app.classList.remove('hidden');
-    backgroundEffect.classList.remove('hidden');
-    listContainer.classList.add('hidden');
-    amountContainer.classList.remove('hidden');
-}
-
-function hideUI() {
-    app.classList.add('hidden');
-    backgroundEffect.classList.add('hidden');
-    listContainer.classList.add('hidden');
-    amountContainer.classList.add('hidden');
-    previousState = null;
-}
-
-// NUI Message Handler
-window.addEventListener('message', (event) => {
-    const data = event.data;
-
-    switch (data.type) {
-        case 'showList':
-            showList(data.title, data.options);
-            break;
-        case 'showAmount':
-            showAmount(data.title, data.initialAmount);
-            break;
-        case 'hide':
-            hideUI();
-            break;
+// Handle Escape key for both UIs
+document.addEventListener('keyup', function(e) {
+    if (e.key === 'Escape') {
+        closeUI();
     }
 }); 

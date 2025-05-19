@@ -4,51 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESKUI</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="background-effect" class="hidden"></div>
-    <div id="app" class="hidden">
-        <!-- List Component -->
-        <div id="list-container" class="container hidden">
-            <div class="header">
-                <div class="header-buttons">
-                    <div class="header-button close"></div>
-                    <div class="header-button minimize"></div>
-                    <div class="header-button maximize"></div>
+    <!-- Amount Input UI -->
+    <div id="amount-ui" class="ui-container">
+        <div class="window">
+            <div class="titlebar">
+                <div class="titlebar-title">Amount Input</div>
+                <div class="window-controls">
+                    <button class="close-button" onclick="closeUI()">×</button>
                 </div>
-                <div class="rainbow-bar"></div>
-                <h2 id="list-title">Title</h2>
             </div>
-            <div id="list-options" class="options-container">
-                <!-- Options will be dynamically added here -->
-            </div>
-        </div>
-
-        <!-- Amount Component -->
-        <div id="amount-container" class="container hidden">
-            <div class="header">
-                <div class="header-buttons">
-                    <div class="header-button close"></div>
-                    <div class="header-button minimize"></div>
-                    <div class="header-button maximize"></div>
+            <div class="content">
+                <div class="input-group">
+                    <input type="number" id="amount-input" placeholder="Enter amount..." min="0">
                 </div>
-                <div class="rainbow-bar"></div>
-                <h2 id="amount-title">Amount</h2>
-            </div>
-            <div class="amount-controls">
-                <button id="decrease-amount" class="control-btn">-</button>
-                <div class="input-wrapper">
-                    <input type="number" id="amount-input" value="1" min="1">
+                <div class="button-group">
+                    <button class="button cancel" onclick="closeUI()">Cancel</button>
+                    <button class="button submit" onclick="submitAmount()">Submit</button>
                 </div>
-                <button id="increase-amount" class="control-btn">+</button>
-            </div>
-            <div class="amount-actions">
-                <button id="confirm-amount" class="action-btn">Confirm</button>
-                <button id="cancel-amount" class="action-btn cancel">Cancel</button>
             </div>
         </div>
     </div>
+
+    <!-- List UI -->
+    <div id="list-ui" class="ui-container">
+        <div class="window">
+            <div class="titlebar">
+                <div class="titlebar-title">List Selection</div>
+                <div class="window-controls">
+                    <button class="close-button" onclick="closeUI()">×</button>
+                </div>
+            </div>
+            <div class="content">
+                <div class="list-container" id="list-items">
+                    <!-- Items will be dynamically added here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html> 
