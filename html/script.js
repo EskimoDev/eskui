@@ -1,6 +1,7 @@
 let currentUI = null;
 let currentUIId = null;
 let cleanupHandlers = [];
+let listMenuStack = [];
 
 window.addEventListener('message', function(event) {
     const data = event.data;
@@ -10,7 +11,7 @@ window.addEventListener('message', function(event) {
             showAmountUI(data.title);
             break;
         case 'showList':
-            showListUI(data.title, data.items);
+            showListUI(data.title, data.items, data.isSubmenu);
             break;
         case 'showSubMenu':
             showSubMenu(data.title, data.items);
@@ -64,7 +65,8 @@ function showAmountUI(title) {
     document.getElementById('amount-input').focus();
 }
 
-function showListUI(title, items) {
+function showListUI(title, items, isSubmenu) {
+    if (!isSubmenu) listMenuStack = [{title, items}];
     currentUI = 'list';
     showUI('list-ui');
     document.getElementById('amount-ui').style.display = 'none';
@@ -72,23 +74,53 @@ function showListUI(title, items) {
     document.querySelector('#list-ui .titlebar-title').textContent = title;
     const listContainer = document.getElementById('list-items');
     listContainer.innerHTML = '';
+
+    // If submenu, add a back button
+    if (isSubmenu && listMenuStack.length > 1) {
+        const backDiv = document.createElement('div');
+        backDiv.className = 'list-item';
+        backDiv.innerHTML = '<div class="list-item-content"><span>⬅️ Back</span></div>';
+        backDiv.addEventListener('click', () => {
+            listMenuStack.pop();
+            const prev = listMenuStack[listMenuStack.length - 1];
+            showListUI(prev.title, prev.items, listMenuStack.length > 1);
+        });
+        listContainer.appendChild(backDiv);
+    }
+
     items.forEach((item, index) => {
         const div = document.createElement('div');
         div.className = 'list-item';
+        if (item.disabled) {
+            div.classList.add('disabled');
+            div.style.opacity = 0.5;
+            div.style.pointerEvents = 'none';
+        }
+        // Icon
+        let iconHTML = '';
+        if (item.icon) {
+            if (item.icon.startsWith('http')) {
+                iconHTML = `<img src="${item.icon}" class="list-item-icon" style="width:1.5em;height:1.5em;vertical-align:middle;margin-right:8px;">`;
+            } else {
+                iconHTML = `<span class="list-item-icon" style="margin-right:8px;">${item.icon}</span>`;
+            }
+        }
+        // Main label
         const contentDiv = document.createElement('div');
         contentDiv.className = 'list-item-content';
         contentDiv.style.visibility = 'hidden';
-        div.appendChild(contentDiv);
-        listContainer.appendChild(div);
+        // Long text scroll
         let isLong = false;
         let span = null;
-        contentDiv.textContent = item.label;
+        contentDiv.innerHTML = iconHTML + (item.label || '');
+        div.appendChild(contentDiv);
+        listContainer.appendChild(div);
         if (contentDiv.scrollWidth > contentDiv.clientWidth) {
             isLong = true;
             contentDiv.classList.add('scroll');
-            contentDiv.textContent = '';
+            contentDiv.innerHTML = iconHTML;
             span = document.createElement('span');
-            span.textContent = item.label;
+            span.textContent = item.label || '';
             contentDiv.appendChild(span);
         }
         contentDiv.style.visibility = 'visible';
@@ -101,6 +133,17 @@ function showListUI(title, items) {
                 span.style.transform = 'translateX(0)';
             });
         }
+        // Description
+        if (item.description) {
+            const descDiv = document.createElement('div');
+            descDiv.className = 'list-item-desc';
+            descDiv.textContent = item.description;
+            descDiv.style.fontSize = '0.95em';
+            descDiv.style.opacity = 0.7;
+            descDiv.style.marginTop = '2px';
+            div.appendChild(descDiv);
+        }
+        // Price (optional)
         if (item.price) {
             const priceDiv = document.createElement('div');
             priceDiv.style.fontSize = '0.9em';
@@ -108,17 +151,31 @@ function showListUI(title, items) {
             priceDiv.textContent = `$${item.price}`;
             div.appendChild(priceDiv);
         }
-        div.addEventListener('click', () => {
-            // If eventType is server, send to client for NUI->server relay
-            if (item.event && item.eventType === 'server') {
-                fetch(`https://${GetParentResourceName()}/eskui_serverEvent`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ event: item.event, args: item.args || [] })
-                });
-            }
-            selectListItem(index, item);
-        });
+        // Submenu
+        if (item.submenu) {
+            div.addEventListener('click', () => {
+                let submenuItems = typeof item.submenu === 'function' ? item.submenu() : item.submenu;
+                listMenuStack.push({title: item.label, items: submenuItems});
+                showListUI(item.label, submenuItems, true);
+            });
+        } else if (item.isBack) {
+            div.addEventListener('click', () => {
+                listMenuStack.pop();
+                const prev = listMenuStack[listMenuStack.length - 1];
+                showListUI(prev.title, prev.items, listMenuStack.length > 1);
+            });
+        } else if (!item.disabled) {
+            div.addEventListener('click', () => {
+                if (item.event && item.eventType === 'server') {
+                    fetch(`https://${GetParentResourceName()}/eskui_serverEvent`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ event: item.event, args: item.args || [] })
+                    });
+                }
+                selectListItem(index, item);
+            });
+        }
     });
 }
 

@@ -66,7 +66,7 @@ exports('ShowAmount', function(title, callback)
     end)
 end)
 
--- Export function for showing the list (with event support)
+-- Export function for showing the list (with event, submenu, and optional fields support)
 exports('ShowList', function(title, items, callback, subMenuCallback)
     if display then return end
     display = true
@@ -92,6 +92,12 @@ exports('ShowList', function(title, items, callback, subMenuCallback)
             else
                 TriggerEvent(item.event, table.unpack(item.args or {}))
             end
+        end
+        -- Submenu support (submenu field)
+        if item and item.submenu then
+            local submenuItems = type(item.submenu) == 'function' and item.submenu() or item.submenu
+            exports['eskui']:ShowList(item.label, submenuItems, callback, subMenuCallback)
+            return
         end
         if callback then
             callback(index, item)

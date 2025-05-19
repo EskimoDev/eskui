@@ -41,6 +41,19 @@ local items = {
     {label = 'Item 1', price = 100},
     {label = 'Item 2', price = 200},
     {label = 'A very long item name that will scroll on hover', price = 300},
+    {label = 'Weapons', icon = '🔫', submenu = {
+        {label = 'Pistol', event = 'buy:pistol', eventType = 'server'},
+        {label = 'Rifle', event = 'buy:rifle', eventType = 'server'},
+        {label = 'Back', isBack = true}
+    }},
+    {label = 'Settings', icon = '⚙️', submenu = function()
+        return {
+            {label = 'Toggle Music', event = 'toggle:music', eventType = 'client'},
+            {label = 'Back', isBack = true}
+        }
+    end},
+    {label = 'About', description = 'Information about this server.'},
+    {label = 'Disabled Option', disabled = true}
 }
 exports['eskui']:ShowList('Select an Item', items, function(index, item)
     if index and item then
@@ -48,6 +61,18 @@ exports['eskui']:ShowList('Select an Item', items, function(index, item)
     end
 end)
 ```
+
+#### List Item Fields
+- `label` (string): Main text (required)
+- `price` (number, optional): Price (optional, for store-like lists)
+- `icon` (string, optional): Emoji or image URL
+- `description` (string, optional): Secondary text
+- `event` (string, optional): Event to trigger on select
+- `eventType` (string, optional): 'client' or 'server' (default: client)
+- `args` (table, optional): Arguments for the event
+- `submenu` (array or function, optional): Submenu items or function returning items
+- `isBack` (bool, optional): If true, acts as a back button in submenus
+- `disabled` (bool, optional): If true, item is not selectable
 
 #### With Submenus
 ```lua

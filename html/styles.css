@@ -307,4 +307,23 @@ input[type="number"]:focus {
 .dropdown-item:hover, .dropdown-item.selected {
     background: #007AFF;
     color: #fff;
+}
+
+.list-item-icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.list-item-desc {
+    color: #666;
+    font-size: 0.95em;
+    margin-left: 2.2em;
+    margin-top: 2px;
+}
+.list-item.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.list-item .list-item-content span {
+    vertical-align: middle;
 } 
