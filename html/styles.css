@@ -32,7 +32,14 @@ body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     width: 400px;
     overflow: hidden;
-    animation: windowAppear 0.3s ease-out;
+}
+
+.window.open {
+    animation: windowAppear 0.3s ease-out forwards;
+}
+
+.window.close {
+    animation: windowDisappear 0.3s ease-out forwards;
 }
 
 @keyframes windowAppear {
@@ -43,6 +50,17 @@ body {
     to {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+@keyframes windowDisappear {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
     }
 }
 

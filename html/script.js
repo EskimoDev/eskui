@@ -15,8 +15,16 @@ window.addEventListener('message', function(event) {
 
 function showAmountUI(title) {
     currentUI = 'amount';
-    document.getElementById('amount-ui').style.display = 'flex';
-    document.getElementById('list-ui').style.display = 'none';
+    const amountUI = document.getElementById('amount-ui');
+    const listUI = document.getElementById('list-ui');
+    
+    amountUI.style.display = 'flex';
+    listUI.style.display = 'none';
+    
+    const window = amountUI.querySelector('.window');
+    window.classList.remove('close');
+    window.classList.add('open');
+    
     document.querySelector('#amount-ui .titlebar-title').textContent = title;
     document.getElementById('amount-input').value = '';
     document.getElementById('amount-input').focus();
@@ -24,8 +32,16 @@ function showAmountUI(title) {
 
 function showListUI(title, items) {
     currentUI = 'list';
-    document.getElementById('list-ui').style.display = 'flex';
-    document.getElementById('amount-ui').style.display = 'none';
+    const listUI = document.getElementById('list-ui');
+    const amountUI = document.getElementById('amount-ui');
+    
+    listUI.style.display = 'flex';
+    amountUI.style.display = 'none';
+    
+    const window = listUI.querySelector('.window');
+    window.classList.remove('close');
+    window.classList.add('open');
+    
     document.querySelector('#list-ui .titlebar-title').textContent = title;
     
     const listContainer = document.getElementById('list-items');
@@ -73,6 +89,23 @@ function submitAmount() {
 }
 
 function closeUI() {
+    const amountUI = document.getElementById('amount-ui');
+    const listUI = document.getElementById('list-ui');
+    
+    const amountWindow = amountUI.querySelector('.window');
+    const listWindow = listUI.querySelector('.window');
+    
+    amountWindow.classList.remove('open');
+    amountWindow.classList.add('close');
+    listWindow.classList.remove('open');
+    listWindow.classList.add('close');
+    
+    // Wait for animation to complete before hiding
+    setTimeout(() => {
+        amountUI.style.display = 'none';
+        listUI.style.display = 'none';
+    }, 300); // Match animation duration
+    
     fetch(`https://${GetParentResourceName()}/close`, {
         method: 'POST',
         headers: {
