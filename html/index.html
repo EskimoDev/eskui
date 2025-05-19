@@ -56,8 +56,17 @@
                 </div>
             </div>
             <div class="content">
-                <div class="dropdown-label" id="dropdown-label">Select an option</div>
-                <div class="dropdown-list" id="dropdown-list" style="display:none;"></div>
+                <div class="dropdown-label" id="dropdown-label">
+                    <span id="dropdown-label-text">Select an option</span>
+                    <svg id="dropdown-chevron" width="18" height="18" viewBox="0 0 20 20" fill="none" style="vertical-align:middle; margin-left:8px; transition: transform 0.2s;">
+                        <path d="M6 8L10 12L14 8" stroke="#888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="dropdown-list" id="dropdown-list"></div>
+                <div class="button-group" id="dropdown-buttons">
+                    <button class="button cancel" id="dropdown-cancel" type="button">Cancel</button>
+                    <button class="button submit" id="dropdown-submit" type="button">Submit</button>
+                </div>
             </div>
         </div>
     </div>

@@ -185,33 +185,82 @@ function showDropdownUI(title, options, selectedIndex) {
     document.getElementById('list-ui').style.display = 'none';
     document.querySelector('#dropdown-ui .titlebar-title').textContent = title;
     const label = document.getElementById('dropdown-label');
+    const labelText = document.getElementById('dropdown-label-text');
+    const chevron = document.getElementById('dropdown-chevron');
     const list = document.getElementById('dropdown-list');
+    const cancelBtn = document.getElementById('dropdown-cancel');
+    const submitBtn = document.getElementById('dropdown-submit');
     let currentSelected = typeof selectedIndex === 'number' ? selectedIndex : -1;
-    label.textContent = currentSelected >= 0 ? options[currentSelected] : 'Select an option';
+    labelText.textContent = currentSelected >= 0 ? options[currentSelected] : 'Select an option';
     list.innerHTML = '';
     options.forEach((opt, idx) => {
         const item = document.createElement('div');
         item.className = 'dropdown-item' + (idx === currentSelected ? ' selected' : '');
         item.textContent = opt;
         item.onclick = function() {
-            label.textContent = opt;
-            list.style.display = 'none';
-            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ index: idx, value: opt })
-            });
+            labelText.textContent = opt;
+            currentSelected = idx;
+            Array.from(list.children).forEach(child => child.classList.remove('selected'));
+            item.classList.add('selected');
+            list.classList.remove('open');
+            label.classList.remove('open');
         };
         list.appendChild(item);
     });
     label.onclick = function(e) {
         e.stopPropagation();
-        list.style.display = list.style.display === 'block' ? 'none' : 'block';
+        const isOpen = list.classList.contains('open');
+        if (isOpen) {
+            list.classList.remove('open');
+            label.classList.remove('open');
+        } else {
+            list.classList.add('open');
+            label.classList.add('open');
+        }
     };
     // Hide dropdown if clicking outside
-    document.body.onclick = function() {
-        list.style.display = 'none';
+    document.body.onclick = function(e) {
+        if (!label.contains(e.target) && !list.contains(e.target)) {
+            list.classList.remove('open');
+            label.classList.remove('open');
+        }
     };
+    // Cancel button
+    cancelBtn.onclick = function() {
+        closeDropdownUI();
+    };
+    // Submit button
+    submitBtn.onclick = function() {
+        if (currentSelected >= 0) {
+            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
+            });
+        } else {
+            // Send null if nothing selected
+            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index: null, value: null })
+            });
+        }
+        closeDropdownUI();
+    };
+    // Fix close button for dropdown
+    const closeBtn = document.querySelector('#dropdown-ui .close-button');
+    closeBtn.onclick = function() {
+        closeDropdownUI();
+    };
+}
+
+function closeDropdownUI() {
+    document.getElementById('dropdown-ui').style.display = 'none';
+    fetch(`https://${GetParentResourceName()}/close`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+    });
 }
 
 // Handle Enter key for amount input
