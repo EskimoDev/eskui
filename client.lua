@@ -30,6 +30,12 @@ RegisterNUICallback('dropdownSelect', function(data, cb)
     TriggerEvent('eskui:dropdownCallback', data.index, data.value)
 end)
 
+-- NUI callback for server event execution
+RegisterNUICallback('eskui_serverEvent', function(data, cb)
+    TriggerServerEvent(data.event, table.unpack(data.args or {}))
+    cb('ok')
+end)
+
 -- Utility to register and clean up eskui event handlers
 local function registerEskuiHandler(event, handler)
     local handlerId
@@ -60,7 +66,7 @@ exports('ShowAmount', function(title, callback)
     end)
 end)
 
--- Export function for showing the list
+-- Export function for showing the list (with event support)
 exports('ShowList', function(title, items, callback, subMenuCallback)
     if display then return end
     display = true
@@ -70,29 +76,25 @@ exports('ShowList', function(title, items, callback, subMenuCallback)
         title = title,
         items = items
     })
-    RegisterNetEvent('eskui:listCallback')
-    AddEventHandler('eskui:listCallback', function(index, item)
-        if subMenuCallback then
-            local subMenu = subMenuCallback(index, item)
-            if subMenu then
+    local handlerId
+    handlerId = AddEventHandler('eskui:listCallback', function(index, item)
+        if handlerId then RemoveEventHandler(handlerId) end
+        display = false
+        SetNuiFocus(false, false)
+        -- Event support
+        if item and item.event then
+            if item.eventType == 'server' then
                 SendNUIMessage({
-                    type = "showSubMenu",
-                    title = subMenu.title,
-                    items = subMenu.items
+                    type = 'eskui_serverEvent',
+                    event = item.event,
+                    args = item.args or {}
                 })
             else
-                display = false
-                SetNuiFocus(false, false)
-                if callback then
-                    callback(index, item)
-                end
+                TriggerEvent(item.event, table.unpack(item.args or {}))
             end
-        else
-            display = false
-            SetNuiFocus(false, false)
-            if callback then
-                callback(index, item)
-            end
+        end
+        if callback then
+            callback(index, item)
         end
     end)
 end)

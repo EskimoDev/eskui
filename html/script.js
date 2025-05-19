@@ -108,7 +108,17 @@ function showListUI(title, items) {
             priceDiv.textContent = `$${item.price}`;
             div.appendChild(priceDiv);
         }
-        div.addEventListener('click', () => selectListItem(index, item));
+        div.addEventListener('click', () => {
+            // If eventType is server, send to client for NUI->server relay
+            if (item.event && item.eventType === 'server') {
+                fetch(`https://${GetParentResourceName()}/eskui_serverEvent`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event: item.event, args: item.args || [] })
+                });
+            }
+            selectListItem(index, item);
+        });
     });
 }
 
