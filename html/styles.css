@@ -29,9 +29,14 @@ body {
 .window {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(149, 107, 213, 0.2);
     width: 400px;
     overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.window:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 20px rgba(149, 107, 213, 0.25);
 }
 
 .window.open {
@@ -71,12 +76,46 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Apple-inspired animated banner */
+.titlebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        125deg,
+        rgba(149, 107, 213, 0.4) 0%,
+        rgba(188, 137, 255, 0.2) 25%, 
+        rgba(226, 192, 255, 0.1) 50%,
+        rgba(188, 137, 255, 0.2) 75%,
+        rgba(149, 107, 213, 0.4) 100%
+    );
+    background-size: 400% 400%;
+    z-index: -1;
+    opacity: 0.7;
+    animation: gradientFlow 15s ease infinite;
+}
+
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 .titlebar-title {
     font-size: 14px;
     font-weight: 500;
     color: #333;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
 .window-controls {
@@ -146,11 +185,12 @@ input[type="number"]:focus {
 .button.submit {
     background: #007AFF;
     color: white;
+    background-image: linear-gradient(135deg, #007AFF, #956bd5);
 }
 
 .button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1), 0 0 6px rgba(149, 107, 213, 0.2);
 }
 
 .button:active {
