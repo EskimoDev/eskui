@@ -2,14 +2,17 @@ local display = false
 
 -- Register the NUI callback for amount input
 RegisterNUICallback('amountSubmit', function(data, cb)
+    print('NUI amountSubmit callback received')
     display = false
-    SetNuiFocus(false, false)
+    SetNuiFocus(false, false) -- Restore this line to properly release NUI focus
     cb('ok')
     TriggerEvent('eskui:amountCallback', data.amount)
 end)
 
 -- Register the NUI callback for list selection
 RegisterNUICallback('listSelect', function(data, cb)
+    display = false
+    SetNuiFocus(false, false)
     cb('ok')
     TriggerEvent('eskui:listCallback', data.index, data.item)
 end)
@@ -56,13 +59,12 @@ exports('ShowAmount', function(title, callback)
         type = "showAmount",
         title = title
     })
-    RegisterNetEvent('eskui:amountCallback')
-    AddEventHandler('eskui:amountCallback', function(amount)
-        RemoveEventHandler('eskui:amountCallback')
+    local handlerId
+    handlerId = AddEventHandler('eskui:amountCallback', function(amount)
+        if handlerId then RemoveEventHandler(handlerId) end
         if callback then
             callback(tonumber(amount))
         end
-        -- If no callback, just close (already closed by NUI callback)
     end)
 end)
 
@@ -124,7 +126,6 @@ exports('ShowDropdown', function(title, options, callback, selectedIndex)
         if callback and (index ~= nil or value ~= nil) then
             callback(index, value)
         end
-        -- If no callback or no data, just close (already closed by NUI callback)
     end)
 end)
 

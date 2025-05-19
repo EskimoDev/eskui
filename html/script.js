@@ -56,6 +56,7 @@ function closeCurrentUI() {
 }
 
 function showAmountUI(title) {
+    console.log('showAmountUI called');
     currentUI = 'amount';
     showUI('amount-ui');
     document.getElementById('list-ui').style.display = 'none';
@@ -63,124 +64,212 @@ function showAmountUI(title) {
     document.querySelector('#amount-ui .titlebar-title').textContent = title;
     document.getElementById('amount-input').value = '';
     document.getElementById('amount-input').focus();
+    // Scoped Escape key handler
+    const escHandler = function(e) {
+        if (e.key === 'Escape') {
+            closeUI();
+        }
+    };
+    document.addEventListener('keyup', escHandler);
+    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
 }
 
 function showListUI(title, items, isSubmenu) {
-    if (!isSubmenu) listMenuStack = [{title, items}];
     currentUI = 'list';
     showUI('list-ui');
     document.getElementById('amount-ui').style.display = 'none';
     document.getElementById('dropdown-ui').style.display = 'none';
     document.querySelector('#list-ui .titlebar-title').textContent = title;
+    
+    // Clear list items
     const listContainer = document.getElementById('list-items');
     listContainer.innerHTML = '';
-
-    // If submenu, add a back button
-    if (isSubmenu && listMenuStack.length > 1) {
-        const backDiv = document.createElement('div');
-        backDiv.className = 'list-item';
-        backDiv.innerHTML = '<div class="list-item-content"><span>⬅️ Back</span></div>';
-        backDiv.addEventListener('click', () => {
-            listMenuStack.pop();
-            const prev = listMenuStack[listMenuStack.length - 1];
-            showListUI(prev.title, prev.items, listMenuStack.length > 1);
-        });
-        listContainer.appendChild(backDiv);
-    }
-
+    
+    // Add items
     items.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'list-item';
+        const itemElement = document.createElement('div');
+        itemElement.className = 'list-item';
+        
         if (item.disabled) {
-            div.classList.add('disabled');
-            div.style.opacity = 0.5;
-            div.style.pointerEvents = 'none';
+            itemElement.classList.add('disabled');
         }
-        // Icon
-        let iconHTML = '';
+        
+        const itemContent = document.createElement('div');
+        itemContent.className = 'list-item-content';
+        
+        let innerContent = '';
         if (item.icon) {
-            if (item.icon.startsWith('http')) {
-                iconHTML = `<img src="${item.icon}" class="list-item-icon" style="width:1.5em;height:1.5em;vertical-align:middle;margin-right:8px;">`;
+            innerContent += `<div class="list-item-icon">${item.icon}</div>`;
+        }
+        innerContent += `<span>${item.label}</span>`;
+        itemContent.innerHTML = innerContent;
+        
+        itemElement.appendChild(itemContent);
+        
+        // Add description if exists
+        if (item.description) {
+            const descElement = document.createElement('div');
+            descElement.className = 'list-item-desc';
+            descElement.textContent = item.description;
+            itemElement.appendChild(descElement);
+        }
+        
+        // Add click handler
+        if (!item.disabled) {
+            itemElement.onclick = function() {
+                selectListItem(index, item);
+            };
+        }
+        
+        listContainer.appendChild(itemElement);
+        
+        // Check if the text is overflowing and add scroll animation
+        setTimeout(() => {
+            if (itemContent.scrollWidth > itemContent.clientWidth) {
+                itemContent.classList.add('scroll');
+                const textSpan = itemContent.querySelector('span');
+                
+                // Only animate on hover
+                itemElement.addEventListener('mouseenter', () => {
+                    textSpan.classList.add('scroll-animate');
+                });
+                
+                itemElement.addEventListener('mouseleave', () => {
+                    textSpan.classList.remove('scroll-animate');
+                });
+            }
+        }, 10);
+    });
+    
+    // Add escape key handler
+    const escHandler = function(e) {
+        if (e.key === 'Escape') {
+            if (listMenuStack.length > 0 && !isSubmenu) {
+                const prevMenu = listMenuStack.pop();
+                showListUI(prevMenu.title, prevMenu.items, true);
             } else {
-                iconHTML = `<span class="list-item-icon" style="margin-right:8px;">${item.icon}</span>`;
+                closeUI();
             }
         }
-        // Main label
-        const contentDiv = document.createElement('div');
-        contentDiv.className = 'list-item-content';
-        contentDiv.style.visibility = 'hidden';
-        // Long text scroll
-        let isLong = false;
-        let span = null;
-        contentDiv.innerHTML = iconHTML + (item.label || '');
-        div.appendChild(contentDiv);
-        listContainer.appendChild(div);
-        if (contentDiv.scrollWidth > contentDiv.clientWidth) {
-            isLong = true;
-            contentDiv.classList.add('scroll');
-            contentDiv.innerHTML = iconHTML;
-            span = document.createElement('span');
-            span.textContent = item.label || '';
-            contentDiv.appendChild(span);
-        }
-        contentDiv.style.visibility = 'visible';
-        if (isLong && span) {
-            div.addEventListener('mouseenter', function() {
-                span.classList.add('scroll-animate');
-            });
-            div.addEventListener('mouseleave', function() {
-                span.classList.remove('scroll-animate');
-                span.style.transform = 'translateX(0)';
-            });
-        }
-        // Description
-        if (item.description) {
-            const descDiv = document.createElement('div');
-            descDiv.className = 'list-item-desc';
-            descDiv.textContent = item.description;
-            descDiv.style.fontSize = '0.95em';
-            descDiv.style.opacity = 0.7;
-            descDiv.style.marginTop = '2px';
-            div.appendChild(descDiv);
-        }
-        // Price (optional)
-        if (item.price) {
-            const priceDiv = document.createElement('div');
-            priceDiv.style.fontSize = '0.9em';
-            priceDiv.style.opacity = '0.7';
-            priceDiv.textContent = `$${item.price}`;
-            div.appendChild(priceDiv);
-        }
-        // Submenu
-        if (item.submenu) {
-            div.addEventListener('click', () => {
-                let submenuItems = typeof item.submenu === 'function' ? item.submenu() : item.submenu;
-                listMenuStack.push({title: item.label, items: submenuItems});
-                showListUI(item.label, submenuItems, true);
-            });
-        } else if (item.isBack) {
-            div.addEventListener('click', () => {
-                listMenuStack.pop();
-                const prev = listMenuStack[listMenuStack.length - 1];
-                showListUI(prev.title, prev.items, listMenuStack.length > 1);
-            });
-        } else if (!item.disabled) {
-            div.addEventListener('click', () => {
-                if (item.event && item.eventType === 'server') {
-                    fetch(`https://${GetParentResourceName()}/eskui_serverEvent`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ event: item.event, args: item.args || [] })
-                    });
-                }
-                selectListItem(index, item);
-            });
-        }
-    });
+    };
+    document.addEventListener('keyup', escHandler);
+    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
 }
 
 function showSubMenu(title, items) {
     showListUI(title, items);
+}
+
+function showDropdownUI(title, options, selectedIndex = -1) {
+    currentUI = 'dropdown';
+    showUI('dropdown-ui');
+    document.getElementById('amount-ui').style.display = 'none';
+    document.getElementById('list-ui').style.display = 'none';
+    
+    const titleEl = document.querySelector('#dropdown-ui .titlebar-title');
+    titleEl.textContent = title;
+    
+    const label = document.getElementById('dropdown-label-text');
+    const list = document.getElementById('dropdown-list');
+    const dropdownLabel = document.getElementById('dropdown-label');
+    const cancelBtn = document.getElementById('dropdown-cancel');
+    const submitBtn = document.getElementById('dropdown-submit');
+    
+    // Clear previous dropdown items
+    list.innerHTML = '';
+    
+    // Set default label
+    label.textContent = selectedIndex >= 0 && selectedIndex < options.length 
+        ? options[selectedIndex] 
+        : 'Select an option';
+    
+    // Add dropdown options
+    let currentSelected = selectedIndex;
+    options.forEach((option, index) => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        if (index === currentSelected) {
+            item.classList.add('selected');
+        }
+        item.textContent = option;
+        
+        item.onclick = function() {
+            // Unselect previous
+            const previousSelected = list.querySelector('.selected');
+            if (previousSelected) {
+                previousSelected.classList.remove('selected');
+            }
+            
+            // Select this item
+            item.classList.add('selected');
+            currentSelected = index;
+            label.textContent = option;
+            
+            // Close dropdown list but not the whole UI
+            list.classList.remove('open');
+            dropdownLabel.classList.remove('open');
+        };
+        
+        list.appendChild(item);
+    });
+    
+    // Toggle dropdown on label click
+    dropdownLabel.onclick = function() {
+        dropdownLabel.classList.toggle('open');
+        list.classList.toggle('open');
+    };
+    
+    // Cancel button
+    cancelBtn.onclick = function() {
+        hideUI('dropdown-ui', () => {
+            fetch(`https://${GetParentResourceName()}/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+        });
+    };
+    
+    // Submit button
+    submitBtn.onclick = function() {
+        const sendClose = () => {
+            fetch(`https://${GetParentResourceName()}/close`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+        };
+        if (currentSelected >= 0) {
+            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
+            }).then(() => {
+                // Reset UI state
+                currentUI = null;
+                currentUIId = null;
+                sendClose();
+            });
+        } else {
+            sendClose();
+        }
+    };
+    
+    // Escape key handler
+    const escHandler = function(e) {
+        if (e.key === 'Escape') {
+            // If dropdown list is open, just close it
+            if (list.classList.contains('open')) {
+                list.classList.remove('open');
+                dropdownLabel.classList.remove('open');
+            } else {
+                // Otherwise close the whole UI
+                closeUI();
+            }
+        }
+    };
+    document.addEventListener('keyup', escHandler);
+    cleanupHandlers.push(() => document.removeEventListener('keyup', escHandler));
 }
 
 function selectListItem(index, item) {
@@ -202,12 +291,17 @@ function selectListItem(index, item) {
                 item: item
             })
         });
+        
+        // Reset UI state
+        currentUI = null;
+        currentUIId = null;
     }, 300);
 }
 
 function submitAmount() {
     const amount = document.getElementById('amount-input').value;
     if (amount && amount > 0) {
+        console.log('Amount entered:', amount);
         const amountUI = document.getElementById('amount-ui');
         const window = amountUI.querySelector('.window');
         
@@ -216,6 +310,10 @@ function submitAmount() {
         
         // Wait for animation to complete before submitting
         setTimeout(() => {
+            // Reset UI state before fetch
+            currentUI = null;
+            currentUIId = null;
+            
             fetch(`https://${GetParentResourceName()}/amountSubmit`, {
                 method: 'POST',
                 headers: {
@@ -230,21 +328,25 @@ function submitAmount() {
 }
 
 function closeUI() {
+    console.log('closeUI called');
     const amountUI = document.getElementById('amount-ui');
     const listUI = document.getElementById('list-ui');
-    
+    const dropdownUI = document.getElementById('dropdown-ui');
     const amountWindow = amountUI.querySelector('.window');
     const listWindow = listUI.querySelector('.window');
+    const dropdownWindow = dropdownUI.querySelector('.window');
     
     amountWindow.classList.remove('open');
     amountWindow.classList.add('close');
     listWindow.classList.remove('open');
     listWindow.classList.add('close');
+    dropdownWindow.classList.remove('open');
+    dropdownWindow.classList.add('close');
     
-    // Wait for animation to complete before hiding
     setTimeout(() => {
         amountUI.style.display = 'none';
         listUI.style.display = 'none';
+        dropdownUI.style.display = 'none';
     }, 300);
     
     fetch(`https://${GetParentResourceName()}/close`, {
@@ -254,107 +356,15 @@ function closeUI() {
         },
         body: JSON.stringify({})
     });
-}
-
-function showDropdownUI(title, options, selectedIndex) {
-    currentUI = 'dropdown';
-    showUI('dropdown-ui');
-    document.getElementById('amount-ui').style.display = 'none';
-    document.getElementById('list-ui').style.display = 'none';
-    document.querySelector('#dropdown-ui .titlebar-title').textContent = title;
-    const label = document.getElementById('dropdown-label');
-    const labelText = document.getElementById('dropdown-label-text');
-    const chevron = document.getElementById('dropdown-chevron');
-    const list = document.getElementById('dropdown-list');
-    const cancelBtn = document.getElementById('dropdown-cancel');
-    const submitBtn = document.getElementById('dropdown-submit');
-    let currentSelected = typeof selectedIndex === 'number' ? selectedIndex : -1;
-    labelText.textContent = currentSelected >= 0 ? options[currentSelected] : 'Select an option';
-    list.innerHTML = '';
-    options.forEach((opt, idx) => {
-        const item = document.createElement('div');
-        item.className = 'dropdown-item' + (idx === currentSelected ? ' selected' : '');
-        item.textContent = opt;
-        item.onclick = function() {
-            labelText.textContent = opt;
-            currentSelected = idx;
-            Array.from(list.children).forEach(child => child.classList.remove('selected'));
-            item.classList.add('selected');
-            list.classList.remove('open');
-            label.classList.remove('open');
-        };
-        list.appendChild(item);
-    });
-    label.onclick = function(e) {
-        e.stopPropagation();
-        const isOpen = list.classList.contains('open');
-        if (isOpen) {
-            list.classList.remove('open');
-            label.classList.remove('open');
-        } else {
-            list.classList.add('open');
-            label.classList.add('open');
-        }
-    };
-    // Hide dropdown if clicking outside
-    const docClick = function(e) {
-        if (!label.contains(e.target) && !list.contains(e.target)) {
-            list.classList.remove('open');
-            label.classList.remove('open');
-        }
-    };
-    document.body.addEventListener('click', docClick);
-    cleanupHandlers.push(() => document.body.removeEventListener('click', docClick));
-    // Cancel button
-    cancelBtn.onclick = function() {
-        hideUI('dropdown-ui', () => {
-            fetch(`https://${GetParentResourceName()}/close`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-        });
-    };
-    // Submit button
-    submitBtn.onclick = function() {
-        if (currentSelected >= 0) {
-            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ index: currentSelected, value: options[currentSelected] })
-            });
-        } else {
-            fetch(`https://${GetParentResourceName()}/dropdownSelect`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ index: null, value: null })
-            });
-        }
-        hideUI('dropdown-ui', () => {});
-    };
-    // Close button
-    const closeBtn = document.querySelector('#dropdown-ui .close-button');
-    closeBtn.onclick = function() {
-        hideUI('dropdown-ui', () => {
-            fetch(`https://${GetParentResourceName()}/close`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-        });
-    };
+    
+    // Reset UI state
+    currentUI = null;
+    currentUIId = null;
 }
 
 // Handle Enter key for amount input
 document.getElementById('amount-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         submitAmount();
-    }
-});
-
-// Handle Escape key for both UIs
-document.addEventListener('keyup', function(e) {
-    if (e.key === 'Escape') {
-        closeUI();
     }
 }); 
