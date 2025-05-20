@@ -6,7 +6,8 @@ const state = {
     listMenuStack: [],
     darkMode: false,
     windowOpacity: 0.95,
-    freeDrag: false
+    freeDrag: false,
+    selectedListItem: null
 };
 
 // Helper functions for UI management
@@ -14,6 +15,7 @@ const ui = {
     resetState() {
         state.currentUI = null;
         state.currentUIId = null;
+        state.selectedListItem = null;
     },
     
     animate(containerId, isClosing, callback) {
@@ -125,6 +127,9 @@ const uiHandlers = {
         const listContainer = document.getElementById('list-items');
         listContainer.innerHTML = '';
         
+        // Reset selected item
+        state.selectedListItem = null;
+        
         // Add items
         items.forEach((item, index) => {
             const itemElement = document.createElement('div');
@@ -152,10 +157,26 @@ const uiHandlers = {
             
             // Add click handler if not disabled
             if (!item.disabled) {
-                itemElement.onclick = () => selectListItem(index, item);
+                itemElement.onclick = () => {
+                    // Add selected class to this item and remove from others
+                    listContainer.querySelectorAll('.list-item').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    itemElement.classList.add('selected');
+                    
+                    // Store the selected item and index
+                    state.selectedListItem = { index, item };
+                };
             }
             
             listContainer.appendChild(itemElement);
+            
+            // Add divider after each item except the last one
+            if (index < items.length - 1) {
+                const divider = document.createElement('div');
+                divider.className = 'list-divider';
+                listContainer.appendChild(divider);
+            }
             
             // Check if text is overflowing and add scroll animation
             setTimeout(() => {
@@ -363,6 +384,15 @@ function submitAmount() {
         ui.closeAndSendData('amount-ui', 'amountSubmit', {
             amount: amount
         });
+    }
+}
+
+function submitListSelection() {
+    if (state.selectedListItem) {
+        selectListItem(state.selectedListItem.index, state.selectedListItem.item);
+    } else {
+        // No selection, just close
+        closeUI();
     }
 }
 

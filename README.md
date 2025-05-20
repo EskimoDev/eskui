@@ -35,7 +35,7 @@ end)
 ```
 
 ### 2. List Selection
-Show a list of items and get the selected one:
+Show a list of items for the user to choose from:
 ```lua
 local items = {
     {label = 'Item 1', price = 100},
@@ -61,6 +61,12 @@ exports['eskui']:ShowList('Select an Item', items, function(index, item)
     end
 end)
 ```
+
+The list UI features:
+- Clean dividers between options
+- Click to select an item (highlighted with a gradient)
+- Submit and Cancel buttons (like other UI components)
+- Auto-scrolling for long text when hovered
 
 #### List Item Fields
 - `label` (string): Main text (required)
