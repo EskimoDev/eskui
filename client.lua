@@ -29,12 +29,6 @@ for name, handler in pairs(callbacks) do
     handleNUICallback(name, handler)
 end
 
--- Server event execution (custom handling)
-RegisterNUICallback('eskui_serverEvent', function(data, cb)
-    TriggerServerEvent(data.event, table.unpack(data.args or {}))
-    cb('ok')
-end)
-
 -- Register commands
 RegisterCommand('darkmode', function()
     darkMode = not darkMode
@@ -95,17 +89,10 @@ local function registerExports()
     -- List selection
     exports('ShowList', function(title, items, callback, subMenuCallback)
         showUI('showList', title, {items = items}, function(index, item)
-            display = false
-            SetNuiFocus(false, false)
-            
             -- Event support
             if item and item.event then
                 if item.eventType == 'server' then
-                    SendNUIMessage({
-                        type = 'eskui_serverEvent',
-                        event = item.event,
-                        args = item.args or {}
-                    })
+                    TriggerServerEvent(item.event, table.unpack(item.args or {}))
                 else
                     TriggerEvent(item.event, table.unpack(item.args or {}))
                 end
@@ -136,9 +123,7 @@ local function registerExports()
     
     -- Settings UI
     exports('ShowSettings', function()
-        display = true
-        SetNuiFocus(true, true)
-        SendNUIMessage({type = 'showSettings'})
+        showUI('showSettings', 'UI Settings', {})
     end)
     
     -- Dark mode toggle
