@@ -157,6 +157,7 @@ body {
 /* Make the list UI window wider to accommodate the glow effects */
 #list-ui .window {
     width: 450px; /* Increased from 400px */
+    overflow: visible; /* Allow glow effects to extend beyond window boundaries */
 }
 
 /* Remove decorative side elements - as requested */
@@ -178,11 +179,18 @@ body {
 /* MacOS-style list divider */
 .list-divider {
     height: 0;
-    margin: 4px 3px;
     position: relative;
     overflow: visible;
-    border-bottom: 1.5px solid var(--border-color);
     opacity: 0.8;
+    display: flex;
+    justify-content: center;
+    margin: 4px 0;
+}
+
+.list-divider::before {
+    content: "";
+    width: 30%;
+    border-bottom: 1.5px solid var(--border-color);
 }
 
 /* Remove the gradient overlay on dividers */
@@ -216,17 +224,18 @@ body.dark-mode .list-ui-button-separator {
 
 /* Ensure first and last items can extend their glow */
 .list-item:first-child .glow-top {
-    top: -15px; /* Extended from -10px */
+    top: -25px; /* Increased for full glow effect */
 }
 
 .list-item:last-child .glow-bottom {
-    bottom: -15px; /* Extended from -10px */
+    bottom: -25px; /* Increased for full glow effect */
 }
 
 /* Add more padding to list container to accommodate extended glows */
 .list-container {
-    padding-top: 15px; /* Increased from 10px */
-    padding-bottom: 15px; /* Increased from implicitly 10px */
+    padding-top: 30px; /* Increased to give more space for top glow */
+    padding-bottom: 30px; /* Increased to give more space for bottom glow */
+    overflow: visible !important; /* Ensure glows are not cut off */
 }
 
 /* Add subtle texture to window backgrounds */
@@ -379,6 +388,12 @@ body.dark-mode .close-button {
 
 .content {
     padding: 20px;
+    overflow: visible; /* Ensure content can overflow for glow effects */
+}
+
+/* Specific override for list UI to ensure glows aren't cut off */
+#list-ui .content {
+    overflow: visible;
 }
 
 .input-group {
