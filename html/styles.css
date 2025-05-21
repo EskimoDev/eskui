@@ -802,4 +802,205 @@ body.dark-mode .opacity-value {
 
 .list-item.selected .submenu-arrow {
     color: rgba(255, 255, 255, 0.9);
+}
+
+/* Notification styles */
+.notifications-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 320px;
+    pointer-events: none;
+}
+
+.notification {
+    /* Background color and opacity set via JavaScript to match window opacity setting */
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(149, 107, 213, 0.2);
+    margin-bottom: 10px;
+    pointer-events: all;
+    overflow: hidden;
+    position: relative;
+    animation: notificationEnter 0.3s ease-out forwards;
+    display: flex;
+    align-items: flex-start;
+    max-width: 100%;
+}
+
+.notification.exit {
+    animation: notificationExit 0.3s ease-in forwards;
+}
+
+.notification-icon {
+    flex-shrink: 0;
+    margin-right: 12px;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Icon styling for different types */
+.notification.success .notification-icon {
+    color: #43a047;
+}
+
+.notification.error .notification-icon {
+    color: #e53935;
+}
+
+.notification.warning .notification-icon {
+    color: #fb8c00;
+}
+
+.notification.info .notification-icon {
+    color: #007AFF;
+}
+
+/* Dark mode adjustments */
+body.dark-mode .notification.success .notification-icon {
+    color: #66bb6a;
+}
+
+body.dark-mode .notification.error .notification-icon {
+    color: #ef5350;
+}
+
+body.dark-mode .notification.warning .notification-icon {
+    color: #ffa726;
+}
+
+body.dark-mode .notification.info .notification-icon {
+    color: #0a84ff;
+}
+
+.notification-content {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.notification-title {
+    color: #333;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.notification-message {
+    color: #666;
+    font-size: 13px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow: hidden;
+}
+
+.notification-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    padding: 0;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.notification:hover .notification-close {
+    opacity: 1;
+}
+
+.notification-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #666;
+}
+
+.notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(135deg, #007AFF, #956bd5);
+    width: 100%;
+    transform-origin: left;
+}
+
+/* Notification types */
+.notification.success .notification-progress {
+    background: linear-gradient(135deg, #43a047, #66bb6a);
+}
+
+.notification.error .notification-progress {
+    background: linear-gradient(135deg, #e53935, #ef5350);
+}
+
+.notification.warning .notification-progress {
+    background: linear-gradient(135deg, #fb8c00, #ffa726);
+}
+
+.notification.info .notification-progress {
+    background: linear-gradient(135deg, #007AFF, #956bd5);
+}
+
+/* Dark mode support */
+body.dark-mode .notification {
+    /* Background color and opacity set via JavaScript to match window opacity setting */
+    background: rgba(28, 28, 30, 0.95);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(149, 107, 213, 0.25);
+}
+
+body.dark-mode .notification-title {
+    color: #fff;
+}
+
+body.dark-mode .notification-message {
+    color: #aaa;
+}
+
+body.dark-mode .notification-close {
+    color: #777;
+}
+
+body.dark-mode .notification-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #aaa;
+}
+
+@keyframes notificationEnter {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes notificationExit {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100px);
+    }
 } 

@@ -433,6 +433,129 @@ const uiHandlers = {
     }
 };
 
+// Notification system
+const notifications = {
+    counter: 0,
+    active: {},
+    
+    create(data) {
+        const id = `notification-${++this.counter}`;
+        const container = document.getElementById('notifications-container');
+        
+        console.log('Creating notification with data:', data);
+        console.log('Container element:', container);
+        
+        // Set defaults
+        const options = {
+            type: data.notificationType || 'info',
+            title: data.title || 'Notification',
+            message: data.message || '',
+            duration: data.duration || 5000,
+            // Allow custom icon or use default based on type
+            icon: data.icon || this.getIconForType(data.notificationType || 'info'),
+            closable: data.closable !== false
+        };
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.id = id;
+        notification.className = `notification ${options.type}`;
+        
+        // Create content
+        notification.innerHTML = `
+            <div class="notification-icon">${options.icon}</div>
+            <div class="notification-content">
+                <div class="notification-title">${options.title}</div>
+                <div class="notification-message">${options.message}</div>
+            </div>
+            ${options.closable ? '<button class="notification-close">×</button>' : ''}
+            <div class="notification-progress"></div>
+        `;
+        
+        // Add close button handler
+        if (options.closable) {
+            const closeBtn = notification.querySelector('.notification-close');
+            closeBtn.addEventListener('click', () => this.close(id));
+        }
+        
+        // Add to container
+        container.appendChild(notification);
+        
+        // Apply current opacity setting
+        notification.style.backgroundColor = state.darkMode 
+            ? `rgba(28, 28, 30, ${state.windowOpacity})` 
+            : `rgba(255, 255, 255, ${state.windowOpacity})`;
+        
+        // Animate progress bar
+        const progressBar = notification.querySelector('.notification-progress');
+        progressBar.animate([
+            { transform: 'scaleX(1)' },
+            { transform: 'scaleX(0)' }
+        ], {
+            duration: options.duration,
+            easing: 'linear',
+            fill: 'forwards'
+        });
+        
+        // Set auto-close timer
+        const timer = setTimeout(() => this.close(id), options.duration);
+        
+        // Store notification data
+        this.active[id] = { element: notification, timer };
+        
+        console.log(`Created notification: ${id}`, options);
+        return id;
+    },
+    
+    close(id) {
+        const notification = this.active[id];
+        if (!notification) return;
+        
+        // Clear timer to prevent multiple close calls
+        clearTimeout(notification.timer);
+        
+        // Add exit animation
+        notification.element.classList.add('exit');
+        
+        // Remove after animation completes
+        setTimeout(() => {
+            if (notification.element.parentNode) {
+                notification.element.parentNode.removeChild(notification.element);
+            }
+            delete this.active[id];
+        }, 300);
+    },
+    
+    closeAll() {
+        Object.keys(this.active).forEach(id => this.close(id));
+    },
+    
+    getIconForType(type) {
+        const icons = {
+            success: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>`,
+            error: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>`,
+            warning: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                <line x1="12" y1="9" x2="12" y2="13"></line>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>`,
+            info: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>`
+        };
+        return icons[type] || icons.info;
+    }
+};
+
 // Event handlers
 window.addEventListener('message', function(event) {
     const data = event.data;
@@ -474,7 +597,16 @@ window.addEventListener('message', function(event) {
                 console.log('Processing showSettings event');
                 uiHandlers.showSettings();
             },
-            toggleDarkMode: () => toggleDarkMode()
+            toggleDarkMode: () => toggleDarkMode(),
+            showNotification: () => {
+                console.log('Processing showNotification event', data);
+                console.log('Notification type:', data.notificationType);
+                console.log('Notification title:', data.title);
+                console.log('Notification message:', data.message);
+                
+                // Create the notification
+                notifications.create(data);
+            }
         };
         
         if (handlers[data.type]) {
@@ -634,8 +766,8 @@ function applyOpacity(opacity, shouldSave) {
     if (opacity !== state.windowOpacity || !shouldSave) {
         state.windowOpacity = opacity;
         
-        document.querySelectorAll('.window').forEach(win => {
-            win.style.backgroundColor = state.darkMode 
+        document.querySelectorAll('.window, .notification').forEach(element => {
+            element.style.backgroundColor = state.darkMode 
                 ? `rgba(28, 28, 30, ${opacity})` 
                 : `rgba(255, 255, 255, ${opacity})`;
         });

@@ -308,6 +308,33 @@ local function registerExports()
         end)
     end)
     
+    -- Notification system
+    exports('ShowNotification', function(params)
+        -- Set defaults if not provided
+        local data = {
+            notificationType = params.type or 'info', -- info, success, error, warning
+            title = params.title or 'Notification',
+            message = params.message or '',
+            duration = params.duration or 5000,
+            icon = params.icon,
+            closable = params.closable ~= false
+        }
+        
+        -- Send notification to UI
+        SendNUIMessage({
+            type = 'showNotification',
+            notificationType = data.notificationType,
+            title = data.title,
+            message = data.message,
+            duration = data.duration,
+            icon = data.icon,
+            closable = data.closable
+        })
+        
+        -- Return notification data for potential reference
+        return data
+    end)
+    
     -- Settings UI
     exports('ShowSettings', function()
         showUI('showSettings', 'UI Settings', {})
@@ -416,7 +443,53 @@ local function registerTestCommands()
         end)
     end)
     
+    -- Test notifications
+    RegisterCommand('notify', function(source, args, rawCommand)
+        local type = args[1] or 'info'
+        
+        -- Default messages based on notification type
+        local titles = {
+            info = 'Information',
+            success = 'Success',
+            error = 'Error',
+            warning = 'Warning'
+        }
+        
+        local messages = {
+            info = 'This is an information notification.',
+            success = 'The operation was completed successfully!',
+            warning = 'Please be cautious with this action.',
+            error = 'An error occurred while processing your request.'
+        }
+        
+        -- Validate type
+        if not titles[type] then
+            type = 'info'
+        end
+        
+        -- Debug output
+        print('Showing notification of type: ' .. type)
+        
+        exports['eskui']:ShowNotification({
+            type = type,
+            title = titles[type],
+            message = messages[type],
+            duration = 5000
+        })
+        
+        -- Show syntax help if no args
+        if #args == 0 then
+            TriggerEvent('chat:addMessage', {
+                color = {149, 107, 213},
+                args = {"ESKUI", "Notification syntax: /notify [type]\nTypes: info, success, error, warning"}
+            })
+        end
+    end, false)
+    
     TriggerEvent('chat:addSuggestion', '/testsubmenu', 'Test ESKUI submenu functionality')
+    TriggerEvent('chat:addSuggestion', '/notify', 'Show a test notification', {
+        { name = "type", help = "Notification type (info, success, error, warning)" }
+    })
 end
 
 -- Initialize everything
