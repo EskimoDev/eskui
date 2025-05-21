@@ -466,7 +466,7 @@ body.dark-mode .button.submit {
 
 /* Add left fade for selected items during hover and reset - keeping consistent with normal items */
 .list-item.selected:hover .list-item-content.scroll,
-.list-item.selected .list-item-content.scroll.resetting {
+.list-item-content.scroll.resetting {
     /* Enhanced fade at the left edge for better scrolling appearance */
     -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
     mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
@@ -722,37 +722,47 @@ body.dark-mode .list-divider {
         transform: translateX(-10px);
         opacity: 0;
         filter: blur(2px);
+        text-shadow: 0 0 8px rgba(255,255,255,0.2);
     }
     100% {
         transform: translateX(0);
         opacity: 1;
         filter: blur(0);
+        text-shadow: none;
     }
 }
 
-/* Apply the entrance animation when text is reset */
-.list-item-content.scroll span.entering-from-left {
-    animation: textEnterFromLeft 0.3s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards;
-    will-change: opacity, transform, filter;
-}
-
-/* Simplified animation for the fade-in effect with fluid motion */
+/* Enhanced fluid fade-in animation with letter-staggering effect */
 @keyframes textFadeIn {
     0% {
         opacity: 0;
         transform: translateX(6px);
-        filter: blur(2px);
+        filter: blur(3px);
+        letter-spacing: 0.1em;
+        text-shadow: 0 0 10px rgba(255,255,255,0.3);
     }
-    50% {
+    40% {
         opacity: 0.7;
         transform: translateX(3px);
-        filter: blur(0.5px);
+        filter: blur(1px);
+        letter-spacing: 0.05em;
+    }
+    70% {
+        letter-spacing: 0.02em;
+        text-shadow: 0 0 6px rgba(255,255,255,0.15);
     }
     100% {
         opacity: 1;
         transform: translateX(0);
         filter: blur(0);
+        letter-spacing: normal;
+        text-shadow: none;
     }
+}
+
+/* Add a subtle glow for list items when selected */
+.list-item.selected .list-item-content span {
+    transition: letter-spacing 0.4s ease-out, opacity 0.4s ease-out, filter 0.4s ease-out, text-shadow 0.4s ease-out;
 }
 
 /* Scrollbar Styles */
@@ -1619,4 +1629,10 @@ body.dark-mode .notification-progress::after {
 
 .notification.exit {
     animation: notificationExit 0.35s cubic-bezier(0.3, 0, 0.5, -0.1) forwards;
+}
+
+/* Apply the entrance animation when text is reset */
+.list-item-content.scroll span.entering-from-left {
+    animation: textEnterFromLeft 0.4s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards;
+    will-change: opacity, transform, filter, text-shadow;
 } 

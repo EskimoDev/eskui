@@ -322,197 +322,225 @@ const uiHandlers = {
                 listContainer.appendChild(divider);
             }
             
-                                // Check if text is overflowing and add scroll animation
-                    setTimeout(() => {
-                        if (itemContent.scrollWidth > itemContent.clientWidth) {
+            // Check if text is overflowing and add scroll animation
+            setTimeout(() => {
+                if (itemContent.scrollWidth > itemContent.clientWidth) {
+                    itemContent.classList.add('scroll');
+                    const textSpan = itemContent.querySelector('span');
+                    
+                    // State tracking for robust animation handling
+                    const animState = {
+                        isScrolling: false,
+                        isFadingIn: false,
+                        isHovering: false,
+                        hoverTimer: null,
+                        resetTimer: null,
+                        pendingAnimation: null
+                    };
+                    
+                    // Store animation state on the element to prevent race conditions
+                    textSpan._animState = animState;
+                    
+                    // Clean reset function to ensure consistent state
+                    const resetAnimationState = () => {
+                        // Clear any pending timers
+                        if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
+                        if (animState.resetTimer) clearTimeout(animState.resetTimer);
+                        if (animState.pendingAnimation) cancelAnimationFrame(animState.pendingAnimation);
+                        
+                        // Remove animations first
+                        textSpan.classList.remove('scroll-animate', 'scroll-fade-in', 'entering-from-left');
+                        
+                        // Apply a clean state with no transition first
+                        textSpan.style.transition = 'none';
+                        textSpan.style.opacity = '1';
+                        textSpan.style.filter = 'blur(0px)';
+                        textSpan.style.textShadow = 'none';
+                        
+                        // Force reflow before setting position
+                        void textSpan.offsetWidth;
+                        
+                        // Set exact position to ensure consistency
+                        textSpan.style.transform = 'translateX(0)';
+                        
+                        // Force another reflow to ensure position is applied
+                        void textSpan.offsetWidth;
+                        
+                        // Clear any transition style after position is set
+                        textSpan.style.transition = '';
+                        
+                        // Remove resetting class if it exists
+                        itemContent.classList.remove('resetting');
+                        
+                        // Make sure the scroll class is maintained
+                        if (!itemContent.classList.contains('scroll')) {
                             itemContent.classList.add('scroll');
-                            const textSpan = itemContent.querySelector('span');
+                        }
+                        
+                        // Reset state flags
+                        animState.isScrolling = false;
+                        animState.isFadingIn = false;
+                    };
+                    
+                    // Start scrolling with debounce
+                    const startScrolling = () => {
+                        // Don't restart if already scrolling
+                        if (animState.isScrolling) return;
+                        
+                        // Reset and prepare for scrolling
+                        resetAnimationState();
+                        
+                        // Always ensure starting position is exactly at 0
+                        textSpan.style.transform = 'translateX(0)';
+                        
+                        // Start scrolling with a small delay for stability
+                        animState.pendingAnimation = requestAnimationFrame(() => {
+                            // Remove any transitions first
+                            textSpan.style.transition = 'none';
+                            void textSpan.offsetWidth; // Force reflow
                             
-                            // State tracking for robust animation handling
-                            const animState = {
-                                isScrolling: false,
-                                isFadingIn: false,
-                                isHovering: false,
-                                hoverTimer: null,
-                                resetTimer: null,
-                                pendingAnimation: null
-                            };
+                            // Check if parent list item is selected
+                            const isSelected = itemElement.classList.contains('selected');
                             
-                            // Store animation state on the element to prevent race conditions
-                            textSpan._animState = animState;
+                            // Start the animation
+                            textSpan.classList.add('scroll-animate');
                             
-                            // Clean reset function to ensure consistent state
-                            const resetAnimationState = () => {
-                                // Clear any pending timers
-                                if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
-                                if (animState.resetTimer) clearTimeout(animState.resetTimer);
-                                if (animState.pendingAnimation) cancelAnimationFrame(animState.pendingAnimation);
+                            // If item is selected, we don't need additional delay - CSS handles it
+                            if (isSelected) {
+                                console.log('Item is selected, using CSS delay for scrolling');
+                            }
+                            
+                            animState.isScrolling = true;
+                            animState.pendingAnimation = null;
+                        });
+                    };
+                    
+                    // Enhanced fade-in animation after scrolling completes
+                    const startFancyFadeIn = () => {
+                        if (animState.isFadingIn) return;
+                        
+                        // Mark as fading in to prevent multiple triggers
+                        animState.isFadingIn = true;
+                        
+                        // Get the text content
+                        const originalText = textSpan.textContent;
+                        
+                        // Hide the text first
+                        textSpan.style.opacity = '0';
+                        textSpan.style.transform = 'translateX(0)';
+                        textSpan.style.filter = 'blur(4px)';
+                        
+                        // Force reflow
+                        void textSpan.offsetWidth;
+                        
+                        // Set a smoother transition for all properties
+                        textSpan.style.transition = 'opacity 0.4s ease-out, transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), filter 0.45s ease-out, text-shadow 0.45s ease-out';
+                        
+                        // Add subtle glow effect
+                        textSpan.style.textShadow = '0 0 8px rgba(255,255,255,0.15)';
+                        
+                        // Start the fade in and slide animation
+                        setTimeout(() => {
+                            textSpan.style.opacity = '1';
+                            textSpan.style.transform = 'translateX(0)';
+                            textSpan.style.filter = 'blur(0px)';
+                            
+                            // Remove the glow after the animation
+                            setTimeout(() => {
+                                textSpan.style.textShadow = 'none';
+                                animState.isFadingIn = false;
                                 
-                                // Remove animations first
-                                textSpan.classList.remove('scroll-animate', 'scroll-fade-in', 'entering-from-left');
-                                
-                                // Apply a clean state with no transition first
-                                textSpan.style.transition = 'none';
-                                textSpan.style.opacity = '1';
-                                
-                                // Force reflow before setting position
-                                void textSpan.offsetWidth;
-                                
-                                // Set exact position to ensure consistency
-                                textSpan.style.transform = 'translateX(0)';
-                                
-                                // Force another reflow to ensure position is applied
-                                void textSpan.offsetWidth;
-                                
-                                // Clear any transition style after position is set
-                                textSpan.style.transition = '';
-                                
-                                // Remove resetting class if it exists
+                                // Only restart scrolling if still hovering
+                                if (animState.isHovering && itemElement.classList.contains('selected')) {
+                                    setTimeout(() => startScrolling(), 800);
+                                } else {
+                                    resetAnimationState();
+                                }
+                            }, 450);
+                        }, 50);
+                    };
+                    
+                    // Store the startScrolling function in the animation state
+                    // so we can call it from outside this scope when needed
+                    animState.startScrolling = startScrolling;
+                    
+                    // Improved mouseenter with debounce to prevent rapid toggling
+                    itemElement.addEventListener('mouseenter', () => {
+                        // Mark as hovering
+                        animState.isHovering = true;
+                        
+                        // Debounce rapid hover in/out
+                        if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
+                        
+                        animState.hoverTimer = setTimeout(() => {
+                            // Only proceed if still hovering AND the item is selected
+                            if (animState.isHovering && itemElement.classList.contains('selected')) {
+                                console.log('Item is both hovered and selected, starting scroll animation');
+                                startScrolling();
+                            }
+                        }, 50);
+                    });
+                    
+                    // Smooth transition to fade-in on mouseleave
+                    itemElement.addEventListener('mouseleave', () => {
+                        // Update hover state immediately
+                        animState.isHovering = false;
+                        
+                        // Clear hover timer if it exists
+                        if (animState.hoverTimer) {
+                            clearTimeout(animState.hoverTimer);
+                            animState.hoverTimer = null;
+                        }
+                        
+                        // Only handle leaving if we were scrolling
+                        if (animState.isScrolling) {
+                            // Stop the scroll animation immediately
+                            textSpan.classList.remove('scroll-animate');
+                            
+                            // Keep the fade mask by adding the resetting class
+                            itemContent.classList.add('resetting');
+                            
+                            // Clear any existing transitions
+                            textSpan.style.transition = 'transform 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
+                            
+                            // Reset position directly with transition instead of using animation class
+                            textSpan.style.transform = 'translateX(0)';
+                            
+                            // Set states
+                            animState.isScrolling = false;
+                            
+                            // Quick clean up to prevent jankiness
+                            animState.resetTimer = setTimeout(() => {
+                                // Remove resetting class first
                                 itemContent.classList.remove('resetting');
                                 
-                                // Make sure the scroll class is maintained
-                                if (!itemContent.classList.contains('scroll')) {
-                                    itemContent.classList.add('scroll');
-                                }
-                                
-                                // Reset state flags
-                                animState.isScrolling = false;
-                                animState.isFadingIn = false;
-                            };
-                            
-                                                        // Start scrolling with debounce
-                            const startScrolling = () => {
-                                // Don't restart if already scrolling
-                                if (animState.isScrolling) return;
-                                
-                                // Reset and prepare for scrolling
+                                // Full reset
                                 resetAnimationState();
-                                
-                                // Always ensure starting position is exactly at 0
-                                textSpan.style.transform = 'translateX(0)';
-                                
-                                // Start scrolling with a small delay for stability
-                                animState.pendingAnimation = requestAnimationFrame(() => {
-                                    // Remove any transitions first
-                                    textSpan.style.transition = 'none';
-                                    void textSpan.offsetWidth; // Force reflow
-                                    
-                                    // Check if parent list item is selected
-                                    const isSelected = itemElement.classList.contains('selected');
-                                    
-                                    // Start the animation
-                                    textSpan.classList.add('scroll-animate');
-                                    
-                                    // If item is selected, we don't need additional delay - CSS handles it
-                                    if (isSelected) {
-                                        console.log('Item is selected, using CSS delay for scrolling');
-                                    }
-                                    
-                                    animState.isScrolling = true;
-                                    animState.pendingAnimation = null;
-                                });
-                            };
-                            
-                            // Store the startScrolling function in the animation state
-                            // so we can call it from outside this scope when needed
-                            animState.startScrolling = startScrolling;
-                            
-                            // Improved mouseenter with debounce to prevent rapid toggling
-                            itemElement.addEventListener('mouseenter', () => {
-                                // Mark as hovering
-                                animState.isHovering = true;
-                                
-                                // Debounce rapid hover in/out
-                                if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
-                                
-                                animState.hoverTimer = setTimeout(() => {
-                                    // Only proceed if still hovering AND the item is selected
-                                    if (animState.isHovering && itemElement.classList.contains('selected')) {
-                                        console.log('Item is both hovered and selected, starting scroll animation');
-                                        startScrolling();
-                                    }
-                                }, 50);
-                            });
-                            
-                            // Smooth transition to fade-in on mouseleave
-                            itemElement.addEventListener('mouseleave', () => {
-                                // Update hover state immediately
-                                animState.isHovering = false;
-                                
-                                // Clear hover timer if it exists
-                                if (animState.hoverTimer) {
-                                    clearTimeout(animState.hoverTimer);
-                                    animState.hoverTimer = null;
-                                }
-                                
-                                // Only handle leaving if we were scrolling
-                                if (animState.isScrolling) {
-                                    // Stop the scroll animation immediately
-                                    textSpan.classList.remove('scroll-animate');
-                                    
-                                    // Keep the fade mask by adding the resetting class
-                                    itemContent.classList.add('resetting');
-                                    
-                                    // Clear any existing transitions
-                                    textSpan.style.transition = 'transform 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
-                                    
-                                    // Reset position directly with transition instead of using animation class
-                                    textSpan.style.transform = 'translateX(0)';
-                                    
-                                    // Set states
-                                    animState.isScrolling = false;
-                                    
-                                    // Quick clean up to prevent jankiness
-                                    animState.resetTimer = setTimeout(() => {
-                                        // Remove resetting class first
-                                        itemContent.classList.remove('resetting');
-                                        
-                                        // Full reset
-                                        resetAnimationState();
-                                    }, 300); // Match the transition duration
-                                }
-                            });
-                            
-                            // Handle end of scrolling animation
-                            textSpan.addEventListener('animationend', (e) => {
-                                if (e.animationName === 'scrollText' && animState.isScrolling) {
-                                    // Stop current animation
-                                    textSpan.classList.remove('scroll-animate');
-                                    
-                                    // If still hovering AND item is selected, restart animation
-                                    if (animState.isHovering && itemElement.classList.contains('selected')) {
-                                        // Small delay before restarting for smooth loop
-                                        animState.resetTimer = setTimeout(() => {
-                                            // Add entering-from-left class for blur effect
-                                            textSpan.classList.add('entering-from-left');
-                                            
-                                            // Wait for entrance animation to complete
-                                            setTimeout(() => {
-                                                // Only restart if still hovering AND selected
-                                                if (animState.isHovering && itemElement.classList.contains('selected')) {
-                                                    // Remove entrance animation
-                                                    textSpan.classList.remove('entering-from-left');
-                                                    // Force reflow
-                                                    void textSpan.offsetWidth;
-                                                    // Start scrolling animation again
-                                                    textSpan.classList.add('scroll-animate');
-                                                } else {
-                                                    // Otherwise reset completely
-                                                    resetAnimationState();
-                                                }
-                                            }, 500); // Match the duration of textEnterFromLeft animation
-                                        }, 100);
-                                    } else {
-                                        // Not hovering or not selected, so reset fully
-                                        resetAnimationState();
-                                    }
-                                } else if (e.animationName === 'textEnterFromLeft') {
-                                    // When the entering-from-left animation completes, remove the class
-                                    textSpan.classList.remove('entering-from-left');
-                                }
-                            });
+                            }, 300); // Match the transition duration
                         }
-                    }, 10);
+                    });
+                    
+                    // Handle end of scrolling animation
+                    textSpan.addEventListener('animationend', (e) => {
+                        if (e.animationName === 'scrollText' && animState.isScrolling) {
+                            // Stop current animation
+                            textSpan.classList.remove('scroll-animate');
+                            
+                            // If still hovering AND item is selected, start fancy fade-in
+                            if (animState.isHovering && itemElement.classList.contains('selected')) {
+                                // Start the enhanced fade-in effect
+                                startFancyFadeIn();
+                            } else {
+                                // Not hovering or not selected, so reset fully
+                                resetAnimationState();
+                            }
+                        } else if (e.animationName === 'textEnterFromLeft') {
+                            // When the entering-from-left animation completes, remove the class
+                            textSpan.classList.remove('entering-from-left');
+                        }
+                    });
+                }
+            }, 10);
         });
         
         // Add back button listener for Escape key
