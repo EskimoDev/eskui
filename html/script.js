@@ -275,7 +275,7 @@ const uiHandlers = {
                                 if (animState.pendingAnimation) cancelAnimationFrame(animState.pendingAnimation);
                                 
                                 // Remove animations first
-                                textSpan.classList.remove('scroll-animate', 'scroll-fade-in');
+                                textSpan.classList.remove('scroll-animate', 'scroll-fade-in', 'entering-from-left');
                                 
                                 // Apply a clean state with no transition first
                                 textSpan.style.transition = 'none';
@@ -373,24 +373,19 @@ const uiHandlers = {
                                     // First remove any transitions
                                     textSpan.style.transition = 'none';
                                     
-                                    // Apply exact position first
-                                    textSpan.style.transform = `translateX(${currentX}px)`;
-                                    void textSpan.offsetWidth; // Force reflow
-                                    
-                                    // Apply smooth transition back to start using a more natural easing
-                                    textSpan.style.transition = 'transform 0.5s cubic-bezier(0.215, 0.61, 0.355, 1)';
-                                    textSpan.style.transform = 'translateX(0)';
+                                    // Add the entering-from-left animation class instead of using manual transition
+                                    textSpan.classList.add('entering-from-left');
                                     
                                     // Set fading in state
                                     animState.isScrolling = false;
                                     animState.isFadingIn = true;
                                     
-                                    // Wait for the transition to complete
+                                    // Wait for the animation to complete
                                     animState.resetTimer = setTimeout(() => {
                                         // Remove resetting class first
                                         itemContent.classList.remove('resetting');
                                         
-                                        // Full reset after transition finishes
+                                        // Full reset after animation finishes
                                         resetAnimationState();
                                     }, 500);
                                 }
@@ -406,39 +401,32 @@ const uiHandlers = {
                                     if (animState.isHovering) {
                                         // Small delay before restarting for smooth loop
                                         animState.resetTimer = setTimeout(() => {
-                                            // Reset position with a smooth fade
-                                            textSpan.style.transition = 'opacity 0.3s ease';
-                                            textSpan.style.opacity = '0';
+                                            // Add entering-from-left class for blur effect
+                                            textSpan.classList.add('entering-from-left');
                                             
-                                            // Wait for fade out
+                                            // Wait for entrance animation to complete
                                             setTimeout(() => {
-                                                // Reset position with no visible transition
-                                                textSpan.style.transition = 'none';
-                                                textSpan.style.transform = 'translateX(0)';
-                                                void textSpan.offsetWidth; // Force reflow
-                                                
-                                                // Fade back in
-                                                textSpan.style.transition = 'opacity 0.3s ease';
-                                                textSpan.style.opacity = '1';
-                                                
-                                                // Wait for fade in before restarting scroll
-                                                setTimeout(() => {
-                                                    // Only restart if still hovering
-                                                    if (animState.isHovering) {
-                                                        textSpan.style.transition = '';
-                                                        void textSpan.offsetWidth;
-                                                        textSpan.classList.add('scroll-animate');
-                                                    } else {
-                                                        // Otherwise reset completely
-                                                        resetAnimationState();
-                                                    }
-                                                }, 300);
-                                            }, 300);
+                                                // Only restart if still hovering
+                                                if (animState.isHovering) {
+                                                    // Remove entrance animation
+                                                    textSpan.classList.remove('entering-from-left');
+                                                    // Force reflow
+                                                    void textSpan.offsetWidth;
+                                                    // Start scrolling animation again
+                                                    textSpan.classList.add('scroll-animate');
+                                                } else {
+                                                    // Otherwise reset completely
+                                                    resetAnimationState();
+                                                }
+                                            }, 500); // Match the duration of textEnterFromLeft animation
                                         }, 100);
                                     } else {
                                         // Not hovering, so reset fully
                                         resetAnimationState();
                                     }
+                                } else if (e.animationName === 'textEnterFromLeft') {
+                                    // When the entering-from-left animation completes, remove the class
+                                    textSpan.classList.remove('entering-from-left');
                                 }
                             });
                         }

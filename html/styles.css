@@ -595,12 +595,37 @@ body.dark-mode .list-divider {
     0% {
         transform: translateX(0);
         opacity: 1;
+        filter: blur(0);
     }
-    /* Move further to ensure all text scrolls completely */
+    /* Add blur effect as text moves out on the left side */
+    85% {
+        filter: blur(0);
+    }
     100% {
         transform: translateX(-105%);
         opacity: 1;
+        filter: blur(3px);
     }
+}
+
+/* Create a new animation for when text enters from the left side */
+@keyframes textEnterFromLeft {
+    0% {
+        transform: translateX(-20px);
+        opacity: 0;
+        filter: blur(3px);
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+/* Apply the entrance animation when text is reset */
+.list-item-content.scroll span.entering-from-left {
+    animation: textEnterFromLeft 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+    will-change: opacity, transform, filter;
 }
 
 /* Rich, detailed animation for the fade-in effect with fluid motion and 3D depth */
