@@ -332,6 +332,8 @@ body.dark-mode .button.submit {
     overflow-x: hidden;
     margin-bottom: 16px;
     border-radius: 8px;
+    /* Add padding to prevent cut-off borders */
+    padding: 4px 6px;
 }
 
 /* Enhance list items with texture */
@@ -339,6 +341,9 @@ body.dark-mode .button.submit {
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 0;
+    /* Add margins to ensure borders are fully visible */
+    margin-left: 2px;
+    margin-right: 2px;
     background: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -376,7 +381,11 @@ body.dark-mode .button.submit {
     border: 1px solid rgba(149, 107, 213, 0.4);
     box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
     font-weight: 600;
-    transform: scale(1.01);
+    /* Scale slightly less to prevent border cut-off */
+    transform: scale(1.005);
+    /* Make sure there's room for the selection to be visible */
+    margin-left: 4px;
+    margin-right: 4px;
     position: relative;
     overflow: hidden;
 }
@@ -487,8 +496,10 @@ body.dark-mode .list-item.selected {
     border: 1px solid rgba(149, 107, 213, 0.6) !important;
     box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
     font-weight: 600 !important;
-    /* Combine transforms properly */
-    transform: translateX(4px) scale(1.01) !important;
+    /* Scale slightly less and add some margin to prevent border cut-off */
+    transform: translateX(4px) scale(1.005) !important;
+    margin-left: 4px !important;
+    margin-right: 4px !important;
 }
 
 body.dark-mode .list-item.selected::before {
