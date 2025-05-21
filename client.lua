@@ -199,6 +199,21 @@ for name, handler in pairs(callbacks) do
     handleNUICallback(name, handler)
 end
 
+-- Register shop checkout callback
+handleNUICallback('shopCheckout', function(data, cb)
+    print("Received shop checkout callback with total: $" .. data.total)
+    
+    -- Always acknowledge the callback first to avoid NUI freezes
+    cb('ok')
+    
+    -- Close the UI
+    display = false
+    SetNuiFocus(false, false)
+    
+    -- Trigger event with checkout data
+    TriggerEvent('eskui:shopCheckoutCallback', data)
+end)
+
 -- Register commands
 RegisterCommand('darkmode', function()
     darkMode = not darkMode
@@ -345,6 +360,21 @@ local function registerExports()
         darkMode = not darkMode
         SendNUIMessage({type = 'toggleDarkMode'})
         return darkMode
+    end)
+    
+    -- Shop UI
+    exports('ShowShop', function(title, categories, items, callback)
+        showUI('showShop', title, {
+            categories = categories,
+            items = items
+        })
+        
+        -- Register event handler for checkout response
+        local eventName = 'eskui:shopCheckoutCallback'
+        return registerEskuiHandler(eventName, function(data)
+            if callback then callback(data) end
+            return true -- Remove handler after callback is processed
+        end)
     end)
 end
 

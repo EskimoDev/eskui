@@ -137,6 +137,62 @@ RegisterCommand('notify', function(source, args, rawCommand)
     end
 end, false)
 
+-- Test shopping UI
+RegisterCommand('testshop', function()
+    local categories = {
+        {id = 'weapons', label = 'Weapons', icon = '🔫'},
+        {id = 'clothing', label = 'Clothing', icon = '👕'},
+        {id = 'food', label = 'Food', icon = '🍔'},
+        {id = 'drinks', label = 'Drinks', icon = '🥤'},
+        {id = 'misc', label = 'Miscellaneous', icon = '📦'}
+    }
+    
+    local items = {
+        -- Weapons
+        {id = 'pistol', name = 'Pistol', price = 1000, category = 'weapons', icon = '🔫', description = 'Standard issue pistol'},
+        {id = 'rifle', name = 'Rifle', price = 5000, category = 'weapons', icon = '🔫', description = 'Military grade assault rifle'},
+        {id = 'shotgun', name = 'Shotgun', price = 3500, category = 'weapons', icon = '🔫', description = 'Close range weapon'},
+        
+        -- Clothing
+        {id = 'tshirt', name = 'T-Shirt', price = 50, category = 'clothing', icon = '👕', description = 'Basic cotton t-shirt'},
+        {id = 'jeans', name = 'Jeans', price = 75, category = 'clothing', icon = '👖', description = 'Denim jeans'},
+        {id = 'hat', name = 'Hat', price = 25, category = 'clothing', icon = '🧢', description = 'Baseball cap'},
+        
+        -- Food
+        {id = 'burger', name = 'Burger', price = 10, category = 'food', icon = '🍔', description = 'Juicy beef burger'},
+        {id = 'pizza', name = 'Pizza', price = 12, category = 'food', icon = '🍕', description = 'Pepperoni pizza slice'},
+        {id = 'taco', name = 'Taco', price = 8, category = 'food', icon = '🌮', description = 'Crunchy beef taco'},
+        
+        -- Drinks
+        {id = 'water', name = 'Water', price = 3, category = 'drinks', icon = '💧', description = 'Refreshing water bottle'},
+        {id = 'cola', name = 'Cola', price = 5, category = 'drinks', icon = '🥤', description = 'Fizzy cola drink'},
+        {id = 'coffee', name = 'Coffee', price = 6, category = 'drinks', icon = '☕', description = 'Hot coffee'},
+        
+        -- Misc
+        {id = 'phone', name = 'Phone', price = 1000, category = 'misc', icon = '📱', description = 'Smartphone'},
+        {id = 'laptop', name = 'Laptop', price = 3000, category = 'misc', icon = '💻', description = 'Portable computer'},
+        {id = 'watch', name = 'Watch', price = 500, category = 'misc', icon = '⌚', description = 'Digital watch'}
+    }
+    
+    exports['eskui']:ShowShop('General Store', categories, items, function(data)
+        if data then
+            print('Checkout completed:')
+            print('Total: $' .. data.total)
+            for i, item in ipairs(data.items) do
+                print(('- %s x%d ($%d each)'):format(item.id, item.quantity, item.price))
+            end
+            
+            -- Show a notification
+            exports['eskui']:ShowNotification({
+                type = 'success',
+                title = 'Purchase Successful',
+                message = ('You spent $%s on %d items'):format(data.total, #data.items),
+                duration = 5000
+            })
+        end
+    end)
+end, false)
+
 -- Add command suggestions
 TriggerEvent('chat:addSuggestion', '/testamount', 'Test ESKUI amount input')
 TriggerEvent('chat:addSuggestion', '/testlist', 'Test ESKUI list selection')
@@ -144,4 +200,5 @@ TriggerEvent('chat:addSuggestion', '/testdropdown', 'Test ESKUI dropdown menu')
 TriggerEvent('chat:addSuggestion', '/testsubmenu', 'Test ESKUI submenu functionality')
 TriggerEvent('chat:addSuggestion', '/notify', 'Show a test notification', {
     { name = "type", help = "Notification type (info, success, error, warning)" }
-}) 
+})
+TriggerEvent('chat:addSuggestion', '/testshop', 'Test ESKUI shop interface') 

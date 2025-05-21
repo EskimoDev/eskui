@@ -198,7 +198,7 @@ body.dark-mode .list-ui-button-separator {
     opacity: 0.8;
     display: flex;
     justify-content: center;
-    margin: 18px 0; /* Increased from 12px to 18px for more breathing room */
+    margin: 12px 0; /* Increased from 4px to 12px for more breathing room */
 }
 
 .list-divider::before {
@@ -554,7 +554,7 @@ input[type="number"]::placeholder {
 
 /* Enhance list items with texture */
 .list-item {
-    padding: 14px;
+    padding: 12px;
     border-radius: 8px;
     margin-bottom: 0;
     /* Add margins to ensure borders are fully visible */
@@ -562,8 +562,14 @@ input[type="number"]::placeholder {
     margin-right: 8px; /* Increased from 2px to allow more room for glow */
     background: var(--list-item-bg);
     cursor: pointer;
-    /* Improved transition with smoother timing function */
-    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+    /* Enhanced transition with color properties */
+    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), 
+               background-color 0.5s ease, 
+               background-image 0.5s ease, 
+               color 0.5s ease,
+               border-color 0.5s ease,
+               box-shadow 0.5s ease,
+               font-weight 0.4s ease;
     position: relative;
     overflow: hidden;
     border: 1px solid var(--list-item-border);
@@ -619,9 +625,29 @@ body.dark-mode .list-item.deselecting {
     margin-right: 12px; /* Increased from 4px to allow more room for glow */
     position: relative;
     overflow: visible; /* Changed from hidden to allow the glow to extend outside */
-    /* Add animation for selection */
-    animation: selectItem 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    /* Use transform animation but let colors transition with CSS transitions */
+    animation: selectItemTransform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     z-index: 1; /* Ensure selected items appear above deselecting items */
+}
+
+/* Add a transition overlay to create a smooth color fade when selecting */
+.list-item::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: var(--list-item-selected-bg);
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    z-index: -1;
+}
+
+.list-item.selected::after {
+    opacity: 1;
 }
 
 /* Add outer glow effect for selected items */
@@ -890,7 +916,22 @@ body.dark-mode .list-item.deselecting {
     }
 }
 
-/* Add animation for the outer glow effect */
+/* New animation for selection transform (no color transitions) */
+@keyframes selectItemTransform {
+    0% {
+        transform: scale(0.98) translateX(0);
+    }
+    40% {
+        transform: scale(1.02) translateX(6px);
+    }
+    80% {
+        transform: scale(1.01) translateX(5px);
+    }
+    100% {
+        transform: translateX(4px) scale(1.005);
+    }
+}
+
 @keyframes glowPulse {
     0% {
         opacity: 0.4;
@@ -934,26 +975,22 @@ body.dark-mode .list-item.deselecting {
 @keyframes deselectItem {
     0% {
         transform: translateX(4px) scale(1.005);
-        background-image: var(--list-item-selected-bg);
-        color: var(--list-item-selected-color);
+        /* Color will be handled by CSS transitions */
     }
     100% {
         transform: translateX(0) scale(1);
-        background: var(--list-item-bg);
-        color: var(--text-color);
+        /* Color will be handled by CSS transitions */
     }
 }
 
 @keyframes deselectItemDark {
     0% {
         transform: translateX(4px) scale(1.005);
-        background-image: var(--list-item-selected-bg);
-        color: var(--list-item-selected-color);
+        /* Color will be handled by CSS transitions */
     }
     100% {
         transform: translateX(0) scale(1);
-        background: var(--list-item-bg);
-        color: var(--text-color);
+        /* Color will be handled by CSS transitions */
     }
 }
 
@@ -1416,12 +1453,14 @@ body.dark-mode .opacity-slider {
     text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
     position: relative;
     z-index: 2;
-    animation: textBolden 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    will-change: transform, letter-spacing, font-weight;
+    animation: textBolden 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    will-change: transform, letter-spacing, font-weight, color, text-shadow, opacity;
+    transition: color 0.5s ease, text-shadow 0.5s ease;
 }
 
 .list-item.deselecting .list-item-content span {
     animation: textBolden 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
 }
 
 /* Remove all header effects */
@@ -1961,4 +2000,468 @@ body.dark-mode .list-item.selected .water-shimmer {
         repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
     mix-blend-mode: screen;
     opacity: 0.2; /* Reduced opacity for dark mode */
+}
+
+/* Shopping UI Styles */
+.shop-window {
+    width: 900px;
+    height: 600px;
+    max-width: 90vw;
+    max-height: 80vh;
+}
+
+.shop-window .content {
+    display: grid;
+    grid-template-columns: 200px 1fr 250px;
+    grid-gap: 15px;
+    height: calc(100% - 50px);
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Shop Sidebar */
+.shop-sidebar {
+    border-right: 1px solid var(--border-color);
+    padding: 15px 0;
+    overflow-y: auto;
+}
+
+.shop-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.shop-category {
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    position: relative;
+}
+
+.shop-category:hover {
+    background: var(--list-item-hover-bg);
+    transform: translateX(4px);
+}
+
+.shop-category.active {
+    background-image: var(--list-item-selected-bg);
+    color: var(--list-item-selected-color);
+    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
+    transform: translateX(4px);
+}
+
+.shop-category-icon {
+    margin-right: 8px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Shop Main Content */
+.shop-main {
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.shop-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-gap: 15px;
+}
+
+.shop-item {
+    background: var(--list-item-bg);
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--list-item-border);
+    position: relative;
+    overflow: hidden;
+}
+
+.shop-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+    border-color: var(--accent-color-secondary);
+}
+
+.shop-item-image {
+    width: 100%;
+    height: 100px;
+    object-fit: contain;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 6px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 36px;
+}
+
+body.dark-mode .shop-item-image {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.shop-item-name {
+    font-weight: 500;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shop-item-price {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-top: auto;
+}
+
+.shop-item-desc {
+    font-size: 12px;
+    color: var(--text-secondary-color);
+    margin-bottom: 10px;
+    max-height: 36px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.shop-item-add {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent-gradient);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+}
+
+.shop-item:hover .shop-item-add {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Shop Cart */
+.shop-cart {
+    border-left: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.shop-cart-header {
+    padding: 15px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.shop-cart-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.shop-cart-clear {
+    background: none;
+    border: none;
+    color: var(--accent-color);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px;
+    transition: all 0.2s ease;
+}
+
+.shop-cart-clear:hover {
+    color: var(--accent-color-secondary);
+    text-decoration: underline;
+}
+
+.shop-cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.shop-cart-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--list-item-bg);
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.shop-cart-item-icon {
+    width: 30px;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+body.dark-mode .shop-cart-item-icon {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.shop-cart-item-details {
+    flex: 1;
+}
+
+.shop-cart-item-name {
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.shop-cart-item-price {
+    font-size: 12px;
+    color: var(--accent-color);
+}
+
+.shop-cart-item-quantity {
+    display: flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+.shop-cart-item-quantity-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: var(--btn-cancel-bg);
+    color: var(--btn-cancel-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.shop-cart-item-quantity-value {
+    margin: 0 8px;
+    font-size: 13px;
+    width: 20px;
+    text-align: center;
+}
+
+.shop-cart-item-remove {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    color: var(--text-secondary-color);
+}
+
+.shop-cart-item-remove:hover {
+    opacity: 1;
+    color: #ff453a;
+}
+
+.shop-cart-footer {
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+.shop-cart-total {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+#shop-checkout-btn {
+    width: 100%;
+}
+
+.shop-cart-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-secondary-color);
+    text-align: center;
+    padding: 20px;
+}
+
+.shop-cart-empty-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.shop-cart-empty-text {
+    font-size: 14px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .shop-window .content {
+        grid-template-columns: 150px 1fr 220px;
+    }
+}
+
+@media (max-width: 768px) {
+    .shop-window .content {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+    }
+    
+    .shop-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 10px 15px;
+    }
+    
+    .shop-categories {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 10px;
+    }
+    
+    .shop-category {
+        white-space: nowrap;
+    }
+    
+    .shop-cart {
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+    }
 } 
+
+/* Shopping UI Animation Styles */
+.shop-item {
+    transform-origin: center;
+    animation: shopItemAppear 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.5) backwards;
+}
+
+.shop-item:nth-child(3n+1) {
+    animation-delay: 0.05s;
+}
+
+.shop-item:nth-child(3n+2) {
+    animation-delay: 0.1s;
+}
+
+.shop-item:nth-child(3n+3) {
+    animation-delay: 0.15s;
+}
+
+@keyframes shopItemAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.shop-cart-item {
+    animation: cartItemAppear 0.3s ease forwards;
+}
+
+@keyframes cartItemAppear {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.shop-item-add {
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.shop-item-add:hover {
+    transform: scale(1.2);
+}
+
+.shop-category {
+    animation: fadeIn 0.3s ease forwards;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.pulse {
+    animation: pulse 0.3s cubic-bezier(0.25, 0.1, 0.25, 1.5);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.shop-cart-item-quantity-btn {
+    transition: all 0.2s ease;
+}
+
+.shop-cart-item-quantity-btn:hover {
+    background: var(--btn-submit-bg);
+    color: white;
+    transform: scale(1.1);
+}
+
+.shop-cart-item-remove {
+    transform-origin: center;
+}
+
+.shop-cart-item-remove:hover {
+    transform: rotate(90deg);
+}

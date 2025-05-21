@@ -6,7 +6,11 @@ const state = {
     darkMode: false,
     windowOpacity: 0.95,
     freeDrag: false,
-    selectedListItem: null
+    selectedListItem: null,
+    // Shopping cart state
+    cart: [],
+    currentCategory: null,
+    shopItems: []
 };
 
 // Helper functions for UI management
@@ -237,15 +241,24 @@ const uiHandlers = {
                     }
                     
                     // If there's a previously selected item, add deselecting animation
-                    const previouslySelected = listContainer.querySelector('.list-item.selected');
-                    if (previouslySelected && previouslySelected !== itemElement) {
-                        // First deselect the previous item
-                        previouslySelected.classList.add('deselecting');
-                        previouslySelected.classList.remove('selected');
-                        
-                        // Wait for deselection animation to complete before selecting new item
-                        setTimeout(() => {
-                            previouslySelected.classList.remove('deselecting');
+                        const previouslySelected = listContainer.querySelector('.list-item.selected');
+                        if (previouslySelected && previouslySelected !== itemElement) {
+                            // First deselect the previous item
+                            previouslySelected.classList.add('deselecting');
+                            previouslySelected.classList.remove('selected');
+                            
+                            // Remove glow effects with a fade-out animation instead of instantly removing them
+                            const prevGlowElements = previouslySelected.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left');
+                            prevGlowElements.forEach(el => {
+                                el.style.transition = 'opacity 0.25s ease';
+                                el.style.opacity = '0';
+                            });
+                            
+                            // Wait for deselection animation to complete before selecting new item
+                            setTimeout(() => {
+                                previouslySelected.classList.remove('deselecting');
+                                // Remove the glow elements after fade-out
+                                prevGlowElements.forEach(el => el.remove());
                             
                             // Now select the new item
                             itemElement.classList.add('selected');
@@ -299,14 +312,67 @@ const uiHandlers = {
                         // Add deselecting animation to all items except the newly selected one
                         listContainer.querySelectorAll('.list-item').forEach(el => {
                             if (el !== itemElement) {
-                                el.classList.remove('selected', 'deselecting');
-                                // Remove all glow elements if they exist
-                                el.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(glowEl => glowEl.remove());
+                                // If it was previously selected, add deselecting animation
+                                if (el.classList.contains('selected')) {
+                                    el.classList.add('deselecting');
+                                    el.classList.remove('selected');
+                                    
+                                    // Fade out glow effects
+                                    const glowElements = el.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left');
+                                    glowElements.forEach(glowEl => {
+                                        glowEl.style.transition = 'opacity 0.25s ease';
+                                        glowEl.style.opacity = '0';
+                                        
+                                        // Remove after fade completes
+                                        setTimeout(() => glowEl.remove(), 250);
+                                    });
+                                    
+                                    // Remove deselecting class after animation completes
+                                    setTimeout(() => el.classList.remove('deselecting'), 300);
+                                } else {
+                                    el.classList.remove('selected', 'deselecting');
+                                    // Remove any existing glow elements
+                                    el.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(glowEl => glowEl.remove());
+                                }
                             }
                         });
                         
-                        // Add selected class to this item
+                                            // First create a fade-in effect
+                    // Create a temporary element for the selection transition
+                    const transitionOverlay = document.createElement('div');
+                    transitionOverlay.className = 'selection-transition-overlay';
+                    transitionOverlay.style.position = 'absolute';
+                    transitionOverlay.style.top = '0';
+                    transitionOverlay.style.left = '0';
+                    transitionOverlay.style.right = '0';
+                    transitionOverlay.style.bottom = '0';
+                    transitionOverlay.style.borderRadius = '8px';
+                    transitionOverlay.style.backgroundImage = 'var(--list-item-selected-bg)';
+                    transitionOverlay.style.opacity = '0';
+                    transitionOverlay.style.transition = 'opacity 0.4s ease';
+                    transitionOverlay.style.zIndex = '0';
+                    transitionOverlay.style.pointerEvents = 'none';
+                    
+                    // Add the transition overlay
+                    itemElement.appendChild(transitionOverlay);
+                    
+                    // Trigger reflow to ensure the transition works
+                    void transitionOverlay.offsetWidth;
+                    
+                    // Start the fade-in effect
+                    transitionOverlay.style.opacity = '1';
+                    
+                    // Add the selected class after a slight delay to allow the fade to begin
+                    setTimeout(() => {
+                        // Add selected class
                         itemElement.classList.add('selected');
+                        
+                        // Remove the temporary transition overlay after the fade completes
+                        setTimeout(() => {
+                            if (transitionOverlay.parentNode) {
+                                transitionOverlay.parentNode.removeChild(transitionOverlay);
+                            }
+                        }, 500);
                         
                         // Remove any existing glow elements before adding new ones
                         itemElement.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
@@ -323,6 +389,7 @@ const uiHandlers = {
                         const shimmer = document.createElement('div');
                         shimmer.className = 'water-shimmer';
                         itemElement.appendChild(shimmer);
+                    }, 50);
                         
                         // Store the selected item and index
                         state.selectedListItem = { index, item };
@@ -737,6 +804,75 @@ const uiHandlers = {
         document.querySelector('#settings-ui .close-button').onclick = closeUI;
     },
     
+    showShop(title, categories, items) {
+        console.log(`Showing shop: ${title}, items:`, items);
+        
+        state.currentUI = 'shop';
+        ui.show('shopping-ui');
+        this.hideOtherUIs('shopping-ui');
+        
+        document.querySelector('#shopping-ui .titlebar-title').textContent = title;
+        
+        // Set initial shop data
+        state.shopItems = items || [];
+        state.cart = [];
+        
+        // Populate categories
+        const categoriesContainer = document.getElementById('shop-categories');
+        categoriesContainer.innerHTML = '';
+        
+        if (categories && categories.length > 0) {
+            categories.forEach((category, index) => {
+                const categoryEl = document.createElement('div');
+                categoryEl.className = 'shop-category' + (index === 0 ? ' active' : '');
+                
+                // Set initial category
+                if (index === 0) {
+                    state.currentCategory = category.id;
+                }
+                
+                let categoryContent = '';
+                if (category.icon) {
+                    categoryContent += `<span class="shop-category-icon">${category.icon}</span>`;
+                }
+                categoryContent += category.label;
+                
+                categoryEl.innerHTML = categoryContent;
+                
+                categoryEl.onclick = () => {
+                    // Deselect all categories
+                    document.querySelectorAll('.shop-category').forEach(cat => {
+                        cat.classList.remove('active');
+                    });
+                    
+                    // Select this category
+                    categoryEl.classList.add('active');
+                    
+                    // Update current category
+                    state.currentCategory = category.id;
+                    
+                    // Update displayed items
+                    renderShopItems();
+                };
+                
+                categoriesContainer.appendChild(categoryEl);
+            });
+        }
+        
+        // Initial render of shop items
+        renderShopItems();
+        
+        // Initial render of cart
+        renderCart();
+        
+        // Add event listeners for cart buttons
+        document.getElementById('shop-cart-clear').addEventListener('click', clearCart);
+        document.getElementById('shop-checkout-btn').addEventListener('click', checkout);
+        
+        // Add escape handler
+        ui.addEscapeHandler(() => closeUI());
+    },
+    
     hideOtherUIs(currentUI) {
         // When showing a submenu, don't hide the list-ui
         if (currentUI === 'list-ui' && state.currentUI === 'list') {
@@ -916,6 +1052,10 @@ window.addEventListener('message', function(event) {
             showSettings: () => {
                 console.log('Processing showSettings event');
                 uiHandlers.showSettings();
+            },
+            showShop: () => {
+                console.log('Processing showShop event');
+                uiHandlers.showShop(data.title, data.categories, data.items);
             },
             toggleDarkMode: () => toggleDarkMode(),
             showNotification: () => {
@@ -1206,4 +1346,203 @@ function setupGlowEffectCleanup() {
     
     // Add the interval to cleanup handlers so it gets cleared when UI is closed
     state.cleanupHandlers.push(() => clearInterval(glowCleanupInterval));
+}
+
+// Shopping cart functions
+function renderShopItems() {
+    const shopItemsContainer = document.getElementById('shop-items');
+    shopItemsContainer.innerHTML = '';
+    
+    // Filter items by current category
+    const filteredItems = state.currentCategory 
+        ? state.shopItems.filter(item => item.category === state.currentCategory)
+        : state.shopItems;
+    
+    if (filteredItems.length === 0) {
+        const emptyMessage = document.createElement('div');
+        emptyMessage.className = 'shop-cart-empty';
+        emptyMessage.innerHTML = `
+            <div class="shop-cart-empty-icon">📦</div>
+            <div class="shop-cart-empty-text">No items in this category</div>
+        `;
+        shopItemsContainer.appendChild(emptyMessage);
+        return;
+    }
+    
+    filteredItems.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'shop-item';
+        
+        let imageContent = '';
+        if (item.image) {
+            imageContent = `<img src="${item.image}" alt="${item.name}">`;
+        } else {
+            // Use emoji as fallback
+            imageContent = item.icon || '🛒';
+        }
+        
+        itemEl.innerHTML = `
+            <div class="shop-item-image">${imageContent}</div>
+            <div class="shop-item-name">${item.name}</div>
+            ${item.description ? `<div class="shop-item-desc">${item.description}</div>` : ''}
+            <div class="shop-item-price">$${item.price.toLocaleString()}</div>
+            <div class="shop-item-add">+</div>
+        `;
+        
+        // Add to cart when clicked
+        itemEl.querySelector('.shop-item-add').addEventListener('click', (e) => {
+            e.stopPropagation();
+            addToCart(item);
+        });
+        
+        // View item details when clicked
+        itemEl.addEventListener('click', () => {
+            // In future, show item details modal here
+            console.log('View item details:', item);
+        });
+        
+        shopItemsContainer.appendChild(itemEl);
+    });
+}
+
+function renderCart() {
+    const cartItemsContainer = document.getElementById('shop-cart-items');
+    const totalElement = document.getElementById('shop-cart-total-amount');
+    
+    cartItemsContainer.innerHTML = '';
+    
+    if (state.cart.length === 0) {
+        const emptyCart = document.createElement('div');
+        emptyCart.className = 'shop-cart-empty';
+        emptyCart.innerHTML = `
+            <div class="shop-cart-empty-icon">🛒</div>
+            <div class="shop-cart-empty-text">Your cart is empty</div>
+        `;
+        cartItemsContainer.appendChild(emptyCart);
+        totalElement.textContent = '$0';
+        return;
+    }
+    
+    let total = 0;
+    
+    state.cart.forEach(cartItem => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'shop-cart-item';
+        
+        const subtotal = cartItem.item.price * cartItem.quantity;
+        total += subtotal;
+        
+        itemEl.innerHTML = `
+            <div class="shop-cart-item-icon">${cartItem.item.icon || '📦'}</div>
+            <div class="shop-cart-item-details">
+                <div class="shop-cart-item-name">${cartItem.item.name}</div>
+                <div class="shop-cart-item-price">$${cartItem.item.price.toLocaleString()}</div>
+            </div>
+            <div class="shop-cart-item-quantity">
+                <div class="shop-cart-item-quantity-btn dec">-</div>
+                <div class="shop-cart-item-quantity-value">${cartItem.quantity}</div>
+                <div class="shop-cart-item-quantity-btn inc">+</div>
+            </div>
+            <div class="shop-cart-item-remove">×</div>
+        `;
+        
+        // Decrease quantity
+        itemEl.querySelector('.shop-cart-item-quantity-btn.dec').addEventListener('click', () => {
+            if (cartItem.quantity > 1) {
+                cartItem.quantity--;
+                renderCart();
+            } else {
+                removeFromCart(cartItem.item.id);
+            }
+        });
+        
+        // Increase quantity
+        itemEl.querySelector('.shop-cart-item-quantity-btn.inc').addEventListener('click', () => {
+            cartItem.quantity++;
+            renderCart();
+        });
+        
+        // Remove item completely
+        itemEl.querySelector('.shop-cart-item-remove').addEventListener('click', () => {
+            removeFromCart(cartItem.item.id);
+        });
+        
+        cartItemsContainer.appendChild(itemEl);
+    });
+    
+    totalElement.textContent = '$' + total.toLocaleString();
+}
+
+function addToCart(item) {
+    // Check if item already in cart
+    const existingItem = state.cart.find(cartItem => cartItem.item.id === item.id);
+    
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        state.cart.push({
+            item: item,
+            quantity: 1
+        });
+    }
+    
+    // Show brief animation on cart
+    const cartBtn = document.getElementById('shop-checkout-btn');
+    cartBtn.classList.add('pulse');
+    setTimeout(() => cartBtn.classList.remove('pulse'), 300);
+    
+    // Show notification
+    notifications.create({
+        type: 'success',
+        title: 'Added to cart',
+        message: `${item.name} has been added to your cart.`,
+        duration: 2000
+    });
+    
+    renderCart();
+}
+
+function removeFromCart(itemId) {
+    state.cart = state.cart.filter(cartItem => cartItem.item.id !== itemId);
+    renderCart();
+}
+
+function clearCart() {
+    state.cart = [];
+    renderCart();
+    
+    notifications.create({
+        type: 'info',
+        title: 'Cart cleared',
+        message: 'All items have been removed from your cart.',
+        duration: 2000
+    });
+}
+
+function checkout() {
+    if (state.cart.length === 0) {
+        notifications.create({
+            type: 'warning',
+            title: 'Empty cart',
+            message: 'Your cart is empty. Add some items first!',
+            duration: 2000
+        });
+        return;
+    }
+    
+    // Calculate total
+    const total = state.cart.reduce((sum, item) => sum + (item.item.price * item.quantity), 0);
+    
+    // Send checkout data to server
+    ui.closeAndSendData('shopping-ui', 'shopCheckout', {
+        items: state.cart.map(item => ({
+            id: item.item.id,
+            quantity: item.quantity,
+            price: item.item.price
+        })),
+        total: total
+    });
+    
+    // Reset cart
+    state.cart = [];
 } 

@@ -179,6 +179,46 @@
     <!-- Notification UI -->
     <div id="notifications-container" class="notifications-container"></div>
     
+    <!-- Shopping UI -->
+    <div id="shopping-ui" class="ui-container">
+        <div class="window shop-window">
+            <div class="titlebar">
+                <div class="titlebar-title">Shop</div>
+                <div class="window-controls">
+                    <button class="close-button" onclick="closeUI()">×</button>
+                </div>
+            </div>
+            <div class="content">
+                <div class="shop-sidebar">
+                    <div class="shop-categories" id="shop-categories">
+                        <!-- Categories will be dynamically added here -->
+                    </div>
+                </div>
+                <div class="shop-main">
+                    <div class="shop-items-grid" id="shop-items">
+                        <!-- Items will be dynamically added here -->
+                    </div>
+                </div>
+                <div class="shop-cart">
+                    <div class="shop-cart-header">
+                        <h3>Cart</h3>
+                        <button class="shop-cart-clear" id="shop-cart-clear">Clear</button>
+                    </div>
+                    <div class="shop-cart-items" id="shop-cart-items">
+                        <!-- Cart items will be dynamically added here -->
+                    </div>
+                    <div class="shop-cart-footer">
+                        <div class="shop-cart-total">
+                            <span>Total:</span>
+                            <span id="shop-cart-total-amount">$0</span>
+                        </div>
+                        <button class="button submit" id="shop-checkout-btn">Checkout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="script.js"></script>
 </body>
 </html> 
