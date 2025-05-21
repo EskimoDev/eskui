@@ -415,9 +415,8 @@ body.dark-mode .list-item.selected {
     border: 1px solid rgba(149, 107, 213, 0.6) !important;
     box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
     font-weight: 600 !important;
+    /* Combine transforms properly */
     transform: translateX(4px) scale(1.01) !important;
-    position: relative;
-    overflow: hidden;
 }
 
 body.dark-mode .list-item.selected .list-item-content::after {
@@ -529,30 +528,18 @@ body.dark-mode .list-divider {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.list-item-content.scroll {
+    -webkit-mask-image: linear-gradient(to right, black 75%, transparent 100%);
+    mask-image: linear-gradient(to right, black 75%, transparent 100%);
+}
+
 .list-item-content.scroll::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-    pointer-events: none;
-    background: linear-gradient(to right, rgba(245,245,245,0) 85%, #f5f5f5 100%);
+    content: none;
 }
 
-.list-item:hover .list-item-content.scroll::before {
-    background: linear-gradient(to right, #e5e5e5 0%, rgba(229,229,229,0) 10%, rgba(229,229,229,0) 90%, #e5e5e5 100%);
-}
+/* No hover or selected state needed - mask-image applies consistently */
 
-/* New: Add fade effect for selected items */
-.list-item.selected .list-item-content.scroll::before {
-    background: linear-gradient(to right, #007AFF 0%, rgba(0,122,255,0) 10%, rgba(0,122,255,0) 85%, #007AFF 100%);
-}
-
-.list-item.selected:hover .list-item-content.scroll::before {
-    background: linear-gradient(to right, #007AFF 0%, rgba(0,122,255,0) 10%, rgba(0,122,255,0) 85%, #007AFF 100%);
-}
+/* Dark mode fade effects are handled below in the dark mode section */
 
 .list-item-content.scroll span {
     display: inline-block;
@@ -739,13 +726,7 @@ body.dark-mode .list-item-desc {
     color: #999;
 }
 
-body.dark-mode .list-item-content.scroll::before {
-    background: linear-gradient(to right, rgba(44, 44, 46, 0) 85%, #2c2c2e 100%);
-}
-
-body.dark-mode .list-item:hover .list-item-content.scroll::before {
-    background: linear-gradient(to right, #3a3a3c 0%, rgba(58, 58, 60, 0) 10%, rgba(58, 58, 60, 0) 90%, #3a3a3c 100%);
-}
+/* Dark mode uses the same mask-image as light mode - no special styles needed */
 
 body.dark-mode .dropdown-label {
     background: #2c2c2e;
@@ -1440,14 +1421,7 @@ body.dark-mode .notification-progress::after {
     );
 }
 
-/* New: Add dark mode fade effect for selected items */
-body.dark-mode .list-item.selected .list-item-content.scroll::before {
-    background: linear-gradient(to right, #0a84ff 0%, rgba(10,132,255,0) 10%, rgba(10,132,255,0) 85%, #0a84ff 100%);
-}
-
-body.dark-mode .list-item.selected:hover .list-item-content.scroll::before {
-    background: linear-gradient(to right, #0a84ff 0%, rgba(10,132,255,0) 10%, rgba(10,132,255,0) 85%, #0a84ff 100%);
-}
+/* No special dark mode fade handling needed - mask-image naturally adapts to any background */
 
 .notification.exit {
     animation: notificationExit 0.35s cubic-bezier(0.3, 0, 0.5, -0.1) forwards;
