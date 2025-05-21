@@ -222,19 +222,93 @@ const uiHandlers = {
                 itemElement.onclick = () => {
                     console.log('Item clicked:', item.label, item);
                     
-                    // Add selected class to this item and remove from others
-                    listContainer.querySelectorAll('.list-item').forEach(el => {
-                        el.classList.remove('selected');
-                    });
-                    itemElement.classList.add('selected');
+                    // Don't do anything if this item is already selected
+                    if (itemElement.classList.contains('selected')) {
+                        return;
+                    }
                     
-                    // Store the selected item and index
-                    state.selectedListItem = { index, item };
-                    
-                    // If it's a submenu or back button, automatically select it without requiring Submit button
-                    if (item.submenu || item.isBack) {
-                        console.log('Auto-selecting item (submenu or back):', item.label);
-                        submitListSelection();
+                    // If there's a previously selected item, add deselecting animation
+                    const previouslySelected = listContainer.querySelector('.list-item.selected');
+                    if (previouslySelected && previouslySelected !== itemElement) {
+                        // First deselect the previous item
+                        previouslySelected.classList.add('deselecting');
+                        previouslySelected.classList.remove('selected');
+                        
+                        // Wait for deselection animation to complete before selecting new item
+                        setTimeout(() => {
+                            previouslySelected.classList.remove('deselecting');
+                            
+                            // Now select the new item
+                            itemElement.classList.add('selected');
+                            
+                            // Store the selected item and index
+                            state.selectedListItem = { index, item };
+                            
+                            // Find scroll content if this is a long text item
+                            const scrollContent = itemElement.querySelector('.list-item-content.scroll');
+                            if (scrollContent) {
+                                const textSpan = scrollContent.querySelector('span');
+                                if (textSpan && textSpan._animState) {
+                                    // Mark as hovering to trigger scroll animation after selection animation
+                                    textSpan._animState.isHovering = true;
+                                    
+                                    // Wait for selection animation to complete before starting scroll
+                                    setTimeout(() => {
+                                        if (textSpan._animState && textSpan._animState.isHovering) {
+                                            console.log('Auto-starting scroll animation after selection');
+                                            if (typeof textSpan._animState.startScrolling === 'function') {
+                                                textSpan._animState.startScrolling();
+                                            }
+                                        }
+                                    }, 250); // Wait for selection animation to complete
+                                }
+                            }
+                            
+                            // If it's a submenu or back button, automatically select it without requiring Submit button
+                            if (item.submenu || item.isBack) {
+                                console.log('Auto-selecting item (submenu or back):', item.label);
+                                submitListSelection();
+                            }
+                        }, 150); // Half the deselection animation time for a smoother feel
+                    } else {
+                        // If no previously selected item, just select this one immediately
+                        listContainer.querySelectorAll('.list-item').forEach(el => {
+                            if (el !== itemElement) {
+                                el.classList.remove('selected', 'deselecting');
+                            }
+                        });
+                        
+                        // Add selected class to this item
+                        itemElement.classList.add('selected');
+                        
+                        // Store the selected item and index
+                        state.selectedListItem = { index, item };
+                        
+                        // Find scroll content if this is a long text item
+                        const scrollContent = itemElement.querySelector('.list-item-content.scroll');
+                        if (scrollContent) {
+                            const textSpan = scrollContent.querySelector('span');
+                            if (textSpan && textSpan._animState) {
+                                // Mark as hovering to trigger scroll animation after selection animation
+                                textSpan._animState.isHovering = true;
+                                
+                                // Wait for selection animation to complete before starting scroll
+                                setTimeout(() => {
+                                    if (textSpan._animState && textSpan._animState.isHovering) {
+                                        console.log('Auto-starting scroll animation after selection');
+                                        if (typeof textSpan._animState.startScrolling === 'function') {
+                                            textSpan._animState.startScrolling();
+                                        }
+                                    }
+                                }, 250); // Wait for selection animation to complete
+                            }
+                        }
+                        
+                        // If it's a submenu or back button, automatically select it without requiring Submit button
+                        if (item.submenu || item.isBack) {
+                            console.log('Auto-selecting item (submenu or back):', item.label);
+                            submitListSelection();
+                        }
                     }
                 };
             }
@@ -306,7 +380,7 @@ const uiHandlers = {
                                 animState.isFadingIn = false;
                             };
                             
-                            // Start scrolling with debounce
+                                                        // Start scrolling with debounce
                             const startScrolling = () => {
                                 // Don't restart if already scrolling
                                 if (animState.isScrolling) return;
@@ -323,12 +397,25 @@ const uiHandlers = {
                                     textSpan.style.transition = 'none';
                                     void textSpan.offsetWidth; // Force reflow
                                     
+                                    // Check if parent list item is selected
+                                    const isSelected = itemElement.classList.contains('selected');
+                                    
                                     // Start the animation
                                     textSpan.classList.add('scroll-animate');
+                                    
+                                    // If item is selected, we don't need additional delay - CSS handles it
+                                    if (isSelected) {
+                                        console.log('Item is selected, using CSS delay for scrolling');
+                                    }
+                                    
                                     animState.isScrolling = true;
                                     animState.pendingAnimation = null;
                                 });
                             };
+                            
+                            // Store the startScrolling function in the animation state
+                            // so we can call it from outside this scope when needed
+                            animState.startScrolling = startScrolling;
                             
                             // Improved mouseenter with debounce to prevent rapid toggling
                             itemElement.addEventListener('mouseenter', () => {
@@ -339,11 +426,12 @@ const uiHandlers = {
                                 if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
                                 
                                 animState.hoverTimer = setTimeout(() => {
-                                    // Only proceed if still hovering
-                                    if (animState.isHovering) {
+                                    // Only proceed if still hovering AND the item is selected
+                                    if (animState.isHovering && itemElement.classList.contains('selected')) {
+                                        console.log('Item is both hovered and selected, starting scroll animation');
                                         startScrolling();
                                     }
-                                }, 100);
+                                }, 50);
                             });
                             
                             // Smooth transition to fade-in on mouseleave
@@ -359,35 +447,29 @@ const uiHandlers = {
                                 
                                 // Only handle leaving if we were scrolling
                                 if (animState.isScrolling) {
-                                    // Get exact current position for smooth transition
-                                    const computedStyle = window.getComputedStyle(textSpan);
-                                    const matrix = new DOMMatrixReadOnly(computedStyle.transform);
-                                    const currentX = matrix.m41; // Current X translation
-                                    
-                                    // Stop the scroll animation
+                                    // Stop the scroll animation immediately
                                     textSpan.classList.remove('scroll-animate');
                                     
-                                    // Keep the left fade by adding a special class
+                                    // Keep the fade mask by adding the resetting class
                                     itemContent.classList.add('resetting');
                                     
-                                    // First remove any transitions
-                                    textSpan.style.transition = 'none';
+                                    // Clear any existing transitions
+                                    textSpan.style.transition = 'transform 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
                                     
-                                    // Add the entering-from-left animation class instead of using manual transition
-                                    textSpan.classList.add('entering-from-left');
+                                    // Reset position directly with transition instead of using animation class
+                                    textSpan.style.transform = 'translateX(0)';
                                     
-                                    // Set fading in state
+                                    // Set states
                                     animState.isScrolling = false;
-                                    animState.isFadingIn = true;
                                     
-                                    // Wait for the animation to complete
+                                    // Quick clean up to prevent jankiness
                                     animState.resetTimer = setTimeout(() => {
                                         // Remove resetting class first
                                         itemContent.classList.remove('resetting');
                                         
-                                        // Full reset after animation finishes
+                                        // Full reset
                                         resetAnimationState();
-                                    }, 500);
+                                    }, 300); // Match the transition duration
                                 }
                             });
                             
@@ -397,8 +479,8 @@ const uiHandlers = {
                                     // Stop current animation
                                     textSpan.classList.remove('scroll-animate');
                                     
-                                    // If still hovering, restart animation with a clean transition
-                                    if (animState.isHovering) {
+                                    // If still hovering AND item is selected, restart animation
+                                    if (animState.isHovering && itemElement.classList.contains('selected')) {
                                         // Small delay before restarting for smooth loop
                                         animState.resetTimer = setTimeout(() => {
                                             // Add entering-from-left class for blur effect
@@ -406,8 +488,8 @@ const uiHandlers = {
                                             
                                             // Wait for entrance animation to complete
                                             setTimeout(() => {
-                                                // Only restart if still hovering
-                                                if (animState.isHovering) {
+                                                // Only restart if still hovering AND selected
+                                                if (animState.isHovering && itemElement.classList.contains('selected')) {
                                                     // Remove entrance animation
                                                     textSpan.classList.remove('entering-from-left');
                                                     // Force reflow
@@ -421,7 +503,7 @@ const uiHandlers = {
                                             }, 500); // Match the duration of textEnterFromLeft animation
                                         }, 100);
                                     } else {
-                                        // Not hovering, so reset fully
+                                        // Not hovering or not selected, so reset fully
                                         resetAnimationState();
                                     }
                                 } else if (e.animationName === 'textEnterFromLeft') {

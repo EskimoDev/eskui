@@ -45,7 +45,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II-fIh7VJhY4mXl2s8y7oLXeCcviUwZsQS32sxNDOFNmAVqZCP2cOBBDaGl95tLCQQnbPiGHVK9FG4suWIONsuG3xLsexUnjB93Omk0RhsO9bxWvQoZYRP9nnlX8dafbXRqzlzJRiAtlYacZPjSjBZvx", 0.2);
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II");
     pointer-events: none;
     opacity: 0.03;
     z-index: -1;
@@ -362,7 +362,7 @@ body.dark-mode .button.submit {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II-fIh7VJhY4mXl2s8y7oLXeCcviUwZsQS32sxNDOFNmAVqZCP2cOBBDaGl95tLCQQnbPiGHVK9FG4suWIONsuG3xLsexUnjB93Omk0RhsO9bxWvQoZYRP9nnlX8dafbXRqzlzJRiAtlYacZPjSjBZvx", 0.2);
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II");
     pointer-events: none;
     opacity: 0.02;
     z-index: 0;
@@ -373,6 +373,11 @@ body.dark-mode .button.submit {
     transform: translateX(4px);
     border-color: rgba(0, 0, 0, 0.08);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.list-item.deselecting {
+    animation: deselectItem 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    z-index: 0; /* Ensure deselecting items appear below selected items */
 }
 
 /* Make selected items much more pronounced with transparent text effect */
@@ -389,12 +394,68 @@ body.dark-mode .button.submit {
     margin-right: 4px;
     position: relative;
     overflow: hidden;
+    /* Add animation for selection */
+    animation: selectItem 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    z-index: 1; /* Ensure selected items appear above deselecting items */
 }
 
 /* Style for selected items */
 .list-item.selected .list-item-content {
     position: relative;
     overflow: hidden;
+}
+
+/* Add animations for item selection */
+@keyframes selectItem {
+    0% {
+        transform: scale(0.98) translateX(0);
+    }
+    40% {
+        transform: scale(1.02) translateX(6px);
+    }
+    80% {
+        transform: scale(1.01) translateX(5px);
+    }
+    100% {
+        transform: scale(1.005) translateX(4px);
+    }
+}
+
+@keyframes deselectItem {
+    0% {
+        transform: translateX(4px) scale(1.005);
+        background-image: linear-gradient(135deg, #007AFF, #956bd5);
+        color: white;
+    }
+    100% {
+        transform: translateX(0) scale(1);
+        background: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
+        color: inherit;
+    }
+}
+
+/* Text animation when selected */
+@keyframes textBolden {
+    0% {
+        letter-spacing: normal;
+        font-weight: 400;
+        transform: translateX(0);
+    }
+    50% {
+        letter-spacing: 0.02em;
+        transform: translateX(2px);
+    }
+    100% {
+        letter-spacing: 0.01em;
+        font-weight: 600;
+        transform: translateX(0);
+    }
+}
+
+/* Ensure text selection animation works properly with scrolling */
+.list-item.selected .list-item-content.scroll span.scroll-animate {
+    /* Reduce delay for scrolling animation to feel more responsive */
+    animation-delay: 0.2s !important;
 }
 
 /* Ensure selected items have the same masking behavior */
@@ -420,6 +481,12 @@ body.dark-mode .button.submit {
     text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
     position: relative;
     z-index: 2;
+    animation: textBolden 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    will-change: transform, letter-spacing, font-weight;
+}
+
+.list-item.deselecting .list-item-content span {
+    animation: textBolden 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards;
 }
 
 /* Apply same effect to dark mode */
@@ -441,6 +508,12 @@ body.dark-mode .list-item.selected .list-item-content span {
     -webkit-background-clip: text;
     background-clip: text;
     color: rgba(255, 255, 255, 0.9);
+    animation: textBolden 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    will-change: transform, letter-spacing, font-weight;
+}
+
+body.dark-mode .list-item.deselecting .list-item-content span {
+    animation: textBolden 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards;
 }
 
 /* Ensure submenu arrows don't get cut off */
@@ -494,6 +567,24 @@ body.dark-mode .list-item:hover {
     transform: translateX(4px);
 }
 
+body.dark-mode .list-item.deselecting {
+    animation: deselectItemDark 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
+    z-index: 0 !important; /* Ensure deselecting items appear below selected items */
+}
+
+@keyframes deselectItemDark {
+    0% {
+        transform: translateX(4px) scale(1.005);
+        background-image: linear-gradient(135deg, #0a84ff, #956bd5);
+        color: white;
+    }
+    100% {
+        transform: translateX(0) scale(1);
+        background: linear-gradient(to bottom, #2c2c2e, #282828);
+        color: white;
+    }
+}
+
 /* Fix dark mode selected styling with increased specificity and more prominent effects */
 body.dark-mode .list-item.selected {
     background-image: linear-gradient(135deg, #0a84ff, #956bd5) !important;
@@ -502,9 +593,26 @@ body.dark-mode .list-item.selected {
     box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
     font-weight: 600 !important;
     /* Scale slightly less and add some margin to prevent border cut-off */
-    transform: translateX(4px) scale(1.005) !important;
     margin-left: 4px !important;
     margin-right: 4px !important;
+    /* Use animation for dark mode */
+    animation: selectItemDark 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+/* Dark mode selection animation */
+@keyframes selectItemDark {
+    0% {
+        transform: scale(0.98) translateX(0);
+    }
+    40% {
+        transform: scale(1.02) translateX(6px);
+    }
+    80% {
+        transform: scale(1.01) translateX(5px);
+    }
+    100% {
+        transform: translateX(4px) scale(1.005);
+    }
 }
 
 body.dark-mode .list-item.selected::before {
@@ -551,7 +659,7 @@ body.dark-mode .list-divider {
 }
 
 /* Fade effect for hovering and resetting, right-side original with small left-side */
-.list-item:hover .list-item-content.scroll,
+.list-item.selected:hover .list-item-content.scroll,
 .list-item-content.scroll.resetting {
     /* Enhanced fade at the left edge for better scrolling appearance */
     -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
@@ -611,9 +719,9 @@ body.dark-mode .list-divider {
 /* Create a new animation for when text enters from the left side */
 @keyframes textEnterFromLeft {
     0% {
-        transform: translateX(-20px);
+        transform: translateX(-10px);
         opacity: 0;
-        filter: blur(3px);
+        filter: blur(2px);
     }
     100% {
         transform: translateX(0);
@@ -624,61 +732,26 @@ body.dark-mode .list-divider {
 
 /* Apply the entrance animation when text is reset */
 .list-item-content.scroll span.entering-from-left {
-    animation: textEnterFromLeft 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+    animation: textEnterFromLeft 0.3s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards;
     will-change: opacity, transform, filter;
 }
 
-/* Rich, detailed animation for the fade-in effect with fluid motion and 3D depth */
+/* Simplified animation for the fade-in effect with fluid motion */
 @keyframes textFadeIn {
     0% {
         opacity: 0;
-        transform: translateX(15px) scale(0.94) perspective(100px) rotateY(2deg);
-        filter: blur(4px) brightness(1.3) contrast(0.9);
-        text-shadow: 
-            0 0 10px rgba(255, 255, 255, 0.6),
-            0 0 20px rgba(149, 107, 213, 0.4);
-        letter-spacing: 0.05em;
+        transform: translateX(6px);
+        filter: blur(2px);
     }
-    15% {
-        opacity: 0.25;
-        transform: translateX(10px) scale(0.96) perspective(100px) rotateY(1deg);
-        filter: blur(2.5px) brightness(1.2) contrast(0.92);
-        text-shadow: 
-            0 0 8px rgba(255, 255, 255, 0.4),
-            0 0 15px rgba(149, 107, 213, 0.3);
-        letter-spacing: 0.03em;
-    }
-    35% {
-        opacity: 0.6;
-        transform: translateX(6px) scale(0.97) perspective(100px) rotateY(0.5deg);
-        filter: blur(1.5px) brightness(1.1) contrast(0.95);
-        text-shadow: 
-            0 0 5px rgba(255, 255, 255, 0.3),
-            0 0 10px rgba(149, 107, 213, 0.2);
-        letter-spacing: 0.02em;
-    }
-    60% {
-        opacity: 0.85;
-        transform: translateX(3px) scale(0.985) perspective(100px) rotateY(0.2deg);
-        filter: blur(0.8px) brightness(1.05) contrast(0.97);
-        text-shadow: 
-            0 0 3px rgba(255, 255, 255, 0.2),
-            0 0 6px rgba(149, 107, 213, 0.1);
-        letter-spacing: 0.01em;
-    }
-    85% {
-        opacity: 0.95;
-        transform: translateX(1px) scale(0.995) perspective(100px) rotateY(0deg);
-        filter: blur(0.3px) brightness(1.02) contrast(0.99);
-        text-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
-        letter-spacing: 0;
+    50% {
+        opacity: 0.7;
+        transform: translateX(3px);
+        filter: blur(0.5px);
     }
     100% {
         opacity: 1;
-        transform: translateX(0) scale(1) perspective(100px) rotateY(0deg);
-        filter: blur(0) brightness(1) contrast(1);
-        text-shadow: none;
-        letter-spacing: 0;
+        transform: translateX(0);
+        filter: blur(0);
     }
 }
 
@@ -1253,7 +1326,7 @@ body.dark-mode .opacity-value {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II-fIh7VJhY4mXl2s8y7oLXeCcviUwZsQS32sxNDOFNmAVqZCP2cOBBDaGl95tLCQQnbPiGHVK9FG4suWIONsuG3xLsexUnjB93Omk0RhsO9bxWvQoZYRP9nnlX8dafbXRqzlzJRiAtlYacZPjSjBZvx", 0.2);
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II");
     pointer-events: none;
     opacity: 0.02;
     z-index: 0;
