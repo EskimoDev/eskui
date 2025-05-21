@@ -523,7 +523,7 @@ const notifications = {
                 notification.element.parentNode.removeChild(notification.element);
             }
             delete this.active[id];
-        }, 300);
+        }, 350);
     },
     
     closeAll() {
