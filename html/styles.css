@@ -33,10 +33,43 @@ body {
     width: 400px;
     overflow: hidden;
     transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    border: 1px solid rgba(230, 230, 230, 0.7);
+}
+
+/* Add subtle texture to window backgrounds */
+.window::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II-fIh7VJhY4mXl2s8y7oLXeCcviUwZsQS32sxNDOFNmAVqZCP2cOBBDaGl95tLCQQnbPiGHVK9FG4suWIONsuG3xLsexUnjB93Omk0RhsO9bxWvQoZYRP9nnlX8dafbXRqzlzJRiAtlYacZPjSjBZvx", 0.2);
+    pointer-events: none;
+    opacity: 0.03;
+    z-index: -1;
+    border-radius: 12px;
+}
+
+/* Add a subtle inset border glow for depth */
+.window::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 
+                inset 0 2px 5px rgba(255, 255, 255, 0.4);
+    pointer-events: none;
+    z-index: 0;
 }
 
 .window:hover {
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 20px rgba(149, 107, 213, 0.25);
+    border-color: rgba(149, 107, 213, 0.3);
 }
 
 .window.open {
@@ -69,8 +102,31 @@ body {
     }
 }
 
+/* Dark mode adjustments for the window textures */
+body.dark-mode .window {
+    background: rgba(28, 28, 30, 0.95);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(149, 107, 213, 0.25);
+    border: 1px solid rgba(60, 60, 70, 0.8);
+}
+
+body.dark-mode .window::before {
+    opacity: 0.05; /* Slightly more visible in dark mode */
+}
+
+body.dark-mode .window::after {
+    box-shadow: inset 0 0 0 1px rgba(70, 70, 80, 0.8), 
+                inset 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .window:hover {
+    border-color: rgba(149, 107, 213, 0.4);
+}
+
+/* Enhance the titlebar with a subtle gradient */
 .titlebar {
-    background: rgba(255, 255, 255, 0.8);
+    background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.9) 0%, 
+                rgba(255, 255, 255, 0.8) 100%);
     padding: 12px 16px;
     display: flex;
     justify-content: space-between;
@@ -79,6 +135,13 @@ body {
     position: relative;
     overflow: hidden;
     z-index: 1;
+}
+
+body.dark-mode .titlebar {
+    background: linear-gradient(to bottom, 
+                rgba(50, 50, 55, 0.9) 0%, 
+                rgba(40, 40, 45, 0.8) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .titlebar-title {
@@ -117,6 +180,7 @@ body {
     margin-bottom: 20px;
 }
 
+/* Add subtle texture to input fields and buttons */
 input[type="number"] {
     width: 100%;
     padding: 12px;
@@ -124,6 +188,15 @@ input[type="number"] {
     border-radius: 8px;
     font-size: 14px;
     transition: all 0.2s ease;
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(245, 245, 245, 0.9));
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode input[type="number"] {
+    background: linear-gradient(to bottom, rgba(50, 50, 55, 0.9), rgba(45, 45, 50, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 input[type="number"]:focus {
@@ -138,6 +211,7 @@ input[type="number"]:focus {
     justify-content: flex-end;
 }
 
+/* Enhanced button styles with texture */
 .button {
     padding: 8px 16px;
     border: none;
@@ -146,17 +220,44 @@ input[type="number"]:focus {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0));
+    pointer-events: none;
 }
 
 .button.cancel {
-    background: #f5f5f5;
+    background: linear-gradient(to bottom, #f8f8f8, #f1f1f1);
     color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .button.submit {
-    background: #007AFF;
-    color: white;
     background-image: linear-gradient(135deg, #007AFF, #956bd5);
+    color: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .button.cancel {
+    background: linear-gradient(to bottom, #444, #3a3a3c);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .button.submit {
+    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
+    border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
 .button:hover {
@@ -176,15 +277,67 @@ input[type="number"]:focus {
     margin-bottom: 16px;
 }
 
+/* Enhance list items with texture */
 .list-item {
     padding: 12px;
     border-radius: 8px;
     margin-bottom: 0;
-    background: #f5f5f5;
+    background: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.list-item::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II-fIh7VJhY4mXl2s8y7oLXeCcviUwZsQS32sxNDOFNmAVqZCP2cOBBDaGl95tLCQQnbPiGHVK9FG4suWIONsuG3xLsexUnjB93Omk0RhsO9bxWvQoZYRP9nnlX8dafbXRqzlzJRiAtlYacZPjSjBZvx", 0.2);
+    pointer-events: none;
+    opacity: 0.02;
+    z-index: 0;
+}
+
+.list-item:hover {
+    background: linear-gradient(to bottom, #eaeaea, #e5e5e5);
+    transform: translateX(4px);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.list-item.selected {
+    background: linear-gradient(135deg, #007AFF, #956bd5);
+    color: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.list-item.selected::before {
+    opacity: 0.05;
+}
+
+/* Dark mode list items */
+body.dark-mode .list-item {
+    background: linear-gradient(to bottom, #2c2c2e, #282828);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+body.dark-mode .list-item:hover {
+    background: linear-gradient(to bottom, #3a3a3c, #323232);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .list-item.selected {
+    background: linear-gradient(135deg, #0a84ff, #956bd5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .list-divider {
@@ -195,21 +348,6 @@ input[type="number"]:focus {
 
 body.dark-mode .list-divider {
     background: rgba(255, 255, 255, 0.05);
-}
-
-.list-item:hover {
-    background: #e5e5e5;
-    transform: translateX(4px);
-}
-
-.list-item.selected {
-    background: #007AFF;
-    background-image: linear-gradient(135deg, #007AFF, #956bd5);
-    color: white;
-}
-
-.list-item.selected .list-item-desc {
-    color: rgba(255, 255, 255, 0.8);
 }
 
 .list-item-content {
@@ -376,13 +514,10 @@ body.dark-mode {
     background: transparent;
 }
 
-body.dark-mode .window {
-    background: rgba(28, 28, 30, 0.95);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(149, 107, 213, 0.25);
-}
-
 body.dark-mode .titlebar {
-    background: rgba(40, 40, 45, 0.8);
+    background: linear-gradient(to bottom, 
+                rgba(50, 50, 55, 0.9) 0%, 
+                rgba(40, 40, 45, 0.8) 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -392,12 +527,6 @@ body.dark-mode .titlebar-title {
 
 body.dark-mode .close-button {
     background: #ff453a;
-}
-
-body.dark-mode input[type="number"] {
-    background: rgba(45, 45, 50, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
 }
 
 body.dark-mode input[type="number"]::placeholder {
@@ -410,12 +539,12 @@ body.dark-mode input[type="number"]:focus {
 }
 
 body.dark-mode .button.cancel {
-    background: #3a3a3c;
+    background: linear-gradient(to bottom, #444, #3a3a3c);
     color: #fff;
 }
 
 body.dark-mode .button.cancel:hover {
-    background: #4a4a4c;
+    background: #5a5a5c;
 }
 
 body.dark-mode .button.submit {
@@ -829,7 +958,6 @@ body.dark-mode .opacity-value {
 }
 
 .notification {
-    /* Background color and opacity set via JavaScript to match window opacity setting */
     background: rgba(255, 255, 255, 0.95);
     border-radius: 12px;
     padding: 14px 16px;
@@ -843,12 +971,52 @@ body.dark-mode .opacity-value {
     align-items: flex-start;
     max-width: 100%;
     will-change: transform, opacity;
+    border: 1px solid rgba(230, 230, 230, 0.7);
 }
 
-.notification.exit {
-    animation: notificationExit 0.35s cubic-bezier(0.3, 0, 0.5, -0.1) forwards;
+.notification::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N3d3dtbW17e3t1dXWBgYGHh4d5eXlzc3OLi4ubm5uVlZWPj4+NjY19fX2JiYl/f39ra2uRkZGZmZlpaWmXl5dvb29xcXGTk5NnZ2c8TV1mAAAAG3RSTlNAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEAvEOwtAAAFVklEQVR4XpWWB67c2BUFb3g557T/hRo9/WUMZHlgr4Bg8Z4qQgQJlHI4A8SzFVrapvmTF9O7dmYRFZ60YiBhJRCgh1FYhiLAmdvX0CzTOpNE77ME0Zty/nWWzchDtiqrmsR7h1II-fIh7VJhY4mXl2s8y7oLXeCcviUwZsQS32sxNDOFNmAVqZCP2cOBBDaGl95tLCQQnbPiGHVK9FG4suWIONsuG3xLsexUnjB93Omk0RhsO9bxWvQoZYRP9nnlX8dafbXRqzlzJRiAtlYacZPjSjBZvx", 0.2);
+    pointer-events: none;
+    opacity: 0.02;
+    z-index: 0;
 }
 
+.notification::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 12px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+                inset 0 1px 4px rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.dark-mode .notification {
+    background: rgba(28, 28, 30, 0.95);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(60, 60, 70, 0.8);
+}
+
+body.dark-mode .notification::before {
+    opacity: 0.05;
+}
+
+body.dark-mode .notification::after {
+    box-shadow: inset 0 0 0 1px rgba(70, 70, 80, 0.8),
+                inset 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Make notification icons more vibrant with inner shadow */
 .notification-icon {
     flex-shrink: 0;
     margin-right: 14px;
@@ -860,6 +1028,21 @@ body.dark-mode .opacity-value {
     height: 32px;
     border-radius: 50%;
     margin-top: 0;
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(0, 122, 255, 0.2);
+}
+
+.notification-icon::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 50%;
+    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.1), 
+                inset 0 1px 3px rgba(255, 255, 255, 0.2);
+    pointer-events: none;
 }
 
 /* Styling for different notification types */
@@ -1094,4 +1277,8 @@ body.dark-mode .list-item.selected .list-item-content.scroll::before {
 
 body.dark-mode .list-item.selected:hover .list-item-content.scroll::before {
     background: linear-gradient(to right, #0a84ff 0%, rgba(10,132,255,0) 10%, rgba(10,132,255,0) 85%, #0a84ff 100%);
+}
+
+.notification.exit {
+    animation: notificationExit 0.35s cubic-bezier(0.3, 0, 0.5, -0.1) forwards;
 } 
