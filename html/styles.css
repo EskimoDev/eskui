@@ -237,6 +237,15 @@ body.dark-mode .list-divider {
     background: linear-gradient(to right, #e5e5e5 0%, rgba(229,229,229,0) 10%, rgba(229,229,229,0) 90%, #e5e5e5 100%);
 }
 
+/* New: Add fade effect for selected items */
+.list-item.selected .list-item-content.scroll::before {
+    background: linear-gradient(to right, #007AFF 0%, rgba(0,122,255,0) 10%, rgba(0,122,255,0) 85%, #007AFF 100%);
+}
+
+.list-item.selected:hover .list-item-content.scroll::before {
+    background: linear-gradient(to right, #007AFF 0%, rgba(0,122,255,0) 10%, rgba(0,122,255,0) 85%, #007AFF 100%);
+}
+
 .list-item-content.scroll span {
     display: inline-block;
     position: relative;
@@ -1076,4 +1085,13 @@ body.dark-mode .notification-progress::after {
         rgba(255, 255, 255, 0.15) 50%,
         rgba(255, 255, 255, 0) 100%
     );
+}
+
+/* New: Add dark mode fade effect for selected items */
+body.dark-mode .list-item.selected .list-item-content.scroll::before {
+    background: linear-gradient(to right, #0a84ff 0%, rgba(10,132,255,0) 10%, rgba(10,132,255,0) 85%, #0a84ff 100%);
+}
+
+body.dark-mode .list-item.selected:hover .list-item-content.scroll::before {
+    background: linear-gradient(to right, #0a84ff 0%, rgba(10,132,255,0) 10%, rgba(10,132,255,0) 85%, #0a84ff 100%);
 } 
