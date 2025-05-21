@@ -842,8 +842,16 @@ body.dark-mode .list-divider {
     text-overflow: ellipsis;
 }
 .dropdown-item:hover, .dropdown-item.selected {
-    background: #007AFF;
+    background-image: linear-gradient(135deg, #007AFF, #956bd5);
     color: #fff;
+    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
+    border-radius: 6px;
+}
+
+body.dark-mode .dropdown-item:hover, 
+body.dark-mode .dropdown-item.selected {
+    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
+    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.3);
 }
 
 .list-item-icon {
