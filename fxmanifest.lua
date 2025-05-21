@@ -5,9 +5,20 @@ author 'ESKUI'
 description 'Modern UI System for FiveM'
 version '1.0.0'
 
+shared_scripts {
+    'config.lua'
+}
+
 client_scripts {
-    'client.lua',
-    'client_test.lua'
+    'framework/framework.lua',
+    'client/client.lua',
+    'client/client_shop.lua',
+    'client/client_test.lua'
+}
+
+server_scripts {
+    'server/server.lua',
+    'server/server_shop.lua'
 }
 
 ui_page 'html/index.html'
