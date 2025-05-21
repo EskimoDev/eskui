@@ -5,65 +5,145 @@ local FrameworkInitialized = false
 
 -- Initialize the framework
 Citizen.CreateThread(function()
+    -- Wait for the resource to fully start
+    Citizen.Wait(1000)
+    
+    -- Check if config is loaded
+    if not Config then
+        print("^1[ESKUI] ERROR: Config not found. Make sure config.lua is loaded correctly.^7")
+        return
+    end
+    
+    -- Check framework setting
+    if not Config.Framework then
+        print("^1[ESKUI] ERROR: Config.Framework is nil. Check your config.lua file.^7")
+        return
+    end
+    
     if Config.Framework == 'esx' then
-        while ESX == nil do
-            TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-            Citizen.Wait(0)
-        end
-
-        while ESX.GetPlayerData().job == nil do
-            Citizen.Wait(10)
-        end
-
-        PlayerData = ESX.GetPlayerData()
-        FrameworkInitialized = true
-        if Config.Debug then
-            print("[ESKUI] ESX Framework initialized")
+        print("[ESKUI] Initializing ESX framework...")
+        
+        -- Try to initialize ESX with retries
+        local attempts = 0
+        local maxAttempts = 10
+        
+        local function initESX()
+            -- Modern ESX initialization using exports
+            local esxSuccess, esxError = pcall(function()
+                ESX = exports['es_extended']:getSharedObject()
+                return ESX ~= nil
+            end)
+            
+            if not esxSuccess or not ESX then
+                attempts = attempts + 1
+                if attempts < maxAttempts then
+                    print("^3[ESKUI] ESX not available yet, retrying in 2 seconds... (Attempt " .. attempts .. "/" .. maxAttempts .. ")^7")
+                    SetTimeout(2000, initESX)
+                else
+                    print("^1[ESKUI] ERROR: Failed to get ESX after " .. maxAttempts .. " attempts. Is es_extended running?^7")
+                end
+                return
+            end
+            
+            -- ESX is loaded, now wait for player to be loaded
+            print("[ESKUI] ESX found, waiting for player data...")
+            
+            -- Register player loaded handler
+            if ESX.GetPlayerData().identifier == nil then
+                -- Set up player loaded event for first load
+                RegisterNetEvent('esx:playerLoaded')
+                AddEventHandler('esx:playerLoaded', function(xPlayer)
+                    PlayerData = xPlayer
+                    FrameworkInitialized = true
+                    print("^2[ESKUI] ESX Framework fully initialized!^7")
+                end)
+                
+                -- If we're already loaded but missed the event
+                SetTimeout(3000, function()
+                    if not FrameworkInitialized and ESX.GetPlayerData().identifier ~= nil then
+                        PlayerData = ESX.GetPlayerData()
+                        FrameworkInitialized = true
+                        print("^2[ESKUI] ESX Framework initialized (late detection)^7")
+                    end
+                end)
+            else
+                -- Player is already loaded
+                PlayerData = ESX.GetPlayerData()
+                FrameworkInitialized = true
+                print("^2[ESKUI] ESX Framework initialized^7")
+            end
+            
+            -- Update player data when job changes
+            RegisterNetEvent('esx:setJob')
+            AddEventHandler('esx:setJob', function(job)
+                if PlayerData then
+                    PlayerData.job = job
+                end
+            end)
         end
         
-        -- Update player data when it changes
-        RegisterNetEvent('esx:playerLoaded')
-        AddEventHandler('esx:playerLoaded', function(xPlayer)
-            PlayerData = xPlayer
-        end)
-
-        RegisterNetEvent('esx:setJob')
-        AddEventHandler('esx:setJob', function(job)
-            PlayerData.job = job
-        end)
+        -- Start the initialization process
+        initESX()
         
     elseif Config.Framework == 'qbcore' then
-        QBCore = exports['qb-core']:GetCoreObject()
+        -- QBCore implementation remains similar
+        print("[ESKUI] Initializing QBCore framework...")
         
-        while not QBCore do
-            Citizen.Wait(100)
-        end
+        local attempts = 0
+        local maxAttempts = 10
         
-        PlayerData = QBCore.Functions.GetPlayerData()
-        FrameworkInitialized = true
-        if Config.Debug then
-            print("[ESKUI] QBCore Framework initialized")
-        end
-        
-        -- Update player data when it changes
-        RegisterNetEvent('QBCore:Client:OnPlayerLoaded')
-        AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
+        local function initQBCore()
+            local qbSuccess, qbError = pcall(function()
+                QBCore = exports['qb-core']:GetCoreObject()
+                return QBCore ~= nil
+            end)
+            
+            if not qbSuccess or not QBCore then
+                attempts = attempts + 1
+                if attempts < maxAttempts then
+                    print("^3[ESKUI] QBCore not available yet, retrying in 2 seconds... (Attempt " .. attempts .. "/" .. maxAttempts .. ")^7")
+                    SetTimeout(2000, initQBCore)
+                else
+                    print("^1[ESKUI] ERROR: Failed to get QBCore after " .. maxAttempts .. " attempts. Is qb-core running?^7")
+                end
+                return
+            end
+            
+            -- QBCore is loaded
+            print("^2[ESKUI] QBCore initialized^7")
+            
+            -- Register player loaded handlers
+            RegisterNetEvent('QBCore:Client:OnPlayerLoaded')
+            AddEventHandler('QBCore:Client:OnPlayerLoaded', function()
+                PlayerData = QBCore.Functions.GetPlayerData()
+                FrameworkInitialized = true
+                print("^2[ESKUI] QBCore player data loaded^7")
+            end)
+            
+            -- Try to get player data if already loaded
             PlayerData = QBCore.Functions.GetPlayerData()
-        end)
-
-        RegisterNetEvent('QBCore:Client:OnJobUpdate')
-        AddEventHandler('QBCore:Client:OnJobUpdate', function(job)
-            PlayerData.job = job
-        end)
+            if PlayerData and PlayerData.citizenid then
+                FrameworkInitialized = true
+            end
+            
+            -- Job updates
+            RegisterNetEvent('QBCore:Client:OnJobUpdate')
+            AddEventHandler('QBCore:Client:OnJobUpdate', function(job)
+                if PlayerData then
+                    PlayerData.job = job
+                end
+            end)
+        end
+        
+        -- Start the initialization process
+        initQBCore()
         
     elseif Config.Framework == 'standalone' then
         -- Standalone mode doesn't require framework
         FrameworkInitialized = true
-        if Config.Debug then
-            print("[ESKUI] Standalone mode initialized")
-        end
+        print("^2[ESKUI] Standalone mode initialized^7")
     else
-        print("[ESKUI] ERROR: Invalid framework selected in config.lua")
+        print("^1[ESKUI] ERROR: Invalid framework '" .. Config.Framework .. "' selected in config.lua^7")
     end
 end)
 
@@ -141,6 +221,14 @@ function Framework.BuyItems(items, account)
     local formattedItems = {}
     for _, item in ipairs(items) do
         local itemName = Framework.GetItemName(item)
+        
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Formatting item for purchase: " .. item.id .. "^7")
+            print("^2[ESKUI DEBUG]   - Display name: " .. item.name .. "^7")
+            print("^2[ESKUI DEBUG]   - Inventory name: " .. (itemName or "nil") .. "^7")
+            print("^2[ESKUI DEBUG]   - Quantity: " .. item.quantity .. "^7")
+        end
+        
         table.insert(formattedItems, {
             name = itemName,
             quantity = item.quantity,

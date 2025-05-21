@@ -44,6 +44,27 @@ local callbacks = {
     darkModeChanged = function(data) darkMode = data.darkMode end,
     opacityChanged = function(data) windowOpacity = data.windowOpacity end,
     freeDragChanged = function(data) freeDrag = data.freeDrag end,
+    shopCheckout = function(data) 
+        print("Received shop checkout callback with total: $" .. data.total)
+        
+        -- Add debugging to check item data
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Processing shop checkout with " .. #data.items .. " items^7")
+            
+            for i, item in ipairs(data.items) do
+                print("^2[ESKUI DEBUG] Item #" .. i .. ": " .. item.id .. " x" .. item.quantity .. "^7")
+                
+                -- Make sure the item has the inventoryName property for the framework
+                if item.inventoryName then
+                    print("^2[ESKUI DEBUG]   - Using inventory name: " .. item.inventoryName .. "^7")
+                else
+                    print("^3[ESKUI WARNING] No inventory name available for item: " .. item.id .. "^7")
+                end
+            end
+        end
+        
+        TriggerEvent('eskui:shopCheckoutCallback', data)
+    end,
     submenuSelect = function(data) 
         -- Debug
         print("Handling submenu selection for item: " .. (data.item.label or "unknown"))
@@ -199,21 +220,6 @@ for name, handler in pairs(callbacks) do
     handleNUICallback(name, handler)
 end
 
--- Register shop checkout callback
-handleNUICallback('shopCheckout', function(data, cb)
-    print("Received shop checkout callback with total: $" .. data.total)
-    
-    -- Always acknowledge the callback first to avoid NUI freezes
-    cb('ok')
-    
-    -- Close the UI
-    display = false
-    SetNuiFocus(false, false)
-    
-    -- Trigger event with checkout data
-    TriggerEvent('eskui:shopCheckoutCallback', data)
-end)
-
 -- Register commands
 RegisterCommand('darkmode', function()
     darkMode = not darkMode
@@ -236,9 +242,55 @@ TriggerEvent('chat:addSuggestion', '/uisettings', 'Open ESKUI settings menu')
 
 -- Handler registration with automatic cleanup
 local function registerEskuiHandler(event, handler)
-    local handlerId = AddEventHandler(event, function(...)
-        if handler(...) ~= false then RemoveEventHandler(handlerId) end
-    end)
+    -- Validate inputs to prevent errors
+    if not event or type(event) ~= 'string' then
+        print("^1[ESKUI ERROR] Invalid event name passed to registerEskuiHandler^7")
+        return nil
+    end
+    
+    if not handler or type(handler) ~= 'function' then
+        print("^1[ESKUI ERROR] Invalid handler function passed to registerEskuiHandler^7")
+        return nil
+    end
+    
+    -- Store handlerId in local scope before using it in the event handler
+    local handlerId = nil
+    
+    -- Create the handler function first - add ... parameter to make it a vararg function
+    local eventFunction = function(...)
+        local result = false
+        
+        -- Call the handler with pcall to catch any errors
+        local success, handlerResult = pcall(function(...)
+            return handler(...)
+        end, ...)
+        
+        -- Check if handler executed successfully
+        if success then
+            result = handlerResult
+        else
+            print("^1[ESKUI ERROR] Error in event handler: " .. tostring(handlerResult) .. "^7")
+        end
+        
+        -- If handler returned true or nil, we should remove this handler
+        if result ~= false then
+            -- Only try to remove if handlerId is valid
+            if handlerId then
+                -- Use pcall to prevent errors if removal fails
+                pcall(function()
+                    RemoveEventHandler(handlerId)
+                end)
+                handlerId = nil
+            end
+        end
+        
+        return result
+    end
+    
+    -- Now register the handler and store the ID
+    handlerId = AddEventHandler(event, eventFunction)
+    
+    -- Return the handler ID for reference
     return handlerId
 end
 

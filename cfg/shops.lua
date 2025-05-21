@@ -1,17 +1,7 @@
-Config = {}
-
--- Framework settings
-Config.Framework = 'esx' -- Options: 'esx', 'qbcore', 'standalone'
-
--- Debug mode
-Config.Debug = true -- Set to false in production
-
--- Money settings
-Config.MoneyTypes = {
-    cash = "cash",
-    bank = "bank"
-}
-Config.DefaultMoneyType = Config.MoneyTypes.cash -- Which account to use by default
+-- Ensure Config is initialized
+if Config == nil then
+    Config = {}
+end
 
 -- Shop settings
 Config.Shops = {
@@ -47,7 +37,7 @@ Config.Shops = {
             {id = 'misc', label = 'Miscellaneous', icon = '📦'}
         },
         items = {
-            -- Food
+            -- Food (using standard ESX items)
             {
                 id = 'bread',
                 name = 'Bread',
@@ -61,9 +51,21 @@ Config.Shops = {
                 }
             },
             {
+                id = 'chocolate',
+                name = 'Chocolate',
+                price = 15,
+                category = 'food',
+                icon = '🍫',
+                description = 'Delicious chocolate',
+                inventory = {
+                    esx = 'chocolate',
+                    qbcore = 'chocolate'
+                }
+            },
+            {
                 id = 'sandwich',
                 name = 'Sandwich',
-                price = 15,
+                price = 20,
                 category = 'food',
                 icon = '🥪',
                 description = 'Tasty sandwich',
@@ -72,20 +74,8 @@ Config.Shops = {
                     qbcore = 'sandwich'
                 }
             },
-            {
-                id = 'hamburger',
-                name = 'Hamburger',
-                price = 25,
-                category = 'food',
-                icon = '🍔',
-                description = 'Juicy burger',
-                inventory = {
-                    esx = 'hamburger',
-                    qbcore = 'burger'
-                }
-            },
             
-            -- Drinks
+            -- Drinks (using standard ESX items)
             {
                 id = 'water',
                 name = 'Water',
@@ -99,31 +89,31 @@ Config.Shops = {
                 }
             },
             {
-                id = 'cola',
-                name = 'Cola',
+                id = 'cocacola',
+                name = 'Coca Cola',
                 price = 10,
                 category = 'drinks',
                 icon = '🥤',
                 description = 'Ice cold cola',
                 inventory = {
-                    esx = 'cola',
+                    esx = 'cocacola',
                     qbcore = 'kurkakola'
                 }
             },
             {
-                id = 'coffee',
-                name = 'Coffee',
-                price = 12,
+                id = 'icetea',
+                name = 'Ice Tea',
+                price = 8,
                 category = 'drinks',
-                icon = '☕',
-                description = 'Hot coffee',
+                icon = '🥤',
+                description = 'Refreshing ice tea',
                 inventory = {
-                    esx = 'coffee',
-                    qbcore = 'coffee'
+                    esx = 'icetea',
+                    qbcore = 'icetea'
                 }
             },
             
-            -- Misc
+            -- Misc (using standard ESX items)
             {
                 id = 'phone',
                 name = 'Phone',
@@ -137,27 +127,27 @@ Config.Shops = {
                 }
             },
             {
-                id = 'radio',
-                name = 'Radio',
-                price = 500,
+                id = 'bandage',
+                name = 'Bandage',
+                price = 50,
                 category = 'misc',
-                icon = '📻',
-                description = 'Walkie talkie',
+                icon = '🩹',
+                description = 'Medical bandage',
                 inventory = {
-                    esx = 'radio',
-                    qbcore = 'radio'
+                    esx = 'bandage',
+                    qbcore = 'bandage'
                 }
             },
             {
-                id = 'repairkit',
-                name = 'Repair Kit',
+                id = 'medikit',
+                name = 'Medical Kit',
                 price = 250,
                 category = 'misc',
-                icon = '🔧',
-                description = 'Used to repair vehicles',
+                icon = '💊',
+                description = 'First aid kit',
                 inventory = {
-                    esx = 'fixkit',
-                    qbcore = 'repairkit'
+                    esx = 'medikit',
+                    qbcore = 'firstaid'
                 }
             }
         }
@@ -230,10 +220,37 @@ Config.Shops = {
 
 -- Function to get shop configuration
 function Config.GetShop(shopName)
+    -- Make sure Config.Shops exists
+    if Config.Shops == nil then
+        print("^1[ESKUI] ERROR: Config.Shops is nil in GetShop function^7")
+        return nil
+    end
+    
+    -- Ensure shopName exists
+    if shopName == nil then
+        print("^1[ESKUI] ERROR: shopName is nil in GetShop function^7")
+        return nil
+    end
+    
+    -- Find the shop with matching name
     for _, shop in ipairs(Config.Shops) do
         if shop.name == shopName then
             return shop
         end
     end
+    
+    -- Shop not found
+    if Config.Debug then
+        print("[ESKUI] Shop not found: " .. shopName)
+    end
     return nil
+end
+
+-- Print debug message to confirm shops are loaded
+if Config.Debug then
+    if Config.Shops then
+        print("[ESKUI] Shops configuration loaded successfully with " .. #Config.Shops .. " shops")
+    else
+        print("^1[ESKUI] ERROR: Config.Shops is nil after shops.lua execution^7")
+    end
 end 

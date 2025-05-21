@@ -89,7 +89,7 @@ const ui = {
         }
         
         // Hide all UIs
-        ['amount-ui', 'list-ui', 'dropdown-ui', 'settings-ui'].forEach(id => {
+        ['amount-ui', 'list-ui', 'dropdown-ui', 'settings-ui', 'shopping-ui'].forEach(id => {
             this.animate(id, true);
         });
         
