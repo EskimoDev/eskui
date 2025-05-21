@@ -1258,14 +1258,19 @@ function applyOpacity(opacity, shouldSave) {
 function applyDarkMode(enabled, shouldSave) {
     if (enabled !== state.darkMode || !shouldSave) {
         state.darkMode = enabled;
+        const bodyEl = document.body;
         
         if (enabled) {
-            document.body.classList.add('dark-mode');
+            bodyEl.classList.add('dark-mode');
         } else {
-            document.body.classList.remove('dark-mode');
+            bodyEl.classList.remove('dark-mode');
         }
         
+        // Apply opacity with dark mode in mind
         applyOpacity(state.windowOpacity, false);
+        
+        // Update interaction prompt to match dark mode setting
+        updateInteractionDarkMode(enabled);
         
         if (shouldSave) {
             localStorage.setItem('eskui_darkMode', enabled ? 'true' : 'false');
@@ -1581,6 +1586,22 @@ function setupInteractionFrame() {
             }
         }
     });
+}
+
+// Update interaction frame dark mode when main UI dark mode changes
+function updateInteractionDarkMode(isDarkMode) {
+    const frame = document.getElementById('interaction-frame');
+    const iframeWindow = frame.contentWindow;
+    
+    if (iframeWindow) {
+        // Send dark mode update to interaction iframe
+        iframeWindow.postMessage({
+            type: 'updateInteractionDarkMode',
+            config: {
+                darkMode: isDarkMode
+            }
+        }, '*');
+    }
 }
 
 // Initialize the interaction system when the page loads

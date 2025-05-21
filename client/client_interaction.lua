@@ -5,6 +5,27 @@ local isInteractionShowing = false
 local nearbyInteractions = {}
 local interactionThreadActive = false
 
+-- Access darkMode variable from client.lua
+local darkMode = false
+
+-- Listen for dark mode changes
+RegisterNetEvent('eskui:darkModeChanged')
+AddEventHandler('eskui:darkModeChanged', function(isEnabled)
+    darkMode = isEnabled
+    
+    -- Update interaction prompt if it's showing
+    if isInteractionShowing then
+        -- Refresh the interaction prompt with new dark mode setting
+        local promptConfig = {
+            darkMode = darkMode
+        }
+        SendNUIMessage({
+            type = 'updateInteractionDarkMode',
+            config = promptConfig
+        })
+    end
+end)
+
 -- Initialize the interaction prompt system
 Citizen.CreateThread(function()
     -- Wait for framework to initialize
@@ -32,7 +53,8 @@ function InteractionPrompt.Show(config)
         scale = Config.Interaction.scale,
         textLeft = Config.Interaction.textLeft,
         textRight = Config.Interaction.textRight,
-        pulseEffect = Config.Interaction.pulseEffect
+        pulseEffect = Config.Interaction.pulseEffect,
+        darkMode = darkMode -- Add the dark mode state
     }
     
     -- Override with any provided config

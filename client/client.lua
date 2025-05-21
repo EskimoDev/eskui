@@ -40,7 +40,11 @@ local callbacks = {
     amountSubmit = function(data) TriggerEvent('eskui:amountCallback', data.amount) end,
     listSelect = function(data) TriggerEvent('eskui:listCallback', data.index, data.item) end,
     dropdownSelect = function(data) TriggerEvent('eskui:dropdownCallback', data.index, data.value) end,
-    darkModeChanged = function(data) darkMode = data.darkMode end,
+    darkModeChanged = function(data) 
+        darkMode = data.darkMode 
+        -- Trigger event for other modules
+        TriggerEvent('eskui:darkModeChanged', darkMode)
+    end,
     opacityChanged = function(data) windowOpacity = data.windowOpacity end,
     freeDragChanged = function(data) freeDrag = data.freeDrag end,
     close = function() 
