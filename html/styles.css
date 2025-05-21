@@ -346,7 +346,8 @@ body.dark-mode .button.submit {
     margin-right: 2px;
     background: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
     cursor: pointer;
-    transition: all 0.2s ease;
+    /* Improved transition with smoother timing function */
+    transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     position: relative;
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, 0.05);
@@ -390,21 +391,24 @@ body.dark-mode .button.submit {
     overflow: hidden;
 }
 
-/* Fade effect for text in selected items */
+/* Style for selected items */
 .list-item.selected .list-item-content {
     position: relative;
     overflow: hidden;
 }
 
-.list-item.selected .list-item-content::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 0;
-    height: 100%;
-    width: 40px;
-    background: linear-gradient(to right, rgba(0, 122, 255, 0), rgba(149, 107, 213, 0.95));
-    pointer-events: none;
+/* Ensure selected items have the same masking behavior */
+.list-item.selected .list-item-content.scroll {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+}
+
+/* Add left fade for selected items during hover and reset - keeping consistent with normal items */
+.list-item.selected:hover .list-item-content.scroll,
+.list-item.selected .list-item-content.scroll.resetting {
+    /* Enhanced fade at the left edge for better scrolling appearance */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
 }
 
 /* Simple transparent text that takes on background color */
@@ -473,6 +477,7 @@ body.dark-mode .list-item.selected .list-item-content span {
     display: flex;
     align-items: center;
     padding-right: 20px;
+    padding-left: 8px; /* More padding to prevent text from being cut by the fade effect */
 }
 
 /* Dark mode list items */
@@ -540,16 +545,17 @@ body.dark-mode .list-divider {
 }
 
 .list-item-content.scroll {
-    /* Only fade out on the right in normal state */
-    -webkit-mask-image: linear-gradient(to right, black 0%, black 75%, transparent 100%);
-    mask-image: linear-gradient(to right, black 0%, black 75%, transparent 100%);
+    /* Enhanced fade on left side for better scrolling appearance */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
 }
 
-/* Make container visible but with text fade when animating */
-.list-item:hover .list-item-content.scroll {
-    /* Add left fade when text is moving during hover */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 75%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 75%, transparent 100%);
+/* Fade effect for hovering and resetting, right-side original with small left-side */
+.list-item:hover .list-item-content.scroll,
+.list-item-content.scroll.resetting {
+    /* Enhanced fade at the left edge for better scrolling appearance */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
 }
 
 .list-item-content.scroll::before {
@@ -568,17 +574,86 @@ body.dark-mode .list-divider {
 }
 
 .list-item-content.scroll span.scroll-animate {
-    animation: scrollText 8s linear infinite;
+    /* Smooth, linear scroll that maintains consistent speed */
+    animation: scrollText 9s linear 1 forwards;
+    /* Absolutely no delay */
+    animation-delay: 0s;
+    will-change: transform;
+    /* Enable hardware acceleration for smoother performance */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Fade-in animation for text resetting */
+.list-item-content.scroll span.scroll-fade-in {
+    animation: textFadeIn 0.85s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+    will-change: opacity, transform, filter, text-shadow;
 }
 
 @keyframes scrollText {
-    /* Add a bit of padding at the beginning so text enters from the fade */
+    /* Start from same position as static text */
     0% {
-        transform: translateX(5%);
+        transform: translateX(0);
+        opacity: 1;
     }
-    /* Go further than -100% to ensure text fully exits through the fade */
+    /* Move further to ensure all text scrolls completely */
     100% {
         transform: translateX(-105%);
+        opacity: 1;
+    }
+}
+
+/* Rich, detailed animation for the fade-in effect with fluid motion and 3D depth */
+@keyframes textFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateX(15px) scale(0.94) perspective(100px) rotateY(2deg);
+        filter: blur(4px) brightness(1.3) contrast(0.9);
+        text-shadow: 
+            0 0 10px rgba(255, 255, 255, 0.6),
+            0 0 20px rgba(149, 107, 213, 0.4);
+        letter-spacing: 0.05em;
+    }
+    15% {
+        opacity: 0.25;
+        transform: translateX(10px) scale(0.96) perspective(100px) rotateY(1deg);
+        filter: blur(2.5px) brightness(1.2) contrast(0.92);
+        text-shadow: 
+            0 0 8px rgba(255, 255, 255, 0.4),
+            0 0 15px rgba(149, 107, 213, 0.3);
+        letter-spacing: 0.03em;
+    }
+    35% {
+        opacity: 0.6;
+        transform: translateX(6px) scale(0.97) perspective(100px) rotateY(0.5deg);
+        filter: blur(1.5px) brightness(1.1) contrast(0.95);
+        text-shadow: 
+            0 0 5px rgba(255, 255, 255, 0.3),
+            0 0 10px rgba(149, 107, 213, 0.2);
+        letter-spacing: 0.02em;
+    }
+    60% {
+        opacity: 0.85;
+        transform: translateX(3px) scale(0.985) perspective(100px) rotateY(0.2deg);
+        filter: blur(0.8px) brightness(1.05) contrast(0.97);
+        text-shadow: 
+            0 0 3px rgba(255, 255, 255, 0.2),
+            0 0 6px rgba(149, 107, 213, 0.1);
+        letter-spacing: 0.01em;
+    }
+    85% {
+        opacity: 0.95;
+        transform: translateX(1px) scale(0.995) perspective(100px) rotateY(0deg);
+        filter: blur(0.3px) brightness(1.02) contrast(0.99);
+        text-shadow: 0 0 1px rgba(255, 255, 255, 0.1);
+        letter-spacing: 0;
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1) perspective(100px) rotateY(0deg);
+        filter: blur(0) brightness(1) contrast(1);
+        text-shadow: none;
+        letter-spacing: 0;
     }
 }
 
