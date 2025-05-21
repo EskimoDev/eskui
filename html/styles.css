@@ -369,30 +369,66 @@ body.dark-mode .button.submit {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
-/* Make selected items much more pronounced */
+/* Make selected items much more pronounced with transparent text effect */
 .list-item.selected {
     background-image: linear-gradient(135deg, #007AFF, #956bd5);
     color: white;
     border: 1px solid rgba(149, 107, 213, 0.4);
     box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
     font-weight: 600;
-    transform: translateX(4px);
     transform: scale(1.01);
+    position: relative;
+    overflow: hidden;
 }
 
-.list-item.selected::before {
-    opacity: 0.05;
+/* Fade effect for text in selected items */
+.list-item.selected .list-item-content {
+    position: relative;
+    overflow: hidden;
 }
 
-.list-item.selected::after {
+.list-item.selected .list-item-content::after {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
     right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
+    top: 0;
+    height: 100%;
+    width: 40px;
+    background: linear-gradient(to right, rgba(0, 122, 255, 0), rgba(149, 107, 213, 0.95));
     pointer-events: none;
+}
+
+/* Simple transparent text that takes on background color */
+.list-item.selected .list-item-content span {
+    background-image: linear-gradient(135deg, #007AFF, #956bd5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 2;
+}
+
+/* Apply same effect to dark mode */
+body.dark-mode .list-item.selected {
+    background-image: linear-gradient(135deg, #0a84ff, #956bd5) !important;
+    border: 1px solid rgba(149, 107, 213, 0.6) !important;
+    box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
+    font-weight: 600 !important;
+    transform: translateX(4px) scale(1.01) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+body.dark-mode .list-item.selected .list-item-content::after {
+    background: linear-gradient(to right, rgba(10, 132, 255, 0), rgba(149, 107, 213, 0.95));
+}
+
+body.dark-mode .list-item.selected .list-item-content span {
+    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 /* Ensure submenu arrows don't get cut off */
