@@ -937,26 +937,60 @@ body.dark-mode .notification.info .notification-icon {
     bottom: 0;
     left: 0;
     height: 3px;
-    background: linear-gradient(135deg, #007AFF, #956bd5);
+    background: linear-gradient(to right, rgba(0, 122, 255, 0.7), rgba(149, 107, 213, 0.9));
     width: 100%;
     transform-origin: left;
+    box-shadow: 0 0 6px rgba(149, 107, 213, 0.5);
+    border-radius: 0 0 3px 3px;
+    backdrop-filter: blur(1px);
+    opacity: 0.85;
+    overflow: hidden;
+}
+
+.notification-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 /* Notification types */
 .notification.success .notification-progress {
-    background: linear-gradient(135deg, #43a047, #66bb6a);
+    background: linear-gradient(to right, rgba(67, 160, 71, 0.7), rgba(102, 187, 106, 0.9));
+    box-shadow: 0 0 6px rgba(67, 160, 71, 0.5);
 }
 
 .notification.error .notification-progress {
-    background: linear-gradient(135deg, #e53935, #ef5350);
+    background: linear-gradient(to right, rgba(229, 57, 53, 0.7), rgba(239, 83, 80, 0.9));
+    box-shadow: 0 0 6px rgba(229, 57, 53, 0.5);
 }
 
 .notification.warning .notification-progress {
-    background: linear-gradient(135deg, #fb8c00, #ffa726);
+    background: linear-gradient(to right, rgba(251, 140, 0, 0.7), rgba(255, 167, 38, 0.9));
+    box-shadow: 0 0 6px rgba(251, 140, 0, 0.5);
 }
 
 .notification.info .notification-progress {
-    background: linear-gradient(135deg, #007AFF, #956bd5);
+    background: linear-gradient(to right, rgba(0, 122, 255, 0.7), rgba(149, 107, 213, 0.9));
+    box-shadow: 0 0 6px rgba(0, 122, 255, 0.5);
 }
 
 /* Dark mode support */
@@ -1003,4 +1037,13 @@ body.dark-mode .notification-close:hover {
         opacity: 0;
         transform: translateX(100px);
     }
+}
+
+body.dark-mode .notification-progress::after {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
 } 

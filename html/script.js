@@ -489,11 +489,11 @@ const notifications = {
         // Animate progress bar
         const progressBar = notification.querySelector('.notification-progress');
         progressBar.animate([
-            { transform: 'scaleX(1)' },
-            { transform: 'scaleX(0)' }
+            { transform: 'scaleX(1)', opacity: 1 },
+            { transform: 'scaleX(0)', opacity: 0.7 }
         ], {
             duration: options.duration,
-            easing: 'linear',
+            easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Material Design standard easing
             fill: 'forwards'
         });
         
