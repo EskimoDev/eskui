@@ -532,6 +532,8 @@ body.dark-mode .list-item.deselecting {
     z-index: -1;
     pointer-events: none;
     opacity: 0.4;
+    /* Prevent stacking with proper blend mode */
+    mix-blend-mode: screen;
     /* Improve rendering quality with high-quality blurs */
     will-change: opacity, filter, transform;
     transform: translateZ(0);
@@ -588,32 +590,34 @@ body.dark-mode .list-item.deselecting {
     bottom: -7px;
     border-radius: 14px; /* Increased from 12px */
     background: var(--glow-effect);
-    opacity: 0.15;
+    opacity: 0.12; /* Reduced from 0.15 to prevent stacking effect */
     z-index: -2;
     /* Higher quality blur */
     filter: blur(12px);
     animation: glowPulseReverse 4s ease-in-out infinite;
     pointer-events: none;
     background-size: 200% 200%;
+    /* Add blend mode to prevent stacking */
+    mix-blend-mode: screen;
     /* Improve rendering quality */
     will-change: opacity, filter, transform, background-position;
     transform: translateZ(0);
 }
 
-/* Individual animations for each side */
+/* Individual animations for each side - adjust to prevent stacking effect */
 @keyframes glowTopAnimation {
     0% {
-        opacity: 0.3;
+        opacity: 0.25; /* Reduced from 0.3 */
         filter: blur(8px);
         transform: scaleX(0.97);
     }
     50% {
-        opacity: 0.5;
+        opacity: 0.4; /* Reduced from 0.5 */
         filter: blur(10px) brightness(1.1);
         transform: scaleX(1.03);
     }
     100% {
-        opacity: 0.3;
+        opacity: 0.25; /* Reduced from 0.3 */
         filter: blur(8px);
         transform: scaleX(0.97);
     }
@@ -621,17 +625,17 @@ body.dark-mode .list-item.deselecting {
 
 @keyframes glowRightAnimation {
     0% {
-        opacity: 0.4;
+        opacity: 0.3; /* Reduced from 0.4 */
         filter: blur(8px);
         transform: scaleY(0.98);
     }
     60% {
-        opacity: 0.6;
+        opacity: 0.45; /* Reduced from 0.6 */
         filter: blur(10px) brightness(1.15);
         transform: scaleY(1.04);
     }
     100% {
-        opacity: 0.4;
+        opacity: 0.3; /* Reduced from 0.4 */
         filter: blur(8px);
         transform: scaleY(0.98);
     }
@@ -639,17 +643,17 @@ body.dark-mode .list-item.deselecting {
 
 @keyframes glowBottomAnimation {
     0% {
-        opacity: 0.35;
+        opacity: 0.25; /* Reduced from 0.35 */
         filter: blur(8px);
         transform: scaleX(0.96);
     }
     45% {
-        opacity: 0.55;
+        opacity: 0.4; /* Reduced from 0.55 */
         filter: blur(10px) brightness(1.08);
         transform: scaleX(1.02);
     }
     100% {
-        opacity: 0.35;
+        opacity: 0.25; /* Reduced from 0.35 */
         filter: blur(8px);
         transform: scaleX(0.96);
     }
@@ -657,17 +661,17 @@ body.dark-mode .list-item.deselecting {
 
 @keyframes glowLeftAnimation {
     0% {
-        opacity: 0.45;
+        opacity: 0.3; /* Reduced from 0.45 */
         filter: blur(8px);
         transform: scaleY(0.99);
     }
     55% {
-        opacity: 0.65;
+        opacity: 0.5; /* Reduced from 0.65 */
         filter: blur(10px) brightness(1.12);
         transform: scaleY(1.05);
     }
     100% {
-        opacity: 0.45;
+        opacity: 0.3; /* Reduced from 0.45 */
         filter: blur(8px);
         transform: scaleY(0.99);
     }
@@ -690,8 +694,9 @@ body.dark-mode .list-item.deselecting {
     z-index: -1;
     animation: waterShimmer 7s ease-in-out infinite, waterWave 9s ease-in-out infinite;
     pointer-events: none;
-    opacity: 0.35;
-    mix-blend-mode: overlay;
+    opacity: 0.25; /* Reduced from 0.35 to prevent stacking */
+    /* Change blend mode to screen to prevent cumulative effect */
+    mix-blend-mode: screen;
     overflow: hidden;
     /* High-quality rendering */
     will-change: opacity, transform, filter, background-position;
@@ -699,34 +704,25 @@ body.dark-mode .list-item.deselecting {
     backface-visibility: hidden;
 }
 
-body.dark-mode .list-item.selected .water-shimmer {
-    background: 
-        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 25%),
-        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 20%),
-        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.12) 0%, transparent 15%),
-        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
-    mix-blend-mode: overlay;
-}
-
-/* Water-like shimmer animation */
+/* Water-like shimmer animation - adjust opacity to prevent stacking */
 @keyframes waterShimmer {
     0% {
         background-position: 0 0, 0 0, 0 0, 0 0;
-        opacity: 0.35;
+        opacity: 0.25; /* Reduced from 0.35 */
     }
     25% {
-        opacity: 0.45;
+        opacity: 0.35; /* Reduced from 0.45 */
     }
     50% {
         background-position: 20px 20px, -15px -15px, 10px -10px, 100% 100%;
-        opacity: 0.35;
+        opacity: 0.25; /* Reduced from 0.35 */
     }
     75% {
-        opacity: 0.5;
+        opacity: 0.4; /* Reduced from 0.5 */
     }
     100% {
         background-position: 0 0, 0 0, 0 0, 0 0;
-        opacity: 0.35;
+        opacity: 0.25; /* Reduced from 0.35 */
     }
 }
 
@@ -1830,4 +1826,15 @@ body.dark-mode .notification-progress::after {
     align-items: center;
     padding-right: 30px; /* Increased from 20px to provide more space for content */
     padding-left: 10px; /* Increased from 8px for more consistent spacing */
+}
+
+/* Dark mode water shimmer style */
+body.dark-mode .list-item.selected .water-shimmer {
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 25%),
+        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 20%),
+        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.12) 0%, transparent 15%),
+        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
+    mix-blend-mode: screen;
+    opacity: 0.2; /* Reduced opacity for dark mode */
 } 

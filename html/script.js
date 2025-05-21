@@ -161,6 +161,12 @@ const uiHandlers = {
         // Reset selected item
         state.selectedListItem = null;
         
+        // Clear any existing glow elements for a fresh start
+        document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+        
+        // Setup periodic cleanup to prevent accumulation
+        setupGlowEffectCleanup();
+        
         // Ensure items is an array
         let itemsArray = [];
         if (Array.isArray(items)) {
@@ -244,6 +250,9 @@ const uiHandlers = {
                             // Now select the new item
                             itemElement.classList.add('selected');
                             
+                            // Remove any existing glow elements before adding new ones
+                            itemElement.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+                            
                             // Create and add individual glow segments for independent animation
                             const glowSegments = ['top', 'right', 'bottom', 'left'];
                             glowSegments.forEach(side => {
@@ -287,7 +296,7 @@ const uiHandlers = {
                             }
                         }, 150); // Half the deselection animation time for a smoother feel
                     } else {
-                        // If no previously selected item, just select this one immediately
+                        // Add deselecting animation to all items except the newly selected one
                         listContainer.querySelectorAll('.list-item').forEach(el => {
                             if (el !== itemElement) {
                                 el.classList.remove('selected', 'deselecting');
@@ -298,6 +307,9 @@ const uiHandlers = {
                         
                         // Add selected class to this item
                         itemElement.classList.add('selected');
+                        
+                        // Remove any existing glow elements before adding new ones
+                        itemElement.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
                         
                         // Create and add individual glow segments for independent animation
                         const glowSegments = ['top', 'right', 'bottom', 'left'];
@@ -999,6 +1011,9 @@ function submitAmount() {
 function submitListSelection() {
     console.log('submitListSelection called, selectedListItem:', state.selectedListItem);
     
+    // Clean all glow effects before proceeding to prevent stacking
+    document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+    
     if (state.selectedListItem) {
         // Use the selectListItem function which handles all types of selections
         selectListItem(state.selectedListItem.index, state.selectedListItem.item);
@@ -1131,4 +1146,64 @@ function initializeSettings() {
 }
 
 // Initialize when the script loads
-initializeSettings(); 
+initializeSettings();
+
+// Also add an interval-based cleanup to periodically check for and remove duplicate glow elements
+function setupGlowEffectCleanup() {
+    // Create a cleanup interval that runs every 500ms
+    const glowCleanupInterval = setInterval(() => {
+        if (!state.currentUIId) {
+            clearInterval(glowCleanupInterval);
+            return;
+        }
+        
+        // For each list item, ensure it has at most one of each glow element
+        document.querySelectorAll('.list-item').forEach(item => {
+            // Count glow elements
+            const glowTopElements = item.querySelectorAll('.glow-top');
+            const glowRightElements = item.querySelectorAll('.glow-right');
+            const glowBottomElements = item.querySelectorAll('.glow-bottom');
+            const glowLeftElements = item.querySelectorAll('.glow-left');
+            const shimmerElements = item.querySelectorAll('.water-shimmer');
+            
+            // Remove extras if there are more than one of each
+            if (glowTopElements.length > 1) {
+                for (let i = 1; i < glowTopElements.length; i++) {
+                    glowTopElements[i].remove();
+                }
+            }
+            
+            if (glowRightElements.length > 1) {
+                for (let i = 1; i < glowRightElements.length; i++) {
+                    glowRightElements[i].remove();
+                }
+            }
+            
+            if (glowBottomElements.length > 1) {
+                for (let i = 1; i < glowBottomElements.length; i++) {
+                    glowBottomElements[i].remove();
+                }
+            }
+            
+            if (glowLeftElements.length > 1) {
+                for (let i = 1; i < glowLeftElements.length; i++) {
+                    glowLeftElements[i].remove();
+                }
+            }
+            
+            if (shimmerElements.length > 1) {
+                for (let i = 1; i < shimmerElements.length; i++) {
+                    shimmerElements[i].remove();
+                }
+            }
+            
+            // If item is not selected, remove all glow elements
+            if (!item.classList.contains('selected')) {
+                item.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+            }
+        });
+    }, 500);
+    
+    // Add the interval to cleanup handlers so it gets cleared when UI is closed
+    state.cleanupHandlers.push(() => clearInterval(glowCleanupInterval));
+} 
