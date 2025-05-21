@@ -5,6 +5,122 @@
     font-family: 'Inter', sans-serif;
 }
 
+:root {
+    /* Base colors */
+    --background-color: rgba(255, 255, 255, 0.95);
+    --text-color: #333;
+    --text-secondary-color: #666;
+    --border-color: rgba(230, 230, 230, 0.7);
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --accent-color: #007AFF;
+    --accent-color-secondary: #956bd5;
+    --accent-gradient: linear-gradient(135deg, var(--accent-color), var(--accent-color-secondary));
+    --glow-effect: linear-gradient(135deg, rgba(0, 122, 255, 0.8), rgba(149, 107, 213, 0.8));
+    
+    /* Input fields */
+    --input-bg: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(245, 245, 245, 0.9));
+    --input-border: rgba(0, 0, 0, 0.1);
+    --input-shadow: rgba(0, 0, 0, 0.05);
+    
+    /* Buttons */
+    --btn-cancel-bg: linear-gradient(to bottom, #f8f8f8, #f1f1f1);
+    --btn-cancel-color: #333;
+    --btn-cancel-border: rgba(0, 0, 0, 0.08);
+    --btn-submit-bg: var(--accent-gradient);
+    --btn-submit-color: white;
+    --btn-submit-border: rgba(0, 0, 0, 0.1);
+    
+    /* List items */
+    --list-item-bg: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
+    --list-item-hover-bg: linear-gradient(to bottom, #eaeaea, #e5e5e5);
+    --list-item-selected-bg: var(--accent-gradient);
+    --list-item-selected-color: white;
+    --list-item-selected-border: rgba(149, 107, 213, 0.4);
+    --list-item-border: rgba(0, 0, 0, 0.05);
+    --list-divider-color: rgba(0, 0, 0, 0.05);
+    --list-item-description: #666;
+    
+    /* Title bar */
+    --titlebar-bg: linear-gradient(to bottom, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%);
+    --titlebar-border: rgba(0, 0, 0, 0.1);
+    
+    /* Scrollbar */
+    --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+    
+    /* Dropdown */
+    --dropdown-label-bg: #f5f5f5;
+    --dropdown-border: rgba(0, 0, 0, 0.07);
+    
+    /* Notifications */
+    --notification-bg: rgba(255, 255, 255, 0.95);
+    --notification-border: rgba(230, 230, 230, 0.7);
+    --notification-shadow: rgba(0, 0, 0, 0.08);
+    --notification-title-border: rgba(0, 0, 0, 0.06);
+    
+    /* Other UI elements */
+    --window-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(149, 107, 213, 0.2);
+    --window-hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 20px rgba(149, 107, 213, 0.25);
+    --opacity-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+body.dark-mode {
+    /* Base colors - dark mode */
+    --background-color: rgba(28, 28, 30, 0.95);
+    --text-color: #fff;
+    --text-secondary-color: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(60, 60, 70, 0.8);
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --accent-color: #0a84ff;
+    --accent-color-secondary: #956bd5;
+    --glow-effect: linear-gradient(135deg, rgba(10, 132, 255, 0.8), rgba(149, 107, 213, 0.8));
+    
+    /* Input fields - dark mode */
+    --input-bg: linear-gradient(to bottom, rgba(50, 50, 55, 0.9), rgba(45, 45, 50, 0.95));
+    --input-border: rgba(255, 255, 255, 0.1);
+    --input-shadow: rgba(0, 0, 0, 0.2);
+    
+    /* Buttons - dark mode */
+    --btn-cancel-bg: linear-gradient(to bottom, #444, #3a3a3c);
+    --btn-cancel-color: #fff;
+    --btn-cancel-border: rgba(255, 255, 255, 0.1);
+    --btn-submit-bg: linear-gradient(135deg, #0a84ff, #956bd5);
+    --btn-submit-color: white;
+    --btn-submit-border: rgba(0, 0, 0, 0.3);
+    
+    /* List items - dark mode */
+    --list-item-bg: linear-gradient(to bottom, #2c2c2e, #282828);
+    --list-item-hover-bg: linear-gradient(to bottom, #3a3a3c, #323232);
+    --list-item-selected-bg: linear-gradient(135deg, #0a84ff, #956bd5);
+    --list-item-selected-color: white;
+    --list-item-selected-border: rgba(149, 107, 213, 0.6);
+    --list-item-border: rgba(255, 255, 255, 0.05);
+    --list-divider-color: rgba(255, 255, 255, 0.05);
+    --list-item-description: rgba(255, 255, 255, 0.7);
+    
+    /* Title bar - dark mode */
+    --titlebar-bg: linear-gradient(to bottom, rgba(50, 50, 55, 0.9) 0%, rgba(40, 40, 45, 0.8) 100%);
+    --titlebar-border: rgba(255, 255, 255, 0.1);
+    
+    /* Scrollbar - dark mode */
+    --scrollbar-thumb: rgba(255, 255, 255, 0.25);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.35);
+    
+    /* Dropdown - dark mode */
+    --dropdown-label-bg: #2c2c2e;
+    --dropdown-border: rgba(255, 255, 255, 0.1);
+    
+    /* Notifications - dark mode */
+    --notification-bg: rgba(28, 28, 30, 0.95);
+    --notification-border: rgba(60, 60, 70, 0.8);
+    --notification-shadow: rgba(0, 0, 0, 0.2);
+    --notification-title-border: rgba(255, 255, 255, 0.08);
+    
+    /* Other UI elements - dark mode */
+    --window-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(149, 107, 213, 0.25);
+    --window-hover-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 0 20px rgba(149, 107, 213, 0.3);
+}
+
 body {
     width: 100vw;
     height: 100vh;
@@ -12,6 +128,7 @@ body {
     justify-content: center;
     align-items: center;
     background: transparent;
+    transition: var(--opacity-transition);
 }
 
 .ui-container {
@@ -27,14 +144,19 @@ body {
 }
 
 .window {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--background-color);
     border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 15px rgba(149, 107, 213, 0.2);
+    box-shadow: var(--window-shadow);
     width: 400px;
     overflow: hidden;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    transition: var(--opacity-transition);
     position: relative;
-    border: 1px solid rgba(230, 230, 230, 0.7);
+    border: 1px solid var(--border-color);
+}
+
+/* Make the list UI window wider to accommodate the glow effects */
+#list-ui .window {
+    width: 450px; /* Increased from 400px */
 }
 
 /* Add subtle texture to window backgrounds */
@@ -67,9 +189,22 @@ body {
     z-index: 0;
 }
 
+body.dark-mode .window::before {
+    opacity: 0.05;
+}
+
+body.dark-mode .window::after {
+    box-shadow: inset 0 0 0 1px rgba(70, 70, 80, 0.8), 
+                inset 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+
 .window:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12), 0 0 20px rgba(149, 107, 213, 0.25);
+    box-shadow: var(--window-hover-shadow);
     border-color: rgba(149, 107, 213, 0.3);
+}
+
+body.dark-mode .window:hover {
+    border-color: rgba(149, 107, 213, 0.4);
 }
 
 .window.open {
@@ -104,9 +239,9 @@ body {
 
 /* Dark mode adjustments for the window textures */
 body.dark-mode .window {
-    background: rgba(28, 28, 30, 0.95);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(149, 107, 213, 0.25);
-    border: 1px solid rgba(60, 60, 70, 0.8);
+    background: var(--background-color);
+    box-shadow: var(--window-shadow);
+    border: 1px solid var(--border-color);
 }
 
 body.dark-mode .window::before {
@@ -124,30 +259,26 @@ body.dark-mode .window:hover {
 
 /* Enhance the titlebar with a subtle gradient */
 .titlebar {
-    background: linear-gradient(to bottom, 
-                rgba(255, 255, 255, 0.9) 0%, 
-                rgba(255, 255, 255, 0.8) 100%);
+    background: var(--titlebar-bg);
     padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid var(--titlebar-border);
     position: relative;
     overflow: hidden;
     z-index: 1;
 }
 
 body.dark-mode .titlebar {
-    background: linear-gradient(to bottom, 
-                rgba(50, 50, 55, 0.9) 0%, 
-                rgba(40, 40, 45, 0.8) 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--titlebar-bg);
+    border-bottom: 1px solid var(--titlebar-border);
 }
 
 .titlebar-title {
     font-size: 14px;
     font-weight: 500;
-    color: #333;
+    color: var(--text-color);
     position: relative;
     z-index: 2;
 }
@@ -168,6 +299,10 @@ body.dark-mode .titlebar {
     transition: all 0.2s ease;
 }
 
+body.dark-mode .close-button {
+    background: #ff453a;
+}
+
 .close-button:hover {
     filter: brightness(0.9);
 }
@@ -178,56 +313,37 @@ body.dark-mode .titlebar {
 
 .input-group {
     margin-bottom: 20px;
+    position: relative;
 }
 
 /* Add subtle texture to input fields and buttons */
 input[type="number"] {
     width: 100%;
     padding: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--input-border);
     border-radius: 8px;
     font-size: 14px;
     transition: all 0.2s ease;
-    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.8), rgba(245, 245, 245, 0.9));
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-body.dark-mode input[type="number"] {
-    background: linear-gradient(to bottom, rgba(50, 50, 55, 0.9), rgba(45, 45, 50, 0.95));
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    background-image: var(--input-bg);
+    box-shadow: inset 0 1px 3px var(--input-shadow);
+    color: var(--text-color);
 }
 
 input[type="number"]:focus {
     outline: none;
     border: 2px solid transparent;
     background-clip: padding-box;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 0 8px rgba(149, 107, 213, 0.3), 
+    box-shadow: 0 0 0 1px var(--input-shadow), 0 0 8px rgba(149, 107, 213, 0.3), 
                 inset 0 1px 3px rgba(0, 0, 0, 0.03);
     position: relative;
 }
 
-input[type="number"]:focus::before {
-    content: "";
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    border-radius: 10px;
-    border: 2px solid;
-    border-image: linear-gradient(135deg, #007AFF, #956bd5) 1;
-    pointer-events: none;
-    z-index: 2;
+input[type="number"]::placeholder {
+    color: var(--text-secondary-color);
+    opacity: 0.6;
 }
 
 /* Custom gradient border for input focus */
-.input-group {
-    margin-bottom: 20px;
-    position: relative;
-}
-
 .input-group::after {
     content: "";
     position: absolute;
@@ -236,7 +352,7 @@ input[type="number"]:focus::before {
     right: -2px;
     bottom: -2px;
     border-radius: 10px;
-    background: linear-gradient(135deg, #007AFF, #956bd5);
+    background: var(--accent-gradient);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
@@ -250,15 +366,6 @@ input[type="number"]:focus::before {
 
 .input-group:focus-within::after {
     opacity: 1;
-}
-
-body.dark-mode .input-group::after {
-    background: linear-gradient(135deg, #0a84ff, #956bd5);
-}
-
-body.dark-mode input[type="number"]:focus {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 8px rgba(149, 107, 213, 0.4),
-                inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .button-group {
@@ -292,28 +399,17 @@ body.dark-mode input[type="number"]:focus {
 }
 
 .button.cancel {
-    background: linear-gradient(to bottom, #f8f8f8, #f1f1f1);
-    color: #333;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: var(--btn-cancel-bg);
+    color: var(--btn-cancel-color);
+    border: 1px solid var(--btn-cancel-border);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .button.submit {
-    background-image: linear-gradient(135deg, #007AFF, #956bd5);
-    color: white;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-image: var(--btn-submit-bg);
+    color: var(--btn-submit-color);
+    border: 1px solid var(--btn-submit-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-body.dark-mode .button.cancel {
-    background: linear-gradient(to bottom, #444, #3a3a3c);
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-body.dark-mode .button.submit {
-    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
-    border: 1px solid rgba(0, 0, 0, 0.3);
 }
 
 .button:hover {
@@ -333,7 +429,7 @@ body.dark-mode .button.submit {
     margin-bottom: 16px;
     border-radius: 8px;
     /* Add padding to prevent cut-off borders */
-    padding: 4px 6px;
+    padding: 4px 15px; /* Increased side padding from 6px to 15px */
 }
 
 /* Enhance list items with texture */
@@ -342,17 +438,18 @@ body.dark-mode .button.submit {
     border-radius: 8px;
     margin-bottom: 0;
     /* Add margins to ensure borders are fully visible */
-    margin-left: 2px;
-    margin-right: 2px;
-    background: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
+    margin-left: 8px; /* Increased from 2px to allow more room for glow */
+    margin-right: 8px; /* Increased from 2px to allow more room for glow */
+    background: var(--list-item-bg);
     cursor: pointer;
     /* Improved transition with smoother timing function */
     transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     position: relative;
     overflow: hidden;
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--list-item-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
     padding-right: 20px;
+    color: var(--text-color);
 }
 
 .list-item::before {
@@ -369,10 +466,14 @@ body.dark-mode .button.submit {
 }
 
 .list-item:hover {
-    background: linear-gradient(to bottom, #eaeaea, #e5e5e5);
+    background: var(--list-item-hover-bg);
     transform: translateX(4px);
     border-color: rgba(0, 0, 0, 0.08);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode .list-item:hover {
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 .list-item.deselecting {
@@ -380,223 +481,281 @@ body.dark-mode .button.submit {
     z-index: 0; /* Ensure deselecting items appear below selected items */
 }
 
+body.dark-mode .list-item.deselecting {
+    animation: deselectItemDark 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
+}
+
 /* Make selected items much more pronounced with transparent text effect */
 .list-item.selected {
-    background-image: linear-gradient(135deg, #007AFF, #956bd5);
-    color: white;
-    border: 1px solid rgba(149, 107, 213, 0.4);
+    background-image: var(--list-item-selected-bg);
+    color: var(--list-item-selected-color);
+    border: 1px solid var(--list-item-selected-border);
     box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
     font-weight: 600;
     /* Scale slightly less to prevent border cut-off */
     transform: scale(1.005);
     /* Make sure there's room for the selection to be visible */
-    margin-left: 4px;
-    margin-right: 4px;
+    margin-left: 12px; /* Increased from 4px to allow more room for glow */
+    margin-right: 12px; /* Increased from 4px to allow more room for glow */
     position: relative;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow the glow to extend outside */
     /* Add animation for selection */
     animation: selectItem 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     z-index: 1; /* Ensure selected items appear above deselecting items */
 }
 
-/* Style for selected items */
-.list-item.selected .list-item-content {
-    position: relative;
-    overflow: hidden;
+/* Add outer glow effect for selected items */
+.list-item.selected::before {
+    content: "";
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 10px;
+    background: var(--glow-effect);
+    z-index: -1;
+    filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
 }
 
-/* Add animations for item selection */
-@keyframes selectItem {
-    0% {
-        transform: scale(0.98) translateX(0);
-    }
-    40% {
-        transform: scale(1.02) translateX(6px);
-    }
-    80% {
-        transform: scale(1.01) translateX(5px);
-    }
-    100% {
-        transform: scale(1.005) translateX(4px);
-    }
+/* Add multiple independent flowing glow segments */
+.list-item.selected .glow-top,
+.list-item.selected .glow-right,
+.list-item.selected .glow-bottom,
+.list-item.selected .glow-left {
+    content: "";
+    position: absolute;
+    filter: blur(8px);
+    background: var(--glow-effect);
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.4;
+    /* Improve rendering quality with high-quality blurs */
+    will-change: opacity, filter, transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
-@keyframes deselectItem {
-    0% {
-        transform: translateX(4px) scale(1.005);
-        background-image: linear-gradient(135deg, #007AFF, #956bd5);
-        color: white;
-    }
-    100% {
-        transform: translateX(0) scale(1);
-        background: linear-gradient(to bottom, #f8f8f8, #f2f2f2);
-        color: inherit;
-    }
+/* Position each glow segment */
+.list-item.selected .glow-top {
+    top: -5px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    border-radius: 10px 10px 0 0;
+    animation: glowTopAnimation 4s ease-in-out infinite;
 }
 
-/* Text animation when selected */
-@keyframes textBolden {
+.list-item.selected .glow-right {
+    top: 0;
+    right: -5px;
+    bottom: 0;
+    width: 10px;
+    border-radius: 0 10px 10px 0;
+    animation: glowRightAnimation 3.7s ease-in-out infinite;
+    animation-delay: 0.3s;
+}
+
+.list-item.selected .glow-bottom {
+    bottom: -5px;
+    left: 0;
+    right: 0;
+    height: 10px;
+    border-radius: 0 0 10px 10px;
+    animation: glowBottomAnimation 4.2s ease-in-out infinite;
+    animation-delay: 0.7s;
+}
+
+.list-item.selected .glow-left {
+    top: 0;
+    left: -5px;
+    bottom: 0;
+    width: 10px;
+    border-radius: 10px 0 0 10px;
+    animation: glowLeftAnimation 3.5s ease-in-out infinite;
+    animation-delay: 1s;
+}
+
+/* Add a second glow layer for more depth and movement */
+.list-item.selected::after {
+    content: "";
+    position: absolute;
+    top: -7px; /* Increased from -6px for wider effect */
+    left: -7px;
+    right: -7px;
+    bottom: -7px;
+    border-radius: 14px; /* Increased from 12px */
+    background: var(--glow-effect);
+    opacity: 0.15;
+    z-index: -2;
+    /* Higher quality blur */
+    filter: blur(12px);
+    animation: glowPulseReverse 4s ease-in-out infinite;
+    pointer-events: none;
+    background-size: 200% 200%;
+    /* Improve rendering quality */
+    will-change: opacity, filter, transform, background-position;
+    transform: translateZ(0);
+}
+
+/* Individual animations for each side */
+@keyframes glowTopAnimation {
     0% {
-        letter-spacing: normal;
-        font-weight: 400;
-        transform: translateX(0);
+        opacity: 0.3;
+        filter: blur(8px);
+        transform: scaleX(0.97);
     }
     50% {
-        letter-spacing: 0.02em;
-        transform: translateX(2px);
+        opacity: 0.5;
+        filter: blur(10px) brightness(1.1);
+        transform: scaleX(1.03);
     }
     100% {
-        letter-spacing: 0.01em;
-        font-weight: 600;
-        transform: translateX(0);
+        opacity: 0.3;
+        filter: blur(8px);
+        transform: scaleX(0.97);
     }
 }
 
-/* Ensure text selection animation works properly with scrolling */
-.list-item.selected .list-item-content.scroll span.scroll-animate {
-    /* Reduce delay for scrolling animation to feel more responsive */
-    animation-delay: 0.2s !important;
-}
-
-/* Ensure selected items have the same masking behavior */
-.list-item.selected .list-item-content.scroll {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-}
-
-/* Add left fade for selected items during hover and reset - keeping consistent with normal items */
-.list-item.selected:hover .list-item-content.scroll,
-.list-item-content.scroll.resetting {
-    /* Enhanced fade at the left edge for better scrolling appearance */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-}
-
-/* Simple transparent text that takes on background color */
-.list-item.selected .list-item-content span {
-    background-image: linear-gradient(135deg, #007AFF, #956bd5);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
-    position: relative;
-    z-index: 2;
-    animation: textBolden 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    will-change: transform, letter-spacing, font-weight;
-}
-
-.list-item.deselecting .list-item-content span {
-    animation: textBolden 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards;
-}
-
-/* Apply same effect to dark mode */
-body.dark-mode .list-item.selected {
-    background-image: linear-gradient(135deg, #0a84ff, #956bd5) !important;
-    border: 1px solid rgba(149, 107, 213, 0.6) !important;
-    box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
-    font-weight: 600 !important;
-    /* Combine transforms properly */
-    transform: translateX(4px) scale(1.01) !important;
-}
-
-body.dark-mode .list-item.selected .list-item-content::after {
-    background: linear-gradient(to right, rgba(10, 132, 255, 0), rgba(149, 107, 213, 0.95));
-}
-
-body.dark-mode .list-item.selected .list-item-content span {
-    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: rgba(255, 255, 255, 0.9);
-    animation: textBolden 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-    will-change: transform, letter-spacing, font-weight;
-}
-
-body.dark-mode .list-item.deselecting .list-item-content span {
-    animation: textBolden 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards;
-}
-
-/* Ensure submenu arrows don't get cut off */
-.submenu-arrow {
-    display: inline-block;
-    margin-left: auto;
-    font-size: 24px;
-    color: #888;
-    margin-right: 4px;
-    line-height: 1;
-    transition: transform 0.2s ease;
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.list-item:hover .submenu-arrow {
-    transform: translateX(2px) translateY(-50%);
-    color: #666;
-}
-
-.list-item.selected .submenu-arrow {
-    color: rgba(255, 255, 255, 0.9);
-    transform: translateY(-50%);
-}
-
-/* Fix content inside list items to prevent cut-off */
-.list-item-content {
-    position: relative;
-    white-space: nowrap;
-    overflow: hidden;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    padding-right: 20px;
-    padding-left: 8px; /* More padding to prevent text from being cut by the fade effect */
-}
-
-/* Dark mode list items */
-body.dark-mode .list-item {
-    background: linear-gradient(to bottom, #2c2c2e, #282828);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-body.dark-mode .list-item:hover {
-    background: linear-gradient(to bottom, #3a3a3c, #323232);
-    border-color: rgba(255, 255, 255, 0.08);
-    transform: translateX(4px);
-}
-
-body.dark-mode .list-item.deselecting {
-    animation: deselectItemDark 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
-    z-index: 0 !important; /* Ensure deselecting items appear below selected items */
-}
-
-@keyframes deselectItemDark {
+@keyframes glowRightAnimation {
     0% {
-        transform: translateX(4px) scale(1.005);
-        background-image: linear-gradient(135deg, #0a84ff, #956bd5);
-        color: white;
+        opacity: 0.4;
+        filter: blur(8px);
+        transform: scaleY(0.98);
+    }
+    60% {
+        opacity: 0.6;
+        filter: blur(10px) brightness(1.15);
+        transform: scaleY(1.04);
     }
     100% {
-        transform: translateX(0) scale(1);
-        background: linear-gradient(to bottom, #2c2c2e, #282828);
-        color: white;
+        opacity: 0.4;
+        filter: blur(8px);
+        transform: scaleY(0.98);
     }
 }
 
-/* Fix dark mode selected styling with increased specificity and more prominent effects */
-body.dark-mode .list-item.selected {
-    background-image: linear-gradient(135deg, #0a84ff, #956bd5) !important;
-    color: white !important;
-    border: 1px solid rgba(149, 107, 213, 0.6) !important;
-    box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
-    font-weight: 600 !important;
-    /* Scale slightly less and add some margin to prevent border cut-off */
-    margin-left: 4px !important;
-    margin-right: 4px !important;
-    /* Use animation for dark mode */
-    animation: selectItemDark 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+@keyframes glowBottomAnimation {
+    0% {
+        opacity: 0.35;
+        filter: blur(8px);
+        transform: scaleX(0.96);
+    }
+    45% {
+        opacity: 0.55;
+        filter: blur(10px) brightness(1.08);
+        transform: scaleX(1.02);
+    }
+    100% {
+        opacity: 0.35;
+        filter: blur(8px);
+        transform: scaleX(0.96);
+    }
+}
+
+@keyframes glowLeftAnimation {
+    0% {
+        opacity: 0.45;
+        filter: blur(8px);
+        transform: scaleY(0.99);
+    }
+    55% {
+        opacity: 0.65;
+        filter: blur(10px) brightness(1.12);
+        transform: scaleY(1.05);
+    }
+    100% {
+        opacity: 0.45;
+        filter: blur(8px);
+        transform: scaleY(0.99);
+    }
+}
+
+/* Additional water shimmer layer for more realistic effect */
+.list-item.selected .water-shimmer {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 9px;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.12) 0%, transparent 25%),
+        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 15%),
+        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.03) 10px, rgba(255, 255, 255, 0.03) 20px);
+    z-index: -1;
+    animation: waterShimmer 7s ease-in-out infinite, waterWave 9s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+    overflow: hidden;
+    /* High-quality rendering */
+    will-change: opacity, transform, filter, background-position;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+body.dark-mode .list-item.selected .water-shimmer {
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.18) 0%, transparent 25%),
+        radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 20%),
+        radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.12) 0%, transparent 15%),
+        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255, 255, 255, 0.05) 10px, rgba(255, 255, 255, 0.05) 20px);
+    mix-blend-mode: overlay;
+}
+
+/* Water-like shimmer animation */
+@keyframes waterShimmer {
+    0% {
+        background-position: 0 0, 0 0, 0 0, 0 0;
+        opacity: 0.35;
+    }
+    25% {
+        opacity: 0.45;
+    }
+    50% {
+        background-position: 20px 20px, -15px -15px, 10px -10px, 100% 100%;
+        opacity: 0.35;
+    }
+    75% {
+        opacity: 0.5;
+    }
+    100% {
+        background-position: 0 0, 0 0, 0 0, 0 0;
+        opacity: 0.35;
+    }
+}
+
+/* Additional water wave animation */
+@keyframes waterWave {
+    0% {
+        transform: scale(1) translateY(0) translateX(0);
+        filter: blur(2px);
+    }
+    20% {
+        transform: scale(1.01) translateY(-1px) translateX(0.5px);
+        filter: blur(2.5px);
+    }
+    40% {
+        transform: scale(1) translateY(0.5px) translateX(-0.5px);
+        filter: blur(2px);
+    }
+    60% {
+        transform: scale(0.99) translateY(1px) translateX(0.3px);
+        filter: blur(2.2px);
+    }
+    80% {
+        transform: scale(1.005) translateY(-0.5px) translateX(-0.3px);
+        filter: blur(2.3px);
+    }
+    100% {
+        transform: scale(1) translateY(0) translateX(0);
+        filter: blur(2px);
+    }
 }
 
 /* Dark mode selection animation */
@@ -615,243 +774,77 @@ body.dark-mode .list-item.selected {
     }
 }
 
-body.dark-mode .list-item.selected::before {
-    opacity: 0.05 !important;
+/* Add animation for the outer glow effect */
+@keyframes glowPulse {
+    0% {
+        opacity: 0.4;
+        filter: blur(6px);
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        filter: blur(7px) brightness(1.1);
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 0.4;
+        filter: blur(6px);
+        transform: scale(1);
+    }
 }
 
-body.dark-mode .list-item.selected::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
-    pointer-events: none;
-    z-index: 1;
+/* Reverse animation for the second glow layer */
+@keyframes glowPulseReverse {
+    0% {
+        opacity: 0.15;
+        filter: blur(10px);
+        transform: scale(1.05);
+        background-position: 0% 0%;
+    }
+    50% {
+        opacity: 0.2;
+        filter: blur(12px) brightness(1.08);
+        transform: scale(1);
+        background-position: 100% 50%;
+    }
+    100% {
+        opacity: 0.15;
+        filter: blur(10px);
+        transform: scale(1.05);
+        background-position: 0% 0%;
+    }
 }
 
-body.dark-mode .list-item.selected .list-item-desc {
-    color: rgba(255, 255, 255, 0.8) !important;
+@keyframes deselectItem {
+    0% {
+        transform: translateX(4px) scale(1.005);
+        background-image: var(--list-item-selected-bg);
+        color: var(--list-item-selected-color);
+    }
+    100% {
+        transform: translateX(0) scale(1);
+        background: var(--list-item-bg);
+        color: var(--text-color);
+    }
 }
 
-/* Ensure the correct content layout in dark mode selected */
-body.dark-mode .list-item.selected .list-item-content {
-    position: relative;
-    z-index: 2;
-    color: white !important;
+@keyframes deselectItemDark {
+    0% {
+        transform: translateX(4px) scale(1.005);
+        background-image: var(--list-item-selected-bg);
+        color: var(--list-item-selected-color);
+    }
+    100% {
+        transform: translateX(0) scale(1);
+        background: var(--list-item-bg);
+        color: var(--text-color);
+    }
 }
 
 .list-divider {
     height: 1px;
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--list-divider-color);
     margin: 4px 0;
-}
-
-body.dark-mode .list-divider {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.list-item-content.scroll {
-    /* Enhanced fade on left side for better scrolling appearance */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-}
-
-/* Fade effect for hovering and resetting, right-side original with small left-side */
-.list-item.selected:hover .list-item-content.scroll,
-.list-item-content.scroll.resetting {
-    /* Enhanced fade at the left edge for better scrolling appearance */
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
-}
-
-.list-item-content.scroll::before {
-    content: none;
-}
-
-/* No hover or selected state needed - mask-image applies consistently */
-
-/* Dark mode fade effects are handled below in the dark mode section */
-
-.list-item-content.scroll span {
-    display: inline-block;
-    position: relative;
-    z-index: 1;
-    /* Remove animation by default */
-}
-
-.list-item-content.scroll span.scroll-animate {
-    /* Smooth, linear scroll that maintains consistent speed */
-    animation: scrollText 9s linear 1 forwards;
-    /* Absolutely no delay */
-    animation-delay: 0s;
-    will-change: transform;
-    /* Enable hardware acceleration for smoother performance */
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-
-/* Fade-in animation for text resetting */
-.list-item-content.scroll span.scroll-fade-in {
-    animation: textFadeIn 0.85s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
-    will-change: opacity, transform, filter, text-shadow;
-}
-
-@keyframes scrollText {
-    /* Start from same position as static text */
-    0% {
-        transform: translateX(0);
-        opacity: 1;
-        filter: blur(0);
-    }
-    /* Add blur effect as text moves out on the left side */
-    85% {
-        filter: blur(0);
-    }
-    100% {
-        transform: translateX(-105%);
-        opacity: 1;
-        filter: blur(3px);
-    }
-}
-
-/* Create a new animation for when text enters from the left side */
-@keyframes textEnterFromLeft {
-    0% {
-        transform: translateX(-10px);
-        opacity: 0;
-        filter: blur(2px);
-        text-shadow: 0 0 8px rgba(255,255,255,0.2);
-    }
-    100% {
-        transform: translateX(0);
-        opacity: 1;
-        filter: blur(0);
-        text-shadow: none;
-    }
-}
-
-/* Enhanced fluid fade-in animation with letter-staggering effect */
-@keyframes textFadeIn {
-    0% {
-        opacity: 0;
-        transform: translateX(6px);
-        filter: blur(3px);
-        letter-spacing: 0.1em;
-        text-shadow: 0 0 10px rgba(255,255,255,0.3);
-    }
-    40% {
-        opacity: 0.7;
-        transform: translateX(3px);
-        filter: blur(1px);
-        letter-spacing: 0.05em;
-    }
-    70% {
-        letter-spacing: 0.02em;
-        text-shadow: 0 0 6px rgba(255,255,255,0.15);
-    }
-    100% {
-        opacity: 1;
-        transform: translateX(0);
-        filter: blur(0);
-        letter-spacing: normal;
-        text-shadow: none;
-    }
-}
-
-/* Add a subtle glow for list items when selected */
-.list-item.selected .list-item-content span {
-    transition: letter-spacing 0.4s ease-out, opacity 0.4s ease-out, filter 0.4s ease-out, text-shadow 0.4s ease-out;
-}
-
-/* Scrollbar Styles */
-::-webkit-scrollbar {
-    width: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-/* Dropdown Styles */
-#dropdown-label {
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 12px;
-    cursor: pointer;
-    font-size: 15px;
-    font-weight: 500;
-    color: #333;
-    transition: background 0.2s;
-    border: 1px solid rgba(0,0,0,0.07);
-    margin-bottom: 8px;
-    user-select: none;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-#dropdown-label:hover {
-    background: #e5e5e5;
-}
-#dropdown-chevron {
-    transition: transform 0.25s cubic-bezier(.4,2,.6,1);
-}
-#dropdown-label.open #dropdown-chevron {
-    transform: rotate(180deg);
-}
-.dropdown-list {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-    border: 1px solid rgba(0,0,0,0.07);
-    margin-top: 2px;
-    position: relative;
-    width: 100%;
-    left: 0;
-    z-index: 10;
-    max-height: 0;
-    opacity: 0;
-    overflow-y: hidden;
-    transition: max-height 0.3s cubic-bezier(.4,2,.6,1), opacity 0.2s;
-    animation: none;
-}
-.dropdown-list.open {
-    max-height: 220px;
-    opacity: 1;
-    overflow-y: auto;
-}
-.dropdown-item {
-    padding: 12px 16px;
-    font-size: 15px;
-    color: #333;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: background 0.2s, color 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.dropdown-item:hover, .dropdown-item.selected {
-    background-image: linear-gradient(135deg, #007AFF, #956bd5);
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
-    border-radius: 6px;
-}
-
-body.dark-mode .dropdown-item:hover, 
-body.dark-mode .dropdown-item.selected {
-    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
-    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.3);
 }
 
 .list-item-icon {
@@ -859,16 +852,19 @@ body.dark-mode .dropdown-item.selected {
     vertical-align: middle;
     margin-right: 8px;
 }
+
 .list-item-desc {
-    color: #666;
+    color: var(--list-item-description);
     font-size: 0.95em;
     margin-left: 2.2em;
     margin-top: 2px;
 }
+
 .list-item.disabled {
     opacity: 0.5;
     pointer-events: none;
 }
+
 .list-item .list-item-content span {
     vertical-align: middle;
 }
@@ -884,14 +880,12 @@ body.dark-mode {
 }
 
 body.dark-mode .titlebar {
-    background: linear-gradient(to bottom, 
-                rgba(50, 50, 55, 0.9) 0%, 
-                rgba(40, 40, 45, 0.8) 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--titlebar-bg);
+    border-bottom: 1px solid var(--titlebar-border);
 }
 
 body.dark-mode .titlebar-title {
-    color: #fff;
+    color: var(--text-color);
 }
 
 body.dark-mode .close-button {
@@ -903,73 +897,73 @@ body.dark-mode input[type="number"]::placeholder {
 }
 
 body.dark-mode input[type="number"]:focus {
-    border-color: #0a84ff;
-    box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.25);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
 }
 
 body.dark-mode .button.cancel {
-    background: linear-gradient(to bottom, #444, #3a3a3c);
-    color: #fff;
+    background: var(--btn-cancel-bg);
+    color: var(--btn-cancel-color);
 }
 
 body.dark-mode .button.cancel:hover {
-    background: #5a5a5c;
+    background: var(--list-item-hover-bg);
 }
 
 body.dark-mode .button.submit {
-    background-image: linear-gradient(135deg, #0a84ff, #956bd5);
-    color: white;
+    background-image: var(--btn-submit-bg);
+    color: var(--btn-submit-color);
 }
 
 body.dark-mode .list-item {
-    background: #2c2c2e;
-    color: white;
+    background: var(--list-item-bg);
+    color: var(--list-item-description);
 }
 
 body.dark-mode .list-item:hover {
-    background: #3a3a3c;
+    background: var(--list-item-hover-bg);
 }
 
 body.dark-mode .list-item.selected {
-    background: #0a84ff;
+    background: var(--list-item-selected-bg);
 }
 
 body.dark-mode .list-item-desc {
-    color: #999;
+    color: var(--list-item-description);
 }
 
 /* Dark mode uses the same mask-image as light mode - no special styles needed */
 
 body.dark-mode .dropdown-label {
-    background: #2c2c2e;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--dropdown-label-bg);
+    border: 1px solid var(--dropdown-border);
+    color: var(--text-color);
 }
 
 body.dark-mode .dropdown-label:hover {
-    background: #3a3a3c;
+    background: var(--list-item-hover-bg);
 }
 
 body.dark-mode .dropdown-list {
-    background: #2c2c2e;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--list-item-bg);
+    border: 1px solid var(--dropdown-border);
 }
 
 body.dark-mode .dropdown-item {
-    color: white;
+    color: var(--text-color);
 }
 
 body.dark-mode .dropdown-item:hover, 
 body.dark-mode .dropdown-item.selected {
-    background: #0a84ff;
+    background: var(--list-item-selected-bg);
 }
 
 body.dark-mode ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--scrollbar-thumb);
 }
 
 body.dark-mode ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--scrollbar-thumb-hover);
 }
 
 /* Settings UI styles */
@@ -983,8 +977,8 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     font-weight: 500;
     margin-top: 0;
     margin-bottom: 16px;
-    color: #333;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--text-color);
+    border-bottom: 1px solid var(--titlebar-border);
     padding-bottom: 8px;
 }
 
@@ -993,7 +987,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    border-bottom: 1px solid var(--list-divider-color);
 }
 
 .setting-row:last-child {
@@ -1003,7 +997,7 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 .setting-label {
     font-size: 14px;
     font-weight: 500;
-    color: #333;
+    color: var(--text-color);
 }
 
 .setting-control {
@@ -1040,6 +1034,10 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     transition: all 0.4s ease;
     overflow: hidden;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+body.dark-mode .toggle {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .toggle:before {
@@ -1093,10 +1091,6 @@ body.dark-mode .toggle__handler {
     background: linear-gradient(#546e96, #3a4c6e);
 }
 
-input:checked + .toggle {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-}
-
 input:checked + .toggle:before {
     background: linear-gradient(#2c3e50, #1a1e2a);
 }
@@ -1108,7 +1102,6 @@ input:checked + .toggle:after {
 
 input:checked + .toggle .toggle__handler {
     transform: translateX(36px);
-    background-color: #546e96;
 }
 
 .toggle-icon {
@@ -1143,40 +1136,6 @@ input:checked + .toggle .toggle-icon.moon {
 
 .toggle-icon.moon {
     transform: rotate(-90deg);
-}
-
-/* Dark mode toggle improvements */
-body.dark-mode .toggle {
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-}
-
-/* Settings UI animation for dark mode transition */
-body, .window, .titlebar, .content, input, .button, .list-item {
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Dark mode styles for settings UI */
-body.dark-mode .settings-header {
-    color: #fff;
-    border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-mode .setting-row {
-    border-bottom-color: rgba(255, 255, 255, 0.05);
-}
-
-body.dark-mode .setting-label {
-    color: #fff;
-}
-
-/* Draggable styles */
-.draggable .titlebar {
-    cursor: move;
-}
-
-.window.draggable {
-    position: absolute;
-    margin: 0;
 }
 
 /* Free drag toggle styles - modified version of the dark mode toggle */
@@ -1265,13 +1224,9 @@ body.dark-mode .opacity-slider {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #007AFF, #956bd5);
+    background: var(--accent-gradient);
     cursor: pointer;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-}
-
-body.dark-mode .opacity-slider::-webkit-slider-thumb {
-    background: linear-gradient(135deg, #0a84ff, #956bd5);
 }
 
 .opacity-value {
@@ -1279,13 +1234,114 @@ body.dark-mode .opacity-slider::-webkit-slider-thumb {
     text-align: right;
     font-size: 13px;
     font-weight: 500;
-    color: #444;
+    color: var(--text-color);
 }
 
-body.dark-mode .opacity-value {
-    color: #ddd;
+/* Draggable styles */
+.draggable .titlebar {
+    cursor: move;
 }
 
+.window.draggable {
+    position: absolute;
+    margin: 0;
+}
+
+/* Add necessary animations for list scrolling */
+@keyframes textEnterFromLeft {
+    0% {
+        transform: translateX(-10px);
+        opacity: 0;
+        filter: blur(2px);
+        text-shadow: 0 0 8px rgba(255,255,255,0.2);
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+        filter: blur(0);
+        text-shadow: none;
+    }
+}
+
+/* Text animation when selected */
+@keyframes textBolden {
+    0% {
+        letter-spacing: normal;
+        font-weight: 400;
+        transform: translateX(0);
+    }
+    50% {
+        letter-spacing: 0.02em;
+        transform: translateX(2px);
+    }
+    100% {
+        letter-spacing: 0.01em;
+        font-weight: 600;
+        transform: translateX(0);
+    }
+}
+
+/* Apply the entrance animation when text is reset */
+.list-item-content.scroll span.entering-from-left {
+    animation: textEnterFromLeft 0.4s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards;
+    will-change: opacity, transform, filter, text-shadow;
+}
+
+/* Simple transparent text that takes on background color */
+.list-item.selected .list-item-content span {
+    background-image: var(--list-item-selected-bg);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: var(--list-item-selected-color);
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.3);
+    position: relative;
+    z-index: 2;
+    animation: textBolden 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    will-change: transform, letter-spacing, font-weight;
+}
+
+.list-item.deselecting .list-item-content span {
+    animation: textBolden 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) reverse forwards;
+}
+
+/* Remove all header effects */
+.cloud-layer, .cloud-pattern, .mouse-glow, .ink-overlay, .ink-drop {
+    display: none;
+}
+
+/* Dark mode styles for settings UI */
+body.dark-mode .settings-header {
+    color: var(--text-color);
+    border-bottom-color: var(--titlebar-border);
+}
+
+body.dark-mode .setting-row {
+    border-bottom-color: var(--titlebar-border);
+}
+
+body.dark-mode .setting-label {
+    color: var(--text-color);
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+/* Ensure submenu arrows don't get cut off */
 .submenu-arrow {
     display: inline-block;
     margin-left: auto;
@@ -1294,15 +1350,167 @@ body.dark-mode .opacity-value {
     margin-right: 4px;
     line-height: 1;
     transition: transform 0.2s ease;
+    position: absolute;
+    right: 15px; /* Increased from 12px */
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .list-item:hover .submenu-arrow {
-    transform: translateX(2px);
+    transform: translateX(2px) translateY(-50%);
     color: #666;
 }
 
 .list-item.selected .submenu-arrow {
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--list-item-selected-color);
+    transform: translateY(-50%);
+}
+
+/* Scrolling text effect */
+.list-item-content.scroll {
+    /* Enhanced fade on left side for better scrolling appearance */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 1%, rgba(0,0,0,0.8) 3%, black 8%, black 65%, rgba(0,0,0,0.8) 75%, rgba(0,0,0,0.4) 85%, transparent 100%);
+}
+
+.list-item-content.scroll span {
+    display: inline-block;
+    position: relative;
+    z-index: 1;
+}
+
+.list-item-content.scroll span.scroll-animate {
+    /* Smooth, linear scroll that maintains consistent speed */
+    animation: scrollText 9s linear 1 forwards;
+    animation-delay: 0s;
+    will-change: transform;
+    /* Enable hardware acceleration for smoother performance */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+@keyframes scrollText {
+    /* Start from same position as static text */
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+        filter: blur(0);
+    }
+    /* Add blur effect as text moves out on the left side */
+    85% {
+        filter: blur(0);
+    }
+    100% {
+        transform: translateX(-105%);
+        opacity: 1;
+        filter: blur(3px);
+    }
+}
+
+/* Fade-in animation for text resetting */
+.list-item-content.scroll span.scroll-fade-in {
+    animation: textFadeIn 0.85s cubic-bezier(0.25, 0.1, 0.25, 1) 1 forwards;
+    will-change: opacity, transform, filter, text-shadow;
+}
+
+/* Enhanced fluid fade-in animation with letter-staggering effect */
+@keyframes textFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateX(6px);
+        filter: blur(3px);
+        letter-spacing: 0.1em;
+        text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    40% {
+        opacity: 0.7;
+        transform: translateX(3px);
+        filter: blur(1px);
+        letter-spacing: 0.05em;
+    }
+    70% {
+        letter-spacing: 0.02em;
+        text-shadow: 0 0 6px rgba(255,255,255,0.15);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+        filter: blur(0);
+        letter-spacing: normal;
+        text-shadow: none;
+    }
+}
+
+/* Dropdown Styles */
+#dropdown-label {
+    background: var(--dropdown-label-bg);
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-color);
+    transition: background 0.2s;
+    border: 1px solid var(--dropdown-border);
+    margin-bottom: 8px;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#dropdown-label:hover {
+    background: var(--list-item-hover-bg);
+}
+
+#dropdown-chevron {
+    transition: transform 0.25s cubic-bezier(.4,2,.6,1);
+}
+
+#dropdown-label.open #dropdown-chevron {
+    transform: rotate(180deg);
+}
+
+.dropdown-list {
+    background: var(--background-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px var(--shadow-color);
+    border: 1px solid var(--dropdown-border);
+    margin-top: 2px;
+    position: relative;
+    width: 100%;
+    left: 0;
+    z-index: 10;
+    max-height: 0;
+    opacity: 0;
+    overflow-y: hidden;
+    transition: max-height 0.3s cubic-bezier(.4,2,.6,1), opacity 0.2s;
+    animation: none;
+}
+
+.dropdown-list.open {
+    max-height: 220px;
+    opacity: 1;
+    overflow-y: auto;
+}
+
+.dropdown-item {
+    padding: 12px 16px;
+    font-size: 15px;
+    color: var(--text-color);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-item:hover, .dropdown-item.selected {
+    background-image: var(--list-item-selected-bg);
+    color: var(--list-item-selected-color);
+    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
+    border-radius: 6px;
 }
 
 /* Notification styles */
@@ -1321,10 +1529,10 @@ body.dark-mode .opacity-value {
 }
 
 .notification {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--notification-bg);
     border-radius: 12px;
     padding: 14px 16px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 6px 16px var(--shadow-color), 0 2px 6px rgba(0, 0, 0, 0.06);
     margin-bottom: 10px;
     pointer-events: all;
     overflow: hidden;
@@ -1334,7 +1542,7 @@ body.dark-mode .opacity-value {
     align-items: flex-start;
     max-width: 100%;
     will-change: transform, opacity;
-    border: 1px solid rgba(230, 230, 230, 0.7);
+    border: 1px solid var(--notification-border);
 }
 
 .notification::before {
@@ -1350,6 +1558,10 @@ body.dark-mode .opacity-value {
     z-index: 0;
 }
 
+body.dark-mode .notification::before {
+    opacity: 0.05;
+}
+
 .notification::after {
     content: "";
     position: absolute;
@@ -1362,16 +1574,6 @@ body.dark-mode .opacity-value {
                 inset 0 1px 4px rgba(255, 255, 255, 0.3);
     pointer-events: none;
     z-index: 0;
-}
-
-body.dark-mode .notification {
-    background: rgba(28, 28, 30, 0.95);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.12);
-    border: 1px solid rgba(60, 60, 70, 0.8);
-}
-
-body.dark-mode .notification::before {
-    opacity: 0.05;
 }
 
 body.dark-mode .notification::after {
@@ -1429,9 +1631,6 @@ body.dark-mode .notification::after {
     background-color: rgba(0, 122, 255, 0.1);
 }
 
-/* Removed colored borders as requested */
-
-/* Dark mode adjustments */
 body.dark-mode .notification.success .notification-icon {
     color: #30d158;
     background-color: rgba(48, 209, 88, 0.15);
@@ -1458,7 +1657,7 @@ body.dark-mode .notification.info .notification-icon {
 }
 
 .notification-title {
-    color: #333;
+    color: var(--text-color);
     font-weight: 600;
     font-size: 14px;
     margin-bottom: 8px;
@@ -1466,11 +1665,11 @@ body.dark-mode .notification.info .notification-icon {
     overflow: hidden;
     text-overflow: ellipsis;
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--notification-title-border);
 }
 
 .notification-message {
-    color: #666;
+    color: var(--text-secondary-color);
     font-size: 13px;
     line-height: 1.4;
     word-wrap: break-word;
@@ -1507,6 +1706,15 @@ body.dark-mode .notification.info .notification-icon {
     color: #666;
 }
 
+body.dark-mode .notification-close {
+    color: #777;
+}
+
+body.dark-mode .notification-close:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #aaa;
+}
+
 .notification-progress {
     position: absolute;
     bottom: 0;
@@ -1538,13 +1746,13 @@ body.dark-mode .notification.info .notification-icon {
     animation: progressShimmer 2s infinite;
 }
 
-@keyframes progressShimmer {
-    0% {
-        transform: translateX(-100%);
-    }
-    100% {
-        transform: translateX(100%);
-    }
+body.dark-mode .notification-progress::after {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
 }
 
 /* Notification types */
@@ -1566,31 +1774,6 @@ body.dark-mode .notification.info .notification-icon {
 .notification.info .notification-progress {
     background: linear-gradient(to right, rgba(0, 122, 255, 0.7), rgba(149, 107, 213, 0.9));
     box-shadow: 0 0 6px rgba(0, 122, 255, 0.5);
-}
-
-/* Dark mode support */
-body.dark-mode .notification {
-    /* Background color and opacity set via JavaScript to match window opacity setting */
-    background: rgba(28, 28, 30, 0.95);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.12);
-}
-
-body.dark-mode .notification-title {
-    color: #fff;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-body.dark-mode .notification-message {
-    color: rgba(255, 255, 255, 0.7);
-}
-
-body.dark-mode .notification-close {
-    color: #777;
-}
-
-body.dark-mode .notification-close:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #aaa;
 }
 
 @keyframes notificationEnter {
@@ -1624,23 +1807,27 @@ body.dark-mode .notification-close:hover {
     }
 }
 
-body.dark-mode .notification-progress::after {
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.15) 50%,
-        rgba(255, 255, 255, 0) 100%
-    );
+@keyframes progressShimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
-
-/* No special dark mode fade handling needed - mask-image naturally adapts to any background */
 
 .notification.exit {
     animation: notificationExit 0.35s cubic-bezier(0.3, 0, 0.5, -0.1) forwards;
 }
 
-/* Apply the entrance animation when text is reset */
-.list-item-content.scroll span.entering-from-left {
-    animation: textEnterFromLeft 0.4s cubic-bezier(0.19, 1, 0.22, 1) 1 forwards;
-    will-change: opacity, transform, filter, text-shadow;
+/* Fix content inside list items to prevent cut-off */
+.list-item-content {
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding-right: 30px; /* Increased from 20px to provide more space for content */
+    padding-left: 10px; /* Increased from 8px for more consistent spacing */
 } 

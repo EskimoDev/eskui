@@ -60,6 +60,9 @@ const ui = {
         // Cleanup document-level handlers
         state.cleanupHandlers.forEach(fn => fn());
         state.cleanupHandlers = [];
+        
+        // Clear any water shimmer elements that might be lingering
+        document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
     },
     
     closeAndSendData(containerId, endpoint, data) {
@@ -241,6 +244,19 @@ const uiHandlers = {
                             // Now select the new item
                             itemElement.classList.add('selected');
                             
+                            // Create and add individual glow segments for independent animation
+                            const glowSegments = ['top', 'right', 'bottom', 'left'];
+                            glowSegments.forEach(side => {
+                                const glowElement = document.createElement('div');
+                                glowElement.className = `glow-${side}`;
+                                itemElement.appendChild(glowElement);
+                            });
+                            
+                            // Create and add water shimmer element for the glow effect
+                            const shimmer = document.createElement('div');
+                            shimmer.className = 'water-shimmer';
+                            itemElement.appendChild(shimmer);
+                            
                             // Store the selected item and index
                             state.selectedListItem = { index, item };
                             
@@ -275,11 +291,26 @@ const uiHandlers = {
                         listContainer.querySelectorAll('.list-item').forEach(el => {
                             if (el !== itemElement) {
                                 el.classList.remove('selected', 'deselecting');
+                                // Remove all glow elements if they exist
+                                el.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(glowEl => glowEl.remove());
                             }
                         });
                         
                         // Add selected class to this item
                         itemElement.classList.add('selected');
+                        
+                        // Create and add individual glow segments for independent animation
+                        const glowSegments = ['top', 'right', 'bottom', 'left'];
+                        glowSegments.forEach(side => {
+                            const glowElement = document.createElement('div');
+                            glowElement.className = `glow-${side}`;
+                            itemElement.appendChild(glowElement);
+                        });
+                        
+                        // Create and add water shimmer element for the glow effect
+                        const shimmer = document.createElement('div');
+                        shimmer.className = 'water-shimmer';
+                        itemElement.appendChild(shimmer);
                         
                         // Store the selected item and index
                         state.selectedListItem = { index, item };
@@ -906,6 +937,9 @@ document.getElementById('amount-input').addEventListener('keypress', function(e)
 // UI action functions
 function closeUI() {
     ui.hideAllUIs();
+    
+    // Remove any lingering shimmer and glow effects
+    document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
 }
 
 function selectListItem(index, item) {
