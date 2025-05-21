@@ -159,6 +159,76 @@ body {
     width: 450px; /* Increased from 400px */
 }
 
+/* Remove decorative side elements - as requested */
+/* #list-ui .window::before, #list-ui .window::after {
+    content: none;
+} */
+
+/* Add a separator above the button group in macOS style */
+.list-ui-button-separator {
+    height: 1px;
+    background-color: transparent;
+    margin: 5px 20px 15px 20px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 0.5px solid var(--border-color);
+    opacity: 0.6;
+}
+
+/* MacOS-style list divider */
+.list-divider {
+    height: 0;
+    margin: 4px 3px;
+    position: relative;
+    overflow: visible;
+    border-bottom: 1.5px solid var(--border-color);
+    opacity: 0.8;
+}
+
+/* Remove the gradient overlay on dividers */
+.list-divider::after,
+.list-ui-button-separator::after {
+    content: none;
+}
+
+/* Add subtle shadow to dividers for macOS feel */
+body:not(.dark-mode) .list-divider,
+body:not(.dark-mode) .list-ui-button-separator {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+body.dark-mode .list-divider,
+body.dark-mode .list-ui-button-separator {
+    border-color: rgba(80, 80, 90, 0.8);
+    box-shadow: 0 1px 0 rgba(60, 60, 70, 0.5);
+}
+
+/* Remove the side decoration animations as they're no longer used */
+@keyframes sidePulseLeft {
+    /* Content removed as this animation is no longer used */
+}
+
+@keyframes sidePulseRight {
+    /* Content removed as this animation is no longer used */
+}
+
+/* No content needed - duplicate removed */
+
+/* Ensure first and last items can extend their glow */
+.list-item:first-child .glow-top {
+    top: -15px; /* Extended from -10px */
+}
+
+.list-item:last-child .glow-bottom {
+    bottom: -15px; /* Extended from -10px */
+}
+
+/* Add more padding to list container to accommodate extended glows */
+.list-container {
+    padding-top: 15px; /* Increased from 10px */
+    padding-bottom: 15px; /* Increased from implicitly 10px */
+}
+
 /* Add subtle texture to window backgrounds */
 .window::before {
     content: "";
@@ -374,6 +444,14 @@ input[type="number"]::placeholder {
     justify-content: flex-end;
 }
 
+/* List UI specific button group styling */
+#list-ui .button-group {
+    justify-content: center;
+    margin: 0 auto;
+    width: 90%;
+    padding: 0 15px 10px 15px;
+}
+
 /* Enhanced button styles with texture */
 .button {
     padding: 8px 16px;
@@ -429,7 +507,9 @@ input[type="number"]::placeholder {
     margin-bottom: 16px;
     border-radius: 8px;
     /* Add padding to prevent cut-off borders */
-    padding: 4px 15px; /* Increased side padding from 6px to 15px */
+    padding: 10px 15px; /* Increased padding for better glow extension */
+    /* Add space for glow effect to extend */
+    position: relative;
 }
 
 /* Enhance list items with texture */
@@ -841,6 +921,19 @@ body.dark-mode .list-item.deselecting {
     height: 1px;
     background: var(--list-divider-color);
     margin: 4px 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.list-divider::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 40%;
+    right: 40%;
+    height: 1px;
+    background: var(--accent-gradient);
+    opacity: 0.3;
 }
 
 .list-item-icon {
