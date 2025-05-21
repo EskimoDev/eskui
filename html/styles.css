@@ -201,8 +201,64 @@ body.dark-mode input[type="number"] {
 
 input[type="number"]:focus {
     outline: none;
-    border-color: #007AFF;
-    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 0 8px rgba(149, 107, 213, 0.3), 
+                inset 0 1px 3px rgba(0, 0, 0, 0.03);
+    position: relative;
+}
+
+input[type="number"]:focus::before {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 10px;
+    border: 2px solid;
+    border-image: linear-gradient(135deg, #007AFF, #956bd5) 1;
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Custom gradient border for input focus */
+.input-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.input-group::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #007AFF, #956bd5);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: source-out;
+    padding: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.input-group:focus-within::after {
+    opacity: 1;
+}
+
+body.dark-mode .input-group::after {
+    background: linear-gradient(135deg, #0a84ff, #956bd5);
+}
+
+body.dark-mode input[type="number"]:focus {
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 8px rgba(149, 107, 213, 0.4),
+                inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .button-group {
@@ -275,6 +331,7 @@ body.dark-mode .button.submit {
     overflow-y: auto;
     overflow-x: hidden;
     margin-bottom: 16px;
+    border-radius: 8px;
 }
 
 /* Enhance list items with texture */
@@ -289,6 +346,7 @@ body.dark-mode .button.submit {
     overflow: hidden;
     border: 1px solid rgba(0, 0, 0, 0.05);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    padding-right: 20px;
 }
 
 .list-item::before {
@@ -311,15 +369,66 @@ body.dark-mode .button.submit {
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
+/* Make selected items much more pronounced */
 .list-item.selected {
-    background: linear-gradient(135deg, #007AFF, #956bd5);
+    background-image: linear-gradient(135deg, #007AFF, #956bd5);
     color: white;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(149, 107, 213, 0.4);
+    box-shadow: 0 2px 8px rgba(149, 107, 213, 0.25);
+    font-weight: 600;
+    transform: translateX(4px);
+    transform: scale(1.01);
 }
 
 .list-item.selected::before {
     opacity: 0.05;
+}
+
+.list-item.selected::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
+    pointer-events: none;
+}
+
+/* Ensure submenu arrows don't get cut off */
+.submenu-arrow {
+    display: inline-block;
+    margin-left: auto;
+    font-size: 24px;
+    color: #888;
+    margin-right: 4px;
+    line-height: 1;
+    transition: transform 0.2s ease;
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.list-item:hover .submenu-arrow {
+    transform: translateX(2px) translateY(-50%);
+    color: #666;
+}
+
+.list-item.selected .submenu-arrow {
+    color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-50%);
+}
+
+/* Fix content inside list items to prevent cut-off */
+.list-item-content {
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding-right: 20px;
 }
 
 /* Dark mode list items */
@@ -333,11 +442,45 @@ body.dark-mode .list-item {
 body.dark-mode .list-item:hover {
     background: linear-gradient(to bottom, #3a3a3c, #323232);
     border-color: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
 }
 
+/* Fix dark mode selected styling with increased specificity and more prominent effects */
 body.dark-mode .list-item.selected {
-    background: linear-gradient(135deg, #0a84ff, #956bd5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-image: linear-gradient(135deg, #0a84ff, #956bd5) !important;
+    color: white !important;
+    border: 1px solid rgba(149, 107, 213, 0.6) !important;
+    box-shadow: 0 3px 10px rgba(10, 132, 255, 0.4) !important;
+    font-weight: 600 !important;
+    /* Combine transforms properly */
+    transform: translateX(4px) scale(1.01) !important;
+}
+
+body.dark-mode .list-item.selected::before {
+    opacity: 0.05 !important;
+}
+
+body.dark-mode .list-item.selected::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.05));
+    pointer-events: none;
+    z-index: 1;
+}
+
+body.dark-mode .list-item.selected .list-item-desc {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Ensure the correct content layout in dark mode selected */
+body.dark-mode .list-item.selected .list-item-content {
+    position: relative;
+    z-index: 2;
+    color: white !important;
 }
 
 .list-divider {
@@ -348,15 +491,6 @@ body.dark-mode .list-item.selected {
 
 body.dark-mode .list-divider {
     background: rgba(255, 255, 255, 0.05);
-}
-
-.list-item-content {
-    position: relative;
-    white-space: nowrap;
-    overflow: hidden;
-    width: 100%;
-    display: flex;
-    align-items: center;
 }
 
 .list-item-content.scroll::before {
