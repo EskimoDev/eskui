@@ -6,7 +6,8 @@ description 'Modern UI System for FiveM'
 version '1.0.0'
 
 client_scripts {
-    'client.lua'
+    'client.lua',
+    'client_test.lua'
 }
 
 ui_page 'html/index.html'
