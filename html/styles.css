@@ -529,8 +529,16 @@ body.dark-mode .list-divider {
 }
 
 .list-item-content.scroll {
-    -webkit-mask-image: linear-gradient(to right, black 75%, transparent 100%);
-    mask-image: linear-gradient(to right, black 75%, transparent 100%);
+    /* Only fade out on the right in normal state */
+    -webkit-mask-image: linear-gradient(to right, black 0%, black 75%, transparent 100%);
+    mask-image: linear-gradient(to right, black 0%, black 75%, transparent 100%);
+}
+
+/* Make container visible but with text fade when animating */
+.list-item:hover .list-item-content.scroll {
+    /* Add left fade when text is moving during hover */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 75%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, black 5%, black 75%, transparent 100%);
 }
 
 .list-item-content.scroll::before {
@@ -553,11 +561,13 @@ body.dark-mode .list-divider {
 }
 
 @keyframes scrollText {
+    /* Add a bit of padding at the beginning so text enters from the fade */
     0% {
-        transform: translateX(0);
+        transform: translateX(5%);
     }
+    /* Go further than -100% to ensure text fully exits through the fade */
     100% {
-        transform: translateX(-100%);
+        transform: translateX(-105%);
     }
 }
 
