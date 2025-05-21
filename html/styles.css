@@ -217,6 +217,8 @@ body.dark-mode .list-divider {
     white-space: nowrap;
     overflow: hidden;
     width: 100%;
+    display: flex;
+    align-items: center;
 }
 
 .list-item-content.scroll::before {
@@ -781,4 +783,23 @@ body.dark-mode .opacity-slider::-webkit-slider-thumb {
 
 body.dark-mode .opacity-value {
     color: #ddd;
+}
+
+.submenu-arrow {
+    display: inline-block;
+    margin-left: auto;
+    font-size: 24px;
+    color: #888;
+    margin-right: 4px;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+.list-item:hover .submenu-arrow {
+    transform: translateX(2px);
+    color: #666;
+}
+
+.list-item.selected .submenu-arrow {
+    color: rgba(255, 255, 255, 0.9);
 } 

@@ -3,7 +3,6 @@ const state = {
     currentUI: null,
     currentUIId: null,
     cleanupHandlers: [],
-    listMenuStack: [],
     darkMode: false,
     windowOpacity: 0.95,
     freeDrag: false,
@@ -35,7 +34,12 @@ const ui = {
     },
     
     show(containerId) {
-        this.closeCurrentUI();
+        // Only close current UI if it's different from the one we're showing
+        // This preserves state when navigating between submenus
+        if (state.currentUIId && state.currentUIId !== containerId) {
+            this.hide(state.currentUIId);
+        }
+        
         const container = document.getElementById(containerId);
         if (!container) return;
         
@@ -94,11 +98,19 @@ const ui = {
 
 // Communication functions
 function sendNUIMessage(endpoint, data = {}) {
-    return fetch(`https://${GetParentResourceName()}/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
+    console.log(`Sending NUI message to endpoint: ${endpoint}`, data);
+    
+    try {
+        fetch(`https://${GetParentResourceName()}/${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).catch(error => {
+            console.error('Error sending NUI message:', error);
+        });
+    } catch (error) {
+        console.error('Exception sending NUI message:', error);
+    }
 }
 
 // UI type handlers
@@ -117,8 +129,24 @@ const uiHandlers = {
     },
     
     showList(title, items, isSubmenu) {
+        console.log(`Showing list: ${title}, isSubmenu: ${isSubmenu}, items:`, items);
+        
         state.currentUI = 'list';
-        ui.show('list-ui');
+        
+        // Don't close current UI if this is a submenu being shown
+        if (isSubmenu) {
+            console.log('Showing submenu without closing current UI');
+            const container = document.getElementById('list-ui');
+            if (container) {
+                container.style.display = 'flex';
+                const win = container.querySelector('.window');
+                win.classList.remove('close');
+                win.classList.add('open');
+            }
+        } else {
+            ui.show('list-ui');
+        }
+        
         this.hideOtherUIs('list-ui');
         
         document.querySelector('#list-ui .titlebar-title').textContent = title;
@@ -130,8 +158,36 @@ const uiHandlers = {
         // Reset selected item
         state.selectedListItem = null;
         
+        // Ensure items is an array
+        let itemsArray = [];
+        if (Array.isArray(items)) {
+            itemsArray = items;
+        } else if (items && typeof items === 'object') {
+            // Check if we received an object with an 'items' property
+            if (Array.isArray(items.items)) {
+                itemsArray = items.items;
+                console.log('Using items.items instead:', itemsArray);
+            } else {
+                console.error('Items is an object but not an array:', items);
+                // Add a single error item
+                itemsArray = [{
+                    label: 'Error: Invalid menu data',
+                    description: 'Please report this issue',
+                    disabled: true
+                }];
+            }
+        } else {
+            console.error('Invalid items data:', items);
+            // Add a single error item
+            itemsArray = [{
+                label: 'Error: No menu items',
+                description: 'Please report this issue',
+                disabled: true
+            }];
+        }
+        
         // Add items
-        items.forEach((item, index) => {
+        itemsArray.forEach((item, index) => {
             const itemElement = document.createElement('div');
             itemElement.className = 'list-item' + (item.disabled ? ' disabled' : '');
             
@@ -143,6 +199,12 @@ const uiHandlers = {
                 innerContent += `<div class="list-item-icon">${item.icon}</div>`;
             }
             innerContent += `<span>${item.label}</span>`;
+            
+            // Add submenu indicator if item has a submenu
+            if (item.submenu) {
+                innerContent += `<div class="submenu-arrow">›</div>`;
+            }
+            
             itemContent.innerHTML = innerContent;
             
             itemElement.appendChild(itemContent);
@@ -158,6 +220,8 @@ const uiHandlers = {
             // Add click handler if not disabled
             if (!item.disabled) {
                 itemElement.onclick = () => {
+                    console.log('Item clicked:', item.label, item);
+                    
                     // Add selected class to this item and remove from others
                     listContainer.querySelectorAll('.list-item').forEach(el => {
                         el.classList.remove('selected');
@@ -166,13 +230,19 @@ const uiHandlers = {
                     
                     // Store the selected item and index
                     state.selectedListItem = { index, item };
+                    
+                    // If it's a submenu or back button, automatically select it without requiring Submit button
+                    if (item.submenu || item.isBack) {
+                        console.log('Auto-selecting item (submenu or back):', item.label);
+                        submitListSelection();
+                    }
                 };
             }
             
             listContainer.appendChild(itemElement);
             
             // Add divider after each item except the last one
-            if (index < items.length - 1) {
+            if (index < itemsArray.length - 1) {
                 const divider = document.createElement('div');
                 divider.className = 'list-divider';
                 listContainer.appendChild(divider);
@@ -196,13 +266,25 @@ const uiHandlers = {
             }, 10);
         });
         
+        // Add back button listener for Escape key
         ui.addEscapeHandler(() => {
-            if (state.listMenuStack.length > 0 && !isSubmenu) {
-                const prevMenu = state.listMenuStack.pop();
-                this.showList(prevMenu.title, prevMenu.items, true);
-            } else {
-                closeUI();
+            // If this is a submenu, we should trigger a "back" action rather than just closing
+            if (isSubmenu) {
+                console.log('Escape pressed in submenu, going back');
+                const backItem = itemsArray.find(item => item.isBack);
+                if (backItem) {
+                    state.selectedListItem = { 
+                        index: itemsArray.findIndex(item => item.isBack), 
+                        item: backItem 
+                    };
+                    submitListSelection();
+                    return;
+                }
             }
+            
+            // Otherwise just close the UI
+            console.log('Escape pressed, closing UI');
+            closeUI();
         });
     },
     
@@ -336,6 +418,15 @@ const uiHandlers = {
     },
     
     hideOtherUIs(currentUI) {
+        // When showing a submenu, don't hide the list-ui
+        if (currentUI === 'list-ui' && state.currentUI === 'list') {
+            // Only hide non-list UIs
+            ['amount-ui', 'dropdown-ui', 'settings-ui']
+                .forEach(id => document.getElementById(id).style.display = 'none');
+            return;
+        }
+        
+        // Default behavior for other UIs
         ['amount-ui', 'list-ui', 'dropdown-ui', 'settings-ui']
             .filter(id => id !== currentUI)
             .forEach(id => document.getElementById(id).style.display = 'none');
@@ -345,17 +436,54 @@ const uiHandlers = {
 // Event handlers
 window.addEventListener('message', function(event) {
     const data = event.data;
-    const handlers = {
-        showAmount: () => uiHandlers.showAmount(data.title),
-        showList: () => uiHandlers.showList(data.title, data.items, data.isSubmenu),
-        showSubMenu: () => uiHandlers.showList(data.title, data.items),
-        showDropdown: () => uiHandlers.showDropdown(data.title, data.options, data.selectedIndex),
-        showSettings: () => uiHandlers.showSettings(),
-        toggleDarkMode: () => toggleDarkMode()
-    };
     
-    if (handlers[data.type]) {
-        handlers[data.type]();
+    // Log received events for debugging
+    console.log('Received NUI event:', data.type, data);
+    
+    // Extra safety check
+    if (!data || !data.type) {
+        console.error('Received invalid message event:', event);
+        return;
+    }
+    
+    try {
+        const handlers = {
+            showAmount: () => {
+                console.log('Processing showAmount event');
+                uiHandlers.showAmount(data.title);
+            },
+            showList: () => {
+                console.log('Processing showList event, isSubmenu:', data.isSubmenu);
+                // Important: For submenus, make sure we don't reset the UI state
+                uiHandlers.showList(data.title, data.items, data.isSubmenu);
+                
+                // Set a timeout to verify the UI is still visible
+                setTimeout(() => {
+                    const container = document.getElementById('list-ui');
+                    if (container && container.style.display !== 'flex') {
+                        console.error('UI was hidden unexpectedly! Restoring visibility');
+                        container.style.display = 'flex';
+                    }
+                }, 500);
+            },
+            showDropdown: () => {
+                console.log('Processing showDropdown event');
+                uiHandlers.showDropdown(data.title, data.options, data.selectedIndex);
+            },
+            showSettings: () => {
+                console.log('Processing showSettings event');
+                uiHandlers.showSettings();
+            },
+            toggleDarkMode: () => toggleDarkMode()
+        };
+        
+        if (handlers[data.type]) {
+            handlers[data.type]();
+        } else {
+            console.warn('Unknown message type:', data.type);
+        }
+    } catch (error) {
+        console.error('Error handling message event:', error);
     }
 });
 
@@ -372,10 +500,48 @@ function closeUI() {
 }
 
 function selectListItem(index, item) {
-    ui.closeAndSendData('list-ui', 'listSelect', {
-        index: index,
-        item: item
-    });
+    console.log('selectListItem called with:', index, item);
+    
+    try {
+        // Check if this is a submenu selection
+        if (item && item.submenu) {
+            console.log('This is a submenu item, sending submenuSelect event');
+            // Send submenu event without closing UI
+            fetch(`https://${GetParentResourceName()}/submenuSelect`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    index: index,
+                    item: item
+                })
+            }).catch(error => {
+                console.error('Error sending submenu select:', error);
+            });
+        } 
+        // Check if this is a back button
+        else if (item && item.isBack) {
+            console.log('This is a back button, sending submenuBack event');
+            // Send back navigation event
+            fetch(`https://${GetParentResourceName()}/submenuBack`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            }).catch(error => {
+                console.error('Error sending submenu back:', error);
+            });
+        }
+        // Regular item selection
+        else {
+            console.log('This is a regular item, closing UI and sending data');
+            // Regular item selection, close UI and send data
+            ui.closeAndSendData('list-ui', 'listSelect', {
+                index: index,
+                item: item
+            });
+        }
+    } catch (error) {
+        console.error('Exception in selectListItem:', error);
+    }
 }
 
 function submitAmount() {
@@ -388,10 +554,14 @@ function submitAmount() {
 }
 
 function submitListSelection() {
+    console.log('submitListSelection called, selectedListItem:', state.selectedListItem);
+    
     if (state.selectedListItem) {
+        // Use the selectListItem function which handles all types of selections
         selectListItem(state.selectedListItem.index, state.selectedListItem.item);
     } else {
         // No selection, just close
+        console.log('No item selected, closing UI');
         closeUI();
     }
 }

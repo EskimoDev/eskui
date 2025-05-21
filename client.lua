@@ -2,13 +2,35 @@ local display = false
 local darkMode = false
 local windowOpacity = 0.95
 local freeDrag = false
+local state = {
+    menuHistory = {}
+}
 
 -- Common NUI callback handling
 local function handleNUICallback(name, handler)
     RegisterNUICallback(name, function(data, cb)
+        print("Received NUI callback: " .. name)
+        
+        -- Always acknowledge the callback first to avoid NUI freezes
+        cb('ok')
+        
+        -- For submenu navigation, don't reset focus
+        if name == 'submenuSelect' or name == 'submenuBack' then
+            -- Make sure display stays true to maintain UI visibility
+            display = true
+            SetNuiFocus(true, true)
+            
+            if handler then 
+                -- Run the callback handler with the data
+                handler(data)
+            end
+            return
+        end
+        
+        -- For regular callbacks, reset focus and close UI
         display = false
         SetNuiFocus(false, false)
-        cb('ok')
+        
         if handler then handler(data) end
     end)
 end
@@ -21,7 +43,155 @@ local callbacks = {
     dropdownSelect = function(data) TriggerEvent('eskui:dropdownCallback', data.index, data.value) end,
     darkModeChanged = function(data) darkMode = data.darkMode end,
     opacityChanged = function(data) windowOpacity = data.windowOpacity end,
-    freeDragChanged = function(data) freeDrag = data.freeDrag end
+    freeDragChanged = function(data) freeDrag = data.freeDrag end,
+    submenuSelect = function(data) 
+        -- Debug
+        print("Handling submenu selection for item: " .. (data.item.label or "unknown"))
+        
+        -- IMPORTANT: Explicitly set UI state to shown
+        display = true
+        SetNuiFocus(true, true)
+        
+        -- Handle submenu selection
+        if data.item and data.item.submenu then
+            -- Get submenu items - can be direct table or function returning table
+            local submenuItems
+            if type(data.item.submenu) == "function" then
+                submenuItems = data.item.submenu()
+                print("Got submenu items from function")
+            else
+                submenuItems = data.item.submenu
+                print("Got submenu items from table") 
+            end
+            
+            -- Ensure submenuItems is a valid table
+            if submenuItems == nil then
+                print("ERROR: Submenu items is nil - creating empty table")
+                submenuItems = {}
+            elseif type(submenuItems) ~= 'table' then
+                print("ERROR: Submenu items is not a table, type: " .. type(submenuItems))
+                submenuItems = {}
+            end
+            
+            -- Add a back button if not already present
+            local hasBackButton = false
+            for _, item in ipairs(submenuItems) do
+                if item and item.isBack then 
+                    hasBackButton = true
+                    break
+                end
+            end
+            
+            if not hasBackButton then
+                print("Adding back button to submenu")
+                table.insert(submenuItems, { 
+                    label = 'Back', 
+                    isBack = true, 
+                    icon = '⬅️' 
+                })
+            end
+            
+            -- Store current menu in history for back navigation
+            if not state.menuHistory then state.menuHistory = {} end
+            if state.currentMenuData then
+                table.insert(state.menuHistory, state.currentMenuData)
+                print("Added current menu to history, history size: " .. #state.menuHistory)
+            end
+            
+            -- Print debug info about the submenu items
+            print("Submenu items count: " .. #submenuItems)
+            for i, item in ipairs(submenuItems) do
+                print("  Item " .. i .. ": " .. (item.label or "no label"))
+            end
+            
+            -- Important: We need to create a proper NUI message with all fields
+            local message = {
+                type = 'showList',
+                title = data.item.label,
+                items = submenuItems,
+                isSubmenu = true
+            }
+            print("Sending submenu NUI message - submenuItems count: " .. #submenuItems)
+            
+            -- Store current submenu data
+            state.currentMenuData = {
+                title = data.item.label,
+                items = submenuItems,
+                parentIndex = data.index
+            }
+            
+            -- Show the submenu with a short delay
+            Citizen.CreateThread(function()
+                Citizen.Wait(50)
+                
+                -- Double check we're still in display mode (a safeguard)
+                if not display then
+                    print("WARNING: display was set to false before submenu could be shown")
+                    display = true
+                    SetNuiFocus(true, true)
+                end
+                
+                -- Send the message and ensure focus
+                SendNUIMessage(message)
+                SetNuiFocus(true, true)
+                
+                -- Debug
+                print("Showing submenu: " .. data.item.label .. " with " .. #submenuItems .. " items")
+            end)
+        else
+            print("ERROR: Submenu selection with no submenu data")
+        end
+    end,
+    submenuBack = function()
+        -- Debug
+        print("Handling back navigation in submenu")
+        
+        -- Ensure UI stays visible and focused
+        display = true
+        SetNuiFocus(true, true)
+        
+        -- Navigate back to previous menu if history exists
+        if state.menuHistory and #state.menuHistory > 0 then
+            -- Get previous menu
+            local prevMenu = table.remove(state.menuHistory)
+            print("Going back to menu: " .. prevMenu.title .. " with " .. #prevMenu.items .. " items")
+            
+            -- Create a proper NUI message with all fields
+            local message = {
+                type = 'showList',
+                title = prevMenu.title,
+                items = prevMenu.items,
+                isSubmenu = #state.menuHistory > 0
+            }
+            
+            -- Update current menu data first
+            state.currentMenuData = prevMenu
+            
+            -- Important: Show previous menu with a short delay
+            Citizen.CreateThread(function()
+                Citizen.Wait(50)
+                
+                -- Double check we're still in display mode (a safeguard)
+                if not display then
+                    print("WARNING: display was set to false before previous menu could be shown")
+                    display = true
+                    SetNuiFocus(true, true)
+                end
+                
+                -- Send the message and ensure focus
+                SendNUIMessage(message)
+                SetNuiFocus(true, true)
+                
+                print("Successfully navigated back to previous menu")
+            end)
+        else
+            -- If no history left, close the menu
+            print("No menu history, closing UI")
+            display = false
+            SetNuiFocus(false, false)
+            TriggerEvent('eskui:closeCallback')
+        end
+    end
 }
 
 -- Register all callbacks
@@ -87,8 +257,21 @@ local function registerExports()
     end)
     
     -- List selection
-    exports('ShowList', function(title, items, callback, subMenuCallback)
-        showUI('showList', title, {items = items}, function(index, item)
+    exports('ShowList', function(title, items, callback, submenuHandler)
+        -- Store the menu history for navigation
+        if not state.menuHistory then state.menuHistory = {} end
+        
+        -- Check if this is a submenu (but not a back navigation, which gets handled separately)
+        local isSubmenu = #state.menuHistory > 0
+        
+        -- Send items to UI
+        showUI('showList', title, {items = items, isSubmenu = isSubmenu}, function(index, item)
+            -- Check if this is a "back" button
+            if item and item.isBack and #state.menuHistory > 0 then
+                -- Get previous menu (handled by submenuBack callback)
+                return
+            end
+            
             -- Event support
             if item and item.event then
                 if item.eventType == 'server' then
@@ -98,15 +281,19 @@ local function registerExports()
                 end
             end
             
-            -- Submenu support
-            if item and item.submenu then
-                local submenuItems = type(item.submenu) == 'function' and item.submenu() or item.submenu
-                exports['eskui']:ShowList(item.label, submenuItems, callback, subMenuCallback)
-                return
-            end
-            
+            -- Call the callback if provided
             if callback then callback(index, item) end
+            
+            -- Clear menu history when we make a final selection
+            state.menuHistory = {}
         end)
+        
+        -- Store this menu in state for history tracking
+        state.currentMenuData = {
+            title = title,
+            items = items,
+            callback = callback
+        }
     end)
     
     -- Dropdown selection
@@ -158,30 +345,6 @@ local function registerTestCommands()
         end)
     end)
     
-    -- Test submenu
-    RegisterCommand('testsubmenu', function()
-        local items = {
-            {label = 'Category 1', id = 'cat1'},
-            {label = 'Category 2', id = 'cat2'},
-            {label = 'Category 3', id = 'cat3'}
-        }
-        
-        exports['eskui']:ShowList('Select Category', items, function(index, item)
-            print('Final selection: ' .. item.label)
-        end, function(index, item)
-            if item.id == 'cat1' then
-                return {
-                    title = 'Category 1 Items',
-                    items = {
-                        {label = 'Sub Item 1', price = 100},
-                        {label = 'Sub Item 2', price = 200}
-                    }
-                }
-            end
-            return nil
-        end)
-    end)
-    
     -- Test dropdown
     RegisterCommand('testdropdown', function()
         local options = {
@@ -199,6 +362,61 @@ local function registerTestCommands()
             end
         end)
     end)
+    
+    -- Test submenu list
+    RegisterCommand('testsubmenu', function()
+        local mainMenu = {
+            {label = 'Food', icon = '🍔', submenu = {
+                {label = 'Burger', price = 10, description = 'Delicious burger'},
+                {label = 'Pizza', price = 15, description = 'Tasty pizza'},
+                {label = 'Salad', price = 8, description = 'Healthy option'},
+                {label = 'Back', isBack = true, icon = '⬅️'}
+            }},
+            {label = 'Drinks', icon = '🥤', submenu = function()
+                -- Example of dynamic submenu using function
+                return {
+                    {label = 'Soda', price = 3, description = 'Refreshing drink'},
+                    {label = 'Water', price = 1, description = 'Stay hydrated'},
+                    {label = 'Coffee', price = 5, description = 'Wake up!'},
+                    {label = 'Back', isBack = true, icon = '⬅️'}
+                }
+            end},
+            {label = 'Desserts', icon = '🍦', submenu = {
+                {label = 'Ice Cream', price = 6, description = 'Cold and sweet'},
+                {label = 'Cake', price = 7, description = 'Slice of heaven'},
+                {label = 'Back', isBack = true, icon = '⬅️'}
+            }},
+            {label = 'Exit', description = 'Close the menu'}
+        }
+        
+        -- Debug print the menu structure
+        print("Main menu items count: " .. #mainMenu)
+        for i, item in ipairs(mainMenu) do
+            print("Item " .. i .. ": " .. item.label)
+            if item.submenu then
+                print("  Has submenu: " .. type(item.submenu))
+                if type(item.submenu) == 'table' then
+                    print("  Submenu items: " .. #item.submenu)
+                    for j, subitem in ipairs(item.submenu) do
+                        print("    Subitem " .. j .. ": " .. subitem.label)
+                    end
+                end
+            end
+        end
+        
+        -- Show the menu
+        exports['eskui']:ShowList('Restaurant Menu', mainMenu, function(index, item)
+            if item and item.price then
+                print(('Selected: %s for $%s'):format(item.label, item.price))
+                TriggerEvent('chat:addMessage', {
+                    color = {149, 107, 213},
+                    args = {"ESKUI", ('You ordered: %s for $%s'):format(item.label, item.price)}
+                })
+            end
+        end)
+    end)
+    
+    TriggerEvent('chat:addSuggestion', '/testsubmenu', 'Test ESKUI submenu functionality')
 end
 
 -- Initialize everything
