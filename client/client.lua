@@ -39,11 +39,16 @@ end
 local callbacks = {
     amountSubmit = function(data) TriggerEvent('eskui:amountCallback', data.amount) end,
     listSelect = function(data) TriggerEvent('eskui:listCallback', data.index, data.item) end,
-    close = function() TriggerEvent('eskui:closeCallback') end,
     dropdownSelect = function(data) TriggerEvent('eskui:dropdownCallback', data.index, data.value) end,
     darkModeChanged = function(data) darkMode = data.darkMode end,
     opacityChanged = function(data) windowOpacity = data.windowOpacity end,
     freeDragChanged = function(data) freeDrag = data.freeDrag end,
+    close = function() 
+        -- Always ensure that focus is properly released when UI is closed
+        display = false
+        SetNuiFocus(false, false)
+        TriggerEvent('eskui:closeCallback')
+    end,
     shopCheckout = function(data) 
         print("Received shop checkout callback with total: $" .. data.total)
         

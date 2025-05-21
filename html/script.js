@@ -73,6 +73,13 @@ const ui = {
         this.animate(containerId, true, () => {
             this.resetState();
             sendNUIMessage(endpoint, data);
+            
+            // Always send a close message to ensure NUI focus is released
+            if (endpoint !== 'close') {
+                setTimeout(() => {
+                    sendNUIMessage('close');
+                }, 100);
+            }
         });
     },
     
@@ -1090,6 +1097,9 @@ document.getElementById('amount-input').addEventListener('keypress', function(e)
 function closeUI() {
     ui.hideAllUIs();
     
+    // Ensure close message is sent to release NUI focus
+    sendNUIMessage('close');
+    
     // Remove any lingering shimmer and glow effects
     document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
 }
@@ -1545,4 +1555,36 @@ function checkout() {
     
     // Reset cart
     state.cart = [];
-} 
+}
+
+// Interaction System
+// Show/hide the interaction iframe
+function setupInteractionFrame() {
+    const frame = document.getElementById('interaction-frame');
+    
+    // Show the iframe when it's needed
+    frame.style.display = 'block';
+    
+    // Listen for messages from the parent (main UI) to the iframe
+    window.addEventListener('message', function(event) {
+        if (!event.data) return;
+        
+        const data = event.data;
+        
+        // Pass interaction messages to the iframe
+        if (data.type === 'showInteraction' || data.type === 'hideInteraction') {
+            // Get the iframe window
+            const iframeWindow = frame.contentWindow;
+            if (iframeWindow) {
+                // Forward the message to the iframe
+                iframeWindow.postMessage(data, '*');
+            }
+        }
+    });
+}
+
+// Initialize the interaction system when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup the interaction frame
+    setupInteractionFrame();
+}); 

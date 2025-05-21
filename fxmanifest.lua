@@ -21,7 +21,8 @@ client_scripts {
     'framework/framework.lua',
     'client/client.lua',
     'client/client_shop.lua',
-    'client/client_test.lua'
+    'client/client_test.lua',
+    'client/client_interaction.lua'
 }
 
 -- Server scripts
@@ -36,6 +37,7 @@ ui_page 'html/index.html'
 -- HTML/CSS/JS files
 files {
     'html/index.html',
+    'html/interaction.html',
     'html/styles.css',
     'html/script.js'
 } 
