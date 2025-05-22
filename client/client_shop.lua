@@ -607,4 +607,48 @@ if Config.Debug then
             end
         end, "General Store")
     end, false)
+    
+    -- Add command suggestion
+    TriggerEvent('chat:addSuggestion', '/debugshop', 'Debug the current shop UI state')
+    
+    -- Debug command to check player money
+    RegisterCommand('checkmoney', function()
+        if not Framework.IsInitialized() then
+            print("^1[ESKUI DEBUG] Framework not initialized yet^7")
+            return
+        end
+        
+        local cashMoney = Framework.GetPlayerMoney("money") -- ESX cash
+        local bankMoney = Framework.GetPlayerMoney("bank")  -- ESX bank
+        
+        print("^2[ESKUI DEBUG] ========= PLAYER MONEY STATUS =========^7")
+        print("^2[ESKUI DEBUG] Framework: " .. Framework.GetFrameworkName() .. "^7")
+        print("^2[ESKUI DEBUG] Cash (money): $" .. cashMoney .. "^7")
+        print("^2[ESKUI DEBUG] Bank: $" .. bankMoney .. "^7")
+        print("^2[ESKUI DEBUG] Config cash account: " .. Config.MoneyTypes.cash .. "^7")
+        print("^2[ESKUI DEBUG] Config bank account: " .. Config.MoneyTypes.bank .. "^7")
+        
+        -- Also check the raw ESX data for debugging
+        if Framework.GetFrameworkName() == 'esx' and ESX then
+            local playerData = ESX.GetPlayerData()
+            print("^2[ESKUI DEBUG] Raw ESX money: $" .. (playerData.money or "nil") .. "^7")
+            
+            if playerData.accounts then
+                print("^2[ESKUI DEBUG] ESX accounts:^7")
+                for i, account in ipairs(playerData.accounts) do
+                    print("^2[ESKUI DEBUG]   - " .. account.name .. ": $" .. account.money .. "^7")
+                end
+            else
+                print("^2[ESKUI DEBUG] No accounts array found^7")
+            end
+        end
+        
+        print("^2[ESKUI DEBUG] ========= END MONEY STATUS =========^7")
+        
+        -- Show notification with money info
+        Framework.ShowNotification("Cash: $" .. cashMoney .. " | Bank: $" .. bankMoney, "info")
+    end, false)
+    
+    -- Add command suggestion
+    TriggerEvent('chat:addSuggestion', '/checkmoney', 'Check your current money (cash and bank)')
 end 

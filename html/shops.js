@@ -285,10 +285,71 @@ const shopEventHandlers = {
         // Calculate total
         const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
+        // Show payment method selection
+        this.showPaymentMethodSelection(total);
+    },
+    
+    showPaymentMethodSelection(total) {
+        // Create payment method selection UI
+        const paymentUI = document.createElement('div');
+        paymentUI.className = 'payment-method-overlay';
+        paymentUI.innerHTML = `
+            <div class="payment-method-modal">
+                <div class="payment-method-header">
+                    <h3>Select Payment Method</h3>
+                    <div class="payment-total">Total: $${total.toLocaleString()}</div>
+                </div>
+                <div class="payment-methods">
+                    <button class="payment-method-btn" data-method="money">
+                        <div class="payment-method-icon">💵</div>
+                        <div class="payment-method-label">Cash</div>
+                        <div class="payment-method-desc">Pay with cash on hand</div>
+                    </button>
+                    <button class="payment-method-btn" data-method="bank">
+                        <div class="payment-method-icon">🏦</div>
+                        <div class="payment-method-label">Bank</div>
+                        <div class="payment-method-desc">Pay with bank account</div>
+                    </button>
+                </div>
+                <div class="payment-method-footer">
+                    <button class="button cancel" id="payment-cancel">Cancel</button>
+                </div>
+            </div>
+        `;
+        
+        // Add to document
+        document.body.appendChild(paymentUI);
+        
+        // Add event listeners
+        const paymentButtons = paymentUI.querySelectorAll('.payment-method-btn');
+        paymentButtons.forEach(btn => {
+            btn.onclick = () => {
+                const method = btn.dataset.method;
+                this.processCheckout(total, method);
+                document.body.removeChild(paymentUI);
+            };
+        });
+        
+        document.getElementById('payment-cancel').onclick = () => {
+            document.body.removeChild(paymentUI);
+        };
+        
+        // Add escape key handler
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(paymentUI);
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+    },
+    
+    processCheckout(total, paymentMethod) {
         // Prepare checkout data
         const checkoutData = {
             items: state.cart,
-            total: total
+            total: total,
+            paymentMethod: paymentMethod || 'money' // Default to cash if not specified
         };
         
         // Close UI and send checkout data
