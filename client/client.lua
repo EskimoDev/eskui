@@ -31,15 +31,30 @@ local function handleNUICallback(name, handler)
         display = false
         SetNuiFocus(false, false)
         
+        -- Notify the interaction system that the UI has closed
+        TriggerEvent('eskui:uiStateChanged', false)
+        
         if handler then handler(data) end
     end)
 end
 
 -- Register standard callbacks with common pattern
 local callbacks = {
-    amountSubmit = function(data) TriggerEvent('eskui:amountCallback', data.amount) end,
-    listSelect = function(data) TriggerEvent('eskui:listCallback', data.index, data.item) end,
-    dropdownSelect = function(data) TriggerEvent('eskui:dropdownCallback', data.index, data.value) end,
+    amountSubmit = function(data) 
+        TriggerEvent('eskui:amountCallback', data.amount)
+        -- Check for nearby interactions after UI closes
+        exports['eskui']:CheckForNearbyAndShow()
+    end,
+    listSelect = function(data) 
+        TriggerEvent('eskui:listCallback', data.index, data.item)
+        -- Check for nearby interactions after UI closes
+        exports['eskui']:CheckForNearbyAndShow()
+    end,
+    dropdownSelect = function(data) 
+        TriggerEvent('eskui:dropdownCallback', data.index, data.value)
+        -- Check for nearby interactions after UI closes
+        exports['eskui']:CheckForNearbyAndShow()
+    end,
     darkModeChanged = function(data) 
         darkMode = data.darkMode 
         -- Trigger event for other modules
@@ -52,6 +67,12 @@ local callbacks = {
         display = false
         SetNuiFocus(false, false)
         TriggerEvent('eskui:closeCallback')
+        
+        -- Notify the interaction system that the UI has closed
+        TriggerEvent('eskui:uiStateChanged', false)
+        
+        -- Check for nearby interactions and show prompt if in range
+        exports['eskui']:CheckForNearbyAndShow()
     end,
     shopCheckout = function(data) 
         print("Received shop checkout callback with total: $" .. data.total)
@@ -72,7 +93,18 @@ local callbacks = {
             end
         end
         
+        -- Close UI and set focus properly
+        display = false
+        SetNuiFocus(false, false)
+        
+        -- Notify the interaction system that the UI has closed
+        TriggerEvent('eskui:uiStateChanged', false)
+        
+        -- Process the shop checkout
         TriggerEvent('eskui:shopCheckoutCallback', data)
+        
+        -- Check for nearby interactions and show prompt if in range
+        exports['eskui']:CheckForNearbyAndShow()
     end,
     submenuSelect = function(data) 
         -- Debug
@@ -310,6 +342,10 @@ local function showUI(type, title, data, callback)
     display = true
     SetNuiFocus(true, true)
     
+    -- Notify the interaction system that the UI has opened
+    -- Must be called BEFORE showing UI to prevent flicker
+    TriggerEvent('eskui:uiStateChanged', true)
+    
     -- Prepare and send NUI message
     local message = {type = type, title = title}
     for k, v in pairs(data or {}) do message[k] = v end
@@ -441,3 +477,62 @@ end
 
 -- Initialize everything
 registerExports() 
+
+-- Global key detection
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        
+        -- Check if the interaction key is pressed
+        if IsControlJustPressed(0, Config.Interaction.key) then
+            -- Only proceed if UI isn't displayed
+            if not display then
+                -- If in debug mode, print information
+                if Config.Debug then
+                    print("^2[ESKUI] Interaction key pressed in client.lua^7")
+                end
+                
+                -- Check if we're near any interaction point
+                local playerPed = PlayerPedId()
+                local playerCoords = GetEntityCoords(playerPed)
+                local hasInteractedWithPoint = false
+                
+                -- Get nearby interactions from the exported function
+                local interactions = exports['eskui']:GetNearbyInteractions()
+                
+                -- Check if any shop is close enough to interact directly
+                for _, interaction in ipairs(interactions or {}) do
+                    local distance = #(playerCoords - interaction.coords)
+                    
+                    if distance < interaction.radius then
+                        -- We found an interaction point that we're in range of
+                        if interaction.action then
+                            hasInteractedWithPoint = true
+                            
+                            -- Call the action directly
+                            Citizen.SetTimeout(50, function()
+                                interaction.action()
+                            end)
+                            
+                            if Config.Debug then
+                                print("^2[ESKUI] Directly triggering interaction: " .. interaction.id .. "^7")
+                            end
+                            
+                            -- Only trigger one interaction
+                            break
+                        end
+                    end
+                end
+                
+                -- If we didn't directly interact with a point, check for any nearby points
+                if not hasInteractedWithPoint then
+                    -- Add a delay to ensure UI processes complete
+                    Citizen.SetTimeout(100, function()
+                        -- Check for nearby interactions and show prompt if in range
+                        exports['eskui']:CheckForNearbyAndShow()
+                    end)
+                end
+            end
+        end
+    end
+end) 

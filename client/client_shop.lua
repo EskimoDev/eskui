@@ -187,19 +187,6 @@ function DrawShopMarkers()
                 end
             end
             
-            -- Show help text if very close to a shop
-            if nearestShop and nearestDistance < 1.5 then
-                -- Display help text
-                BeginTextCommandDisplayHelp("STRING")
-                AddTextComponentSubstringPlayerName("Press ~INPUT_CONTEXT~ to open " .. nearestShop.shop.name)
-                EndTextCommandDisplayHelp(0, false, true, -1)
-                
-                -- Open shop when key is pressed
-                if IsControlJustPressed(0, 38) then -- E key
-                    OpenShop(nearestShop.shop)
-                end
-            end
-            
             -- Check if we're too far from all shops
             if nearestDistance > 50.0 then
                 if Config.Debug then
@@ -302,7 +289,13 @@ function ShowShopUI(shopData)
     -- Show shop UI using ESKUI
     exports['eskui']:ShowShop(shopData.name, shopData.categories, shopData.items, function(data)
         if not data then
-            -- User cancelled
+            -- User cancelled - restore interaction prompt with a delay
+            Citizen.SetTimeout(300, function()
+                exports['eskui']:CheckForNearbyAndShow()
+                if Config.Debug then
+                    print("^2[ESKUI DEBUG] Shop cancelled, checking for interactions^7")
+                end
+            end)
             return
         end
         
@@ -332,6 +325,15 @@ function ShowShopUI(shopData)
         local success, message = Framework.ProcessCheckout(data, Config.DefaultMoneyType)
         
         -- Handle result in the callback event
+        
+        -- Restore interaction prompt with a delay after checkout
+        Citizen.SetTimeout(300, function()
+            TriggerEvent('eskui:uiStateChanged', false) -- Explicitly notify UI state change
+            exports['eskui']:CheckForNearbyAndShow()
+            if Config.Debug then
+                print("^2[ESKUI DEBUG] Shop checkout complete, checking for interactions^7")
+            end
+        end)
     end)
 end
 

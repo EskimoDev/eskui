@@ -13,6 +13,9 @@ const state = {
     shopItems: []
 };
 
+// Console log for debugging
+console.log("ESKUI script initialized");
+
 // Helper functions for UI management
 const ui = {
     resetState() {
@@ -50,11 +53,25 @@ const ui = {
         container.style.display = 'flex';
         this.animate(containerId, false);
         state.currentUIId = containerId;
+        
+        // Hide interaction prompt when any UI is shown
+        notifyUIVisibilityChange(true);
     },
     
     hide(containerId, callback) {
         this.animate(containerId, true, callback);
-        if (state.currentUIId === containerId) state.currentUIId = null;
+        
+        // If we're closing the UI completely
+        if (state.currentUIId === containerId) {
+            state.currentUIId = null;
+            
+            // If no other UIs are visible, can show interaction prompt
+            setTimeout(() => {
+                if (!state.currentUIId) {
+                    notifyUIVisibilityChange(false);
+                }
+            }, 300); // Wait for animation to complete
+        }
     },
     
     closeCurrentUI() {
@@ -140,6 +157,9 @@ const uiHandlers = {
         input.focus();
         
         ui.addEscapeHandler(() => closeUI());
+        
+        // Notify that UI is now visible
+        notifyUIVisibilityChange(true);
     },
     
     showList(title, items, isSubmenu) {
@@ -159,6 +179,8 @@ const uiHandlers = {
             }
         } else {
             ui.show('list-ui');
+            // Notify that UI is now visible
+            notifyUIVisibilityChange(true);
         }
         
         this.hideOtherUIs('list-ui');
@@ -756,6 +778,9 @@ const uiHandlers = {
                 closeUI();
             }
         });
+        
+        // Notify that UI is now visible
+        notifyUIVisibilityChange(true);
     },
     
     showSettings() {
@@ -809,75 +834,98 @@ const uiHandlers = {
         
         // Add specific close button handler
         document.querySelector('#settings-ui .close-button').onclick = closeUI;
+        
+        // Notify that UI is now visible
+        notifyUIVisibilityChange(true);
     },
     
     showShop(title, categories, items) {
-        console.log(`Showing shop: ${title}, items:`, items);
-        
         state.currentUI = 'shop';
         ui.show('shopping-ui');
         this.hideOtherUIs('shopping-ui');
         
         document.querySelector('#shopping-ui .titlebar-title').textContent = title;
         
-        // Set initial shop data
-        state.shopItems = items || [];
+        // Reset cart
         state.cart = [];
+        
+        // Set shop items
+        state.shopItems = items;
+        
+        // Set initial category
+        state.currentCategory = categories.length > 0 ? categories[0].id : null;
         
         // Populate categories
         const categoriesContainer = document.getElementById('shop-categories');
         categoriesContainer.innerHTML = '';
         
-        if (categories && categories.length > 0) {
-            categories.forEach((category, index) => {
-                const categoryEl = document.createElement('div');
-                categoryEl.className = 'shop-category' + (index === 0 ? ' active' : '');
+        categories.forEach(category => {
+            const categoryEl = document.createElement('div');
+            categoryEl.className = 'shop-category';
+            if (category.id === state.currentCategory) {
+                categoryEl.classList.add('active');
+            }
+            
+            categoryEl.innerHTML = `
+                <span class="shop-category-icon">${category.icon || ''}</span>
+                ${category.label}
+            `;
+            
+            categoryEl.addEventListener('click', () => {
+                // Set active category
+                state.currentCategory = category.id;
                 
-                // Set initial category
-                if (index === 0) {
-                    state.currentCategory = category.id;
-                }
+                // Update active class
+                document.querySelectorAll('.shop-category').forEach(el => {
+                    el.classList.remove('active');
+                });
+                categoryEl.classList.add('active');
                 
-                let categoryContent = '';
-                if (category.icon) {
-                    categoryContent += `<span class="shop-category-icon">${category.icon}</span>`;
-                }
-                categoryContent += category.label;
-                
-                categoryEl.innerHTML = categoryContent;
-                
-                categoryEl.onclick = () => {
-                    // Deselect all categories
-                    document.querySelectorAll('.shop-category').forEach(cat => {
-                        cat.classList.remove('active');
-                    });
-                    
-                    // Select this category
-                    categoryEl.classList.add('active');
-                    
-                    // Update current category
-                    state.currentCategory = category.id;
-                    
-                    // Update displayed items
-                    renderShopItems();
-                };
-                
-                categoriesContainer.appendChild(categoryEl);
+                // Render items for this category
+                renderShopItems();
             });
-        }
+            
+            categoriesContainer.appendChild(categoryEl);
+        });
         
-        // Initial render of shop items
-        renderShopItems();
-        
-        // Initial render of cart
-        renderCart();
-        
-        // Add event listeners for cart buttons
+        // Setup handlers
         document.getElementById('shop-cart-clear').addEventListener('click', clearCart);
         document.getElementById('shop-checkout-btn').addEventListener('click', checkout);
         
-        // Add escape handler
-        ui.addEscapeHandler(() => closeUI());
+        // Render items for initial category
+        renderShopItems();
+        
+        // Render empty cart
+        renderCart();
+        
+        // Add special shop escape handler that notifies the game
+        ui.addEscapeHandler(() => {
+            // Check if shop is still open
+            if (document.getElementById('shopping-ui').style.display === 'flex') {
+                console.log('Shop closed via ESC key, sending special notification');
+                
+                // First close the UI
+                ui.hideAllUIs();
+                ui.resetState();
+                
+                // Notify that UI is now hidden
+                notifyUIVisibilityChange(false);
+                
+                // Then send close message to release NUI focus and notify about shop close
+                fetch(`https://${GetParentResourceName()}/shopClosed`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                }).catch(error => {
+                    console.error('Error notifying game of shop close:', error);
+                });
+            } else {
+                closeUI();
+            }
+        });
+        
+        // Notify that UI is now visible
+        notifyUIVisibilityChange(true);
     },
     
     hideOtherUIs(currentUI) {
@@ -1095,13 +1143,34 @@ document.getElementById('amount-input').addEventListener('keypress', function(e)
 
 // UI action functions
 function closeUI() {
+    // Check if shop UI is open
+    const isShopOpen = document.getElementById('shopping-ui').style.display === 'flex';
+    
+    // Hide all UIs
     ui.hideAllUIs();
     
-    // Ensure close message is sent to release NUI focus
+    // Reset state and send close message
+    ui.resetState();
     sendNUIMessage('close');
     
     // Remove any lingering shimmer and glow effects
     document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+    
+    // Notify that UI is now hidden
+    notifyUIVisibilityChange(false);
+    
+    // Check if it was the shop that was closed, and send a special message
+    if (isShopOpen) {
+        console.log('Shop UI was closed, sending special notification to check for interactions');
+        // Call a special function to restore shop interactions
+        fetch(`https://${GetParentResourceName()}/shopClosed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        }).catch(error => {
+            console.error('Error notifying game of shop close:', error);
+        });
+    }
 }
 
 function selectListItem(index, item) {
@@ -1576,16 +1645,60 @@ function setupInteractionFrame() {
         
         const data = event.data;
         
+        // Force hide interaction when any UI is shown
+        if (data.type && data.type.startsWith('show') && data.type !== 'showInteraction') {
+            // Hide any interaction prompt when a UI is shown
+            const iframeWindow = frame.contentWindow;
+            if (iframeWindow) {
+                iframeWindow.postMessage({
+                    type: 'hideInteraction'
+                }, '*');
+            }
+        }
+        
         // Pass interaction messages to the iframe
         if (data.type === 'showInteraction' || data.type === 'hideInteraction') {
             // Get the iframe window
             const iframeWindow = frame.contentWindow;
             if (iframeWindow) {
+                // Check if any UI is currently visible
+                if (data.type === 'showInteraction' && state.currentUIId) {
+                    console.log('Not showing interaction prompt - UI is visible:', state.currentUIId);
+                    return; // Don't show interaction if UI is visible
+                }
+                
                 // Forward the message to the iframe
                 iframeWindow.postMessage(data, '*');
             }
         }
     });
+    
+    // Also add a custom event listener for UI visibility changes
+    document.addEventListener('ui-visibility-change', function(e) {
+        const isVisible = e.detail.visible;
+        const iframeWindow = frame.contentWindow;
+        
+        if (iframeWindow && !isVisible) {
+            // When UI is hidden, check if we should show interaction prompt
+            console.log('UI hidden, checking if interaction prompt should be shown');
+            // Nothing to do here - game will handle showing interaction
+        } else if (iframeWindow && isVisible) {
+            // When UI is shown, hide interaction prompt
+            console.log('UI shown, hiding interaction prompt');
+            iframeWindow.postMessage({
+                type: 'hideInteraction'
+            }, '*');
+        }
+    });
+}
+
+// Function to dispatch UI visibility change events
+function notifyUIVisibilityChange(visible) {
+    // Create and dispatch a custom event
+    const event = new CustomEvent('ui-visibility-change', {
+        detail: { visible: visible }
+    });
+    document.dispatchEvent(event);
 }
 
 // Update interaction frame dark mode when main UI dark mode changes

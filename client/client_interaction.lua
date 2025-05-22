@@ -4,9 +4,18 @@ local interactionNUI = nil
 local isInteractionShowing = false
 local nearbyInteractions = {}
 local interactionThreadActive = false
+local isAnyUIVisible = false -- Flag to track if any UI is currently visible
 
 -- Access darkMode variable from client.lua
 local darkMode = false
+
+-- Create a function to get the nearbyInteractions for other scripts
+function GetNearbyInteractions()
+    return nearbyInteractions
+end
+
+-- Export the function to get nearby interactions
+exports('GetNearbyInteractions', GetNearbyInteractions)
 
 -- Listen for dark mode changes
 RegisterNetEvent('eskui:darkModeChanged')
@@ -26,6 +35,31 @@ AddEventHandler('eskui:darkModeChanged', function(isEnabled)
     end
 end)
 
+-- Register for UI state changes to detect when UI is opened or closed
+RegisterNetEvent('eskui:uiStateChanged')
+AddEventHandler('eskui:uiStateChanged', function(isOpen)
+    -- Update the global UI visibility flag
+    isAnyUIVisible = isOpen
+    
+    if isAnyUIVisible then
+        -- If any UI is opened, hide the interaction prompt immediately
+        InteractionPrompt.Hide()
+        interactionThreadActive = false
+    else
+        -- UI just closed, check for nearby interactions with a delay
+        Citizen.SetTimeout(200, function()
+            -- Only show if no other UI is visible
+            if not isAnyUIVisible then
+                InteractionPrompt.CheckForNearbyAndShow()
+            end
+        end)
+    end
+    
+    if Config.Debug then
+        print("^2[ESKUI] UI State Changed - isOpen: " .. tostring(isOpen) .. "^7")
+    end
+end)
+
 -- Initialize the interaction prompt system
 Citizen.CreateThread(function()
     -- Wait for framework to initialize
@@ -40,8 +74,39 @@ Citizen.CreateThread(function()
     CheckNearbyInteractions()
 end)
 
+-- Global key listener for interaction key
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        
+        -- Check if the interaction key is pressed
+        if IsControlJustPressed(0, Config.Interaction.key) then
+            -- Only check for interactions if no UI is currently visible
+            if not isAnyUIVisible then
+                -- Add a delay to let other UI processes happen first
+                Citizen.SetTimeout(200, function()
+                    if Config.Debug then
+                        print("^2[ESKUI] Interaction key pressed, checking for nearby interactions^7")
+                    end
+                    
+                    -- Check for nearby interactions to show the prompt again
+                    InteractionPrompt.CheckForNearbyAndShow()
+                end)
+            end
+        end
+    end
+end)
+
 -- Show the interaction prompt
 function InteractionPrompt.Show(config)
+    -- Don't show if any UI is visible
+    if isAnyUIVisible then
+        if Config.Debug then
+            print("^3[ESKUI] Cannot show interaction prompt - UI is visible^7")
+        end
+        return
+    end
+    
     if isInteractionShowing then return end
     
     -- Default config using values from Config.Interaction
@@ -71,6 +136,10 @@ function InteractionPrompt.Show(config)
     })
     
     isInteractionShowing = true
+    
+    if Config.Debug then
+        print("^2[ESKUI] Showing interaction prompt^7")
+    end
 end
 
 -- Hide the interaction prompt
@@ -82,6 +151,10 @@ function InteractionPrompt.Hide()
     })
     
     isInteractionShowing = false
+    
+    if Config.Debug then
+        print("^2[ESKUI] Hiding interaction prompt^7")
+    end
 end
 
 -- Register a new interaction zone
@@ -137,7 +210,7 @@ function InteractionPrompt.RegisterShops()
             function()
                 -- Open shop
                 OpenShop(shop)
-                return true -- Return true to remove interaction after triggering
+                return false -- Return false to keep the interaction available for future use
             end
         )
     end
@@ -190,6 +263,9 @@ function StartInteractionThread(interaction)
         -- Show the interaction prompt
         InteractionPrompt.Show(interaction.config)
         
+        -- Add a flag to track if we've just handled a key press
+        local keyHandled = false
+        
         while interactionThreadActive do
             Citizen.Wait(0)
             
@@ -204,28 +280,39 @@ function StartInteractionThread(interaction)
                 break
             end
             
-            -- Check if the interaction key is pressed
-            if IsControlJustPressed(0, Config.Interaction.key) then
+            -- Reset key handled flag when key is released
+            if not IsControlPressed(0, Config.Interaction.key) then
+                keyHandled = false
+            end
+            
+            -- Check if the interaction key is pressed (using IsControlJustReleased for better responsiveness)
+            if IsControlJustPressed(0, Config.Interaction.key) and not keyHandled then
+                -- Set flag to prevent multiple activations
+                keyHandled = true
+                
                 -- Hide prompt
                 InteractionPrompt.Hide()
                 
                 -- Call action if exists
                 if interaction.action then
-                    local removeInteraction = interaction.action()
-                    
-                    -- If action returns true, remove this interaction
-                    if removeInteraction then
-                        -- Find and remove this interaction
-                        for i, inter in ipairs(nearbyInteractions) do
-                            if inter.id == interactionId then
-                                table.remove(nearbyInteractions, i)
-                                if Config.Debug then
-                                    print("^2[ESKUI] Removed interaction: " .. interactionId .. "^7")
+                    -- Call with a slight delay to ensure button press is fully processed
+                    Citizen.SetTimeout(50, function()
+                        local removeInteraction = interaction.action()
+                        
+                        -- If action returns true, remove this interaction
+                        if removeInteraction then
+                            -- Find and remove this interaction
+                            for i, inter in ipairs(nearbyInteractions) do
+                                if inter.id == interactionId then
+                                    table.remove(nearbyInteractions, i)
+                                    if Config.Debug then
+                                        print("^2[ESKUI] Removed interaction: " .. interactionId .. "^7")
+                                    end
+                                    break
                                 end
-                                break
                             end
                         end
-                    end
+                    end)
                 end
                 
                 interactionThreadActive = false
@@ -239,10 +326,86 @@ function StartInteractionThread(interaction)
     end)
 end
 
+-- Check if player is near an interaction and show prompt if needed
+function InteractionPrompt.CheckForNearbyAndShow()
+    -- Wait a short moment to ensure other operations complete
+    Citizen.SetTimeout(100, function()
+        -- Don't show the interaction if there's already an active interaction thread
+        if interactionThreadActive then 
+            if Config.Debug then
+                print("^3[ESKUI] Interaction thread already active, not showing prompt^7")
+            end
+            return 
+        end
+        
+        -- Don't show when the UI is already showing
+        if isInteractionShowing then 
+            if Config.Debug then
+                print("^3[ESKUI] Interaction prompt already showing, not showing again^7")
+            end
+            return 
+        end
+        
+        -- Don't show when any UI is visible
+        if isAnyUIVisible then
+            if Config.Debug then
+                print("^3[ESKUI] UI is visible, not showing interaction prompt^7")
+            end
+            return
+        end
+        
+        local playerPed = PlayerPedId()
+        local playerCoords = GetEntityCoords(playerPed)
+        local nearestInteraction = nil
+        local nearestDistance = 999.0
+        
+        -- Find the nearest interaction point
+        for _, interaction in ipairs(nearbyInteractions) do
+            local distance = #(playerCoords - interaction.coords)
+            
+            if distance < interaction.radius and distance < nearestDistance then
+                nearestInteraction = interaction
+                nearestDistance = distance
+            end
+        end
+        
+        -- If a nearby interaction is found, start its thread
+        if nearestInteraction then
+            if Config.Debug then
+                print("^2[ESKUI] Found nearby interaction: " .. nearestInteraction.id .. " at distance: " .. nearestDistance .. "^7")
+            end
+            StartInteractionThread(nearestInteraction)
+        else
+            if Config.Debug then
+                print("^3[ESKUI] No nearby interactions found in range^7")
+                print("^3[ESKUI] Total interactions registered: " .. #nearbyInteractions .. "^7")
+                if #nearbyInteractions > 0 then
+                    print("^3[ESKUI] Nearest interaction distance: " .. nearestDistance .. "^7")
+                end
+            end
+        end
+    end)
+end
+
 -- Export functions
 exports('RegisterInteraction', InteractionPrompt.Register)
 exports('ShowInteractionPrompt', InteractionPrompt.Show)
 exports('HideInteractionPrompt', InteractionPrompt.Hide)
+exports('CheckForNearbyAndShow', InteractionPrompt.CheckForNearbyAndShow)
+
+-- Register shop interactions when resource starts
+RegisterNetEvent('onClientResourceStart')
+AddEventHandler('onClientResourceStart', function(resourceName)
+    if resourceName == GetCurrentResourceName() then
+        -- Register shop interactions
+        Citizen.SetTimeout(2000, function()
+            InteractionPrompt.RegisterShops()
+            if Config.Debug then
+                print("^2[ESKUI] Registered shop interactions on resource start^7")
+            end
+        end)
+    end
+end)
 
 -- Test commands for interaction prompt
 if Config.Debug then
@@ -296,17 +459,6 @@ if Config.Debug then
         -- Notification
         Framework.ShowNotification("Created interaction at your position", "success")
     end, false)
-    
-    -- Register shop interactions when resource starts
-    RegisterNetEvent('onClientResourceStart')
-    AddEventHandler('onClientResourceStart', function(resourceName)
-        if resourceName == GetCurrentResourceName() then
-            -- Register shop interactions
-            Citizen.SetTimeout(2000, function()
-                InteractionPrompt.RegisterShops()
-            end)
-        end
-    end)
     
     -- Command to manually register shop interactions
     RegisterCommand('registershops', function()
