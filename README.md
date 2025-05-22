@@ -1,14 +1,19 @@
 # ESKUI - Modern FiveM NUI UI Framework
 
-A sleek, modern, and extensible UI framework for FiveM, designed for professional-quality user interfaces with vibrant, animated, and macOS-inspired aesthetics. ESKUI provides easy-to-use exports for common UI patterns: amount input, list selection, and dropdown menus.
+A sleek, modern, and extensible UI framework for FiveM, designed for professional-quality user interfaces with vibrant, animated, and macOS-inspired aesthetics. ESKUI provides easy-to-use exports for common UI patterns including amount input, list selection, dropdown menus, shops, and interaction prompts.
 
 ---
 
 ## ✨ Features
 - **Modern macOS-style UI**: Clean, vibrant, and animated.
+- **Framework Integration**: Support for ESX, QBCore, and standalone modes.
 - **Amount Input**: Prompt users for a numeric value.
 - **List Selection**: Show a list of items, with support for long text and submenus.
 - **Dropdown**: Modern dropdown with animated open/close, cancel/submit, and icon.
+- **Shop System**: Complete shop interface with categories, items, and cart functionality.
+- **Interaction Prompts**: Customizable interaction prompts for locations and objects.
+- **Notifications**: Stylish, animated notifications with different types (info, success, error, warning).
+- **Dark Mode**: Toggle between light and dark themes.
 - **Keyboard and mouse support**: Enter, Escape, click, and more.
 - **Extensible**: Add new UI types easily with shared animation and state management.
 - **Robust event handling**: No event leaks, safe for repeated use.
@@ -19,6 +24,43 @@ A sleek, modern, and extensible UI framework for FiveM, designed for professiona
 1. Place the `eskui` folder in your FiveM resources directory.
 2. Add `ensure eskui` to your `server.cfg`.
 3. (Optional) Add `eskui` as a dependency in your resource manifest if you use it from another resource.
+
+---
+
+## ⚙️ Configuration
+ESKUI can be configured by editing the files in the `cfg` folder:
+
+### Main Configuration (`config.lua`)
+```lua
+Config = {}
+
+-- Framework settings
+Config.Framework = 'esx' -- Options: 'esx', 'qbcore', 'standalone'
+
+-- Debug mode
+Config.Debug = false -- Set to true for development
+
+-- Money settings
+Config.MoneyTypes = {
+    cash = "cash",
+    bank = "bank"
+}
+Config.DefaultMoneyType = Config.MoneyTypes.cash -- Which account to use by default
+
+-- Interaction Prompt settings
+Config.Interaction = {
+    key = 38, -- E key by default
+    keyName = "E", -- Display name for key
+    isMouse = false, -- Whether it's a mouse button or keyboard key
+    position = "center", -- Options: "center", "bottom"
+    showDistance = 2.0, -- Maximum distance to show prompt
+    color = "#007AFF", -- Primary color for the prompt
+    scale = 1.0 -- Size multiplier
+}
+```
+
+### Shop Configuration (`shops.lua`)
+Configure shops with locations, items, and categories.
 
 ---
 
@@ -62,42 +104,6 @@ exports['eskui']:ShowList('Select an Item', items, function(index, item)
 end)
 ```
 
-The list UI features:
-- Clean dividers between options
-- Click to select an item (highlighted with a gradient)
-- Submit and Cancel buttons (like other UI components)
-- Auto-scrolling for long text when hovered
-
-#### List Item Fields
-- `label` (string): Main text (required)
-- `price` (number, optional): Price (optional, for store-like lists)
-- `icon` (string, optional): Emoji or image URL
-- `description` (string, optional): Secondary text
-- `event` (string, optional): Event to trigger on select
-- `eventType` (string, optional): 'client' or 'server' (default: client)
-- `args` (table, optional): Arguments for the event
-- `submenu` (array or function, optional): Submenu items or function returning items
-- `isBack` (bool, optional): If true, acts as a back button in submenus
-- `disabled` (bool, optional): If true, item is not selectable
-
-#### With Submenus
-```lua
-exports['eskui']:ShowList('Select Category', categories, function(index, item)
-    print('Final selection:', item.label)
-end, function(index, item)
-    if item.id == 'cat1' then
-        return {
-            title = 'Category 1 Items',
-            items = {
-                {label = 'Sub Item 1', price = 100},
-                {label = 'Sub Item 2', price = 200}
-            }
-        }
-    end
-    return nil -- No submenu, close UI
-end)
-```
-
 ### 3. Dropdown
 Show a dropdown menu with cancel/submit:
 ```lua
@@ -111,19 +117,107 @@ exports['eskui']:ShowDropdown('Select an Option', options, function(index, value
 end)
 ```
 
+### 4. Shop System
+Display a shop interface with categories and items:
+```lua
+local categories = {
+    {id = 'food', label = 'Food', icon = '🍔'},
+    {id = 'drinks', label = 'Drinks', icon = '🥤'}
+}
+
+local items = {
+    {id = 'burger', name = 'Burger', price = 10, category = 'food', icon = '🍔', description = 'Tasty burger'},
+    {id = 'pizza', name = 'Pizza', price = 12, category = 'food', icon = '🍕', description = 'Delicious pizza'},
+    {id = 'water', name = 'Water', price = 5, category = 'drinks', icon = '💧', description = 'Refreshing water'},
+    {id = 'cola', name = 'Cola', price = 7, category = 'drinks', icon = '🥤', description = 'Fizzy cola'}
+}
+
+exports['eskui']:ShowShop('General Store', categories, items, function(data)
+    if data then
+        print('Checkout total: $' .. data.total)
+        for i, item in ipairs(data.items) do
+            print(item.id .. ' x' .. item.quantity)
+        end
+    end
+end)
+```
+
+### 5. Interaction Prompts
+Register an interaction point that shows a prompt when the player is nearby:
+```lua
+exports['eskui']:RegisterInteraction(
+    "unique_id",
+    vector3(123.4, 567.8, 12.3), -- coordinates
+    2.0, -- distance
+    {
+        textLeft = "Press",
+        textRight = "to open shop"
+    },
+    function()
+        -- Code to execute when interaction is triggered
+        OpenShop()
+        return false -- Return true to remove the interaction after triggering
+    }
+)
+```
+
+### 6. Notifications
+Show a notification:
+```lua
+exports['eskui']:ShowNotification({
+    type = 'info', -- Options: 'info', 'success', 'error', 'warning'
+    title = 'Information',
+    message = 'This is an information notification',
+    duration = 5000, -- milliseconds
+    closable = true -- Whether user can close it
+})
+```
+
+### 7. Dark Mode Toggle
+Toggle dark mode:
+```lua
+exports['eskui']:ToggleDarkMode()
+```
+
+### 8. Settings Menu
+Open the settings menu:
+```lua
+exports['eskui']:ShowSettings()
+```
+
 ---
 
-## 🛠️ Advanced
-- All UI types are animated and use a shared show/hide system for consistency.
-- Only one UI can be open at a time.
-- All event handlers are cleaned up automatically.
-- You can add new UI types by following the pattern in `html/script.js` and `client.lua`.
+## 🛠️ Advanced Features
+
+### List Item Fields
+- `label` (string): Main text (required)
+- `price` (number, optional): Price (optional, for store-like lists)
+- `icon` (string, optional): Emoji or image URL
+- `description` (string, optional): Secondary text
+- `event` (string, optional): Event to trigger on select
+- `eventType` (string, optional): 'client' or 'server' (default: client)
+- `args` (table, optional): Arguments for the event
+- `submenu` (array or function, optional): Submenu items or function returning items
+- `isBack` (bool, optional): If true, acts as a back button in submenus
+- `disabled` (bool, optional): If true, item is not selectable
+
+### Framework Integration
+ESKUI automatically integrates with ESX or QBCore frameworks:
+- Player money management for shops
+- Item validation and management
+- Framework-specific notifications (if desired)
+- Automatic inventory naming conversion
+
+### Global Commands
+- `/darkmode` - Toggle dark mode
+- `/uisettings` - Open UI settings menu
 
 ---
 
 ## 🖌️ Customization
 - Edit `html/styles.css` for colors, animations, and layout.
 - UI is fully responsive and works with keyboard and mouse.
+- Configure interaction prompts through the config.lua file.
 
 ---
 
