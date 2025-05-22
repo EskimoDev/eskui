@@ -9,6 +9,71 @@ local state = {
 -- Shared checkout handler variable
 ShopCheckoutHandler = nil
 
+-- Helper function to manage UI focus state
+local function setUIFocus(show)
+    display = show
+    SetNuiFocus(show, show)
+    -- Notify the interaction system of UI state change
+    TriggerEvent('eskui:uiStateChanged', show)
+    
+    -- When closing, check for nearby interactions
+    if not show then
+        exports['eskui']:CheckForNearbyAndShow()
+    end
+end
+
+-- Helper function to send NUI messages with common structure
+local function sendUIMessage(messageType, title, data)
+    -- Create message with common structure
+    local message = {
+        type = messageType,
+        title = title
+    }
+    
+    -- Add additional data if provided
+    if data then
+        for k, v in pairs(data) do 
+            message[k] = v 
+        end
+    end
+    
+    SendNUIMessage(message)
+end
+
+-- Helper function for submenu operations
+local function processSubmenuItems(submenuItems, addBackButton)
+    -- Ensure submenuItems is a valid table
+    if submenuItems == nil then
+        print("ERROR: Submenu items is nil - creating empty table")
+        submenuItems = {}
+    elseif type(submenuItems) ~= 'table' then
+        print("ERROR: Submenu items is not a table, type: " .. type(submenuItems))
+        submenuItems = {}
+    end
+    
+    -- Add a back button if requested and not already present
+    if addBackButton then
+        local hasBackButton = false
+        for _, item in ipairs(submenuItems) do
+            if item and item.isBack then 
+                hasBackButton = true
+                break
+            end
+        end
+        
+        if not hasBackButton then
+            print("Adding back button to submenu")
+            table.insert(submenuItems, { 
+                label = 'Back', 
+                isBack = true, 
+                icon = '⬅️' 
+            })
+        end
+    end
+    
+    return submenuItems
+end
+
 -- Common NUI callback handling
 local function handleNUICallback(name, handler)
     RegisterNUICallback(name, function(data, cb)
@@ -20,8 +85,7 @@ local function handleNUICallback(name, handler)
         -- For submenu navigation, don't reset focus
         if name == 'submenuSelect' or name == 'submenuBack' then
             -- Make sure display stays true to maintain UI visibility
-            display = true
-            SetNuiFocus(true, true)
+            setUIFocus(true)
             
             if handler then 
                 -- Run the callback handler with the data
@@ -31,32 +95,33 @@ local function handleNUICallback(name, handler)
         end
         
         -- For regular callbacks, reset focus and close UI
-        display = false
-        SetNuiFocus(false, false)
-        
-        -- Notify the interaction system that the UI has closed
-        TriggerEvent('eskui:uiStateChanged', false)
+        setUIFocus(false)
         
         if handler then handler(data) end
     end)
+end
+
+-- Create generic handler for simple event callbacks
+local function createEventCallback(eventName, preProcessor)
+    return function(data)
+        local processedData = data
+        if preProcessor then
+            processedData = preProcessor(data)
+        end
+        TriggerEvent(eventName, table.unpack(processedData))
+    end
 end
 
 -- Register standard callbacks with common pattern
 local callbacks = {
     amountSubmit = function(data) 
         TriggerEvent('eskui:amountCallback', data.amount)
-        -- Check for nearby interactions after UI closes
-        exports['eskui']:CheckForNearbyAndShow()
     end,
     listSelect = function(data) 
         TriggerEvent('eskui:listCallback', data.index, data.item)
-        -- Check for nearby interactions after UI closes
-        exports['eskui']:CheckForNearbyAndShow()
     end,
     dropdownSelect = function(data) 
         TriggerEvent('eskui:dropdownCallback', data.index, data.value)
-        -- Check for nearby interactions after UI closes
-        exports['eskui']:CheckForNearbyAndShow()
     end,
     darkModeChanged = function(data) 
         darkMode = data.darkMode 
@@ -66,16 +131,8 @@ local callbacks = {
     opacityChanged = function(data) windowOpacity = data.windowOpacity end,
     freeDragChanged = function(data) freeDrag = data.freeDrag end,
     close = function() 
-        -- Always ensure that focus is properly released when UI is closed
-        display = false
-        SetNuiFocus(false, false)
+        setUIFocus(false)
         TriggerEvent('eskui:closeCallback')
-        
-        -- Notify the interaction system that the UI has closed
-        TriggerEvent('eskui:uiStateChanged', false)
-        
-        -- Check for nearby interactions and show prompt if in range
-        exports['eskui']:CheckForNearbyAndShow()
     end,
     shopCheckout = function(data) 
         if Config.Debug then
@@ -96,7 +153,7 @@ local callbacks = {
         -- Set checkout in progress flag
         _G.checkoutInProgress = true
         
-        -- Clear the flag after 5 seconds in case something goes wrong
+        -- Clear the flag after timeout (consolidated to one place)
         Citizen.SetTimeout(5000, function()
             _G.checkoutInProgress = false
             if Config.Debug then
@@ -123,11 +180,7 @@ local callbacks = {
         end
         
         -- Close UI and set focus properly
-        display = false
-        SetNuiFocus(false, false)
-        
-        -- Notify the interaction system that the UI has closed
-        TriggerEvent('eskui:uiStateChanged', false)
+        setUIFocus(false)
         
         -- Process the shop checkout
         if Config.Debug then
@@ -141,25 +194,13 @@ local callbacks = {
             print("^6[ESKUI DEBUG] ShopCheckoutHandler after event: " .. tostring(ShopCheckoutHandler) .. "^7")
             print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK COMPLETE =========^7")
         end
-        
-        -- Check for nearby interactions and show prompt if in range
-        exports['eskui']:CheckForNearbyAndShow()
-        
-        -- Clear the checkout in progress flag
-        Citizen.SetTimeout(500, function()
-            _G.checkoutInProgress = false
-            if Config.Debug then
-                print("^6[ESKUI DEBUG] Checkout in progress flag cleared^7")
-            end
-        end)
     end,
     submenuSelect = function(data) 
         -- Debug
         print("Handling submenu selection for item: " .. (data.item.label or "unknown"))
         
         -- IMPORTANT: Explicitly set UI state to shown
-        display = true
-        SetNuiFocus(true, true)
+        setUIFocus(true)
         
         -- Handle submenu selection
         if data.item and data.item.submenu then
@@ -173,31 +214,13 @@ local callbacks = {
                 print("Got submenu items from table") 
             end
             
-            -- Ensure submenuItems is a valid table
-            if submenuItems == nil then
-                print("ERROR: Submenu items is nil - creating empty table")
-                submenuItems = {}
-            elseif type(submenuItems) ~= 'table' then
-                print("ERROR: Submenu items is not a table, type: " .. type(submenuItems))
-                submenuItems = {}
-            end
+            -- Process and validate the submenu items (add back button, etc.)
+            submenuItems = processSubmenuItems(submenuItems, true)
             
-            -- Add a back button if not already present
-            local hasBackButton = false
-            for _, item in ipairs(submenuItems) do
-                if item and item.isBack then 
-                    hasBackButton = true
-                    break
-                end
-            end
-            
-            if not hasBackButton then
-                print("Adding back button to submenu")
-                table.insert(submenuItems, { 
-                    label = 'Back', 
-                    isBack = true, 
-                    icon = '⬅️' 
-                })
+            -- Print debug info about the submenu items
+            print("Submenu items count: " .. #submenuItems)
+            for i, item in ipairs(submenuItems) do
+                print("  Item " .. i .. ": " .. (item.label or "no label"))
             end
             
             -- Store current menu in history for back navigation
@@ -207,21 +230,6 @@ local callbacks = {
                 print("Added current menu to history, history size: " .. #state.menuHistory)
             end
             
-            -- Print debug info about the submenu items
-            print("Submenu items count: " .. #submenuItems)
-            for i, item in ipairs(submenuItems) do
-                print("  Item " .. i .. ": " .. (item.label or "no label"))
-            end
-            
-            -- Important: We need to create a proper NUI message with all fields
-            local message = {
-                type = 'showList',
-                title = data.item.label,
-                items = submenuItems,
-                isSubmenu = true
-            }
-            print("Sending submenu NUI message - submenuItems count: " .. #submenuItems)
-            
             -- Store current submenu data
             state.currentMenuData = {
                 title = data.item.label,
@@ -229,24 +237,14 @@ local callbacks = {
                 parentIndex = data.index
             }
             
-            -- Show the submenu with a short delay
-            Citizen.CreateThread(function()
-                Citizen.Wait(50)
-                
-                -- Double check we're still in display mode (a safeguard)
-                if not display then
-                    print("WARNING: display was set to false before submenu could be shown")
-                    display = true
-                    SetNuiFocus(true, true)
-                end
-                
-                -- Send the message and ensure focus
-                SendNUIMessage(message)
-                SetNuiFocus(true, true)
-                
-                -- Debug
-                print("Showing submenu: " .. data.item.label .. " with " .. #submenuItems .. " items")
-            end)
+            -- Send the submenu message
+            sendUIMessage('showList', data.item.label, {
+                items = submenuItems,
+                isSubmenu = true
+            })
+            
+            -- Debug
+            print("Showing submenu: " .. data.item.label .. " with " .. #submenuItems .. " items")
         else
             print("ERROR: Submenu selection with no submenu data")
         end
@@ -256,8 +254,7 @@ local callbacks = {
         print("Handling back navigation in submenu")
         
         -- Ensure UI stays visible and focused
-        display = true
-        SetNuiFocus(true, true)
+        setUIFocus(true)
         
         -- Navigate back to previous menu if history exists
         if state.menuHistory and #state.menuHistory > 0 then
@@ -265,39 +262,20 @@ local callbacks = {
             local prevMenu = table.remove(state.menuHistory)
             print("Going back to menu: " .. prevMenu.title .. " with " .. #prevMenu.items .. " items")
             
-            -- Create a proper NUI message with all fields
-            local message = {
-                type = 'showList',
-                title = prevMenu.title,
-                items = prevMenu.items,
-                isSubmenu = #state.menuHistory > 0
-            }
-            
             -- Update current menu data first
             state.currentMenuData = prevMenu
             
-            -- Important: Show previous menu with a short delay
-            Citizen.CreateThread(function()
-                Citizen.Wait(50)
-                
-                -- Double check we're still in display mode (a safeguard)
-                if not display then
-                    print("WARNING: display was set to false before previous menu could be shown")
-                    display = true
-                    SetNuiFocus(true, true)
-                end
-                
-                -- Send the message and ensure focus
-                SendNUIMessage(message)
-                SetNuiFocus(true, true)
-                
-                print("Successfully navigated back to previous menu")
-            end)
+            -- Send the message 
+            sendUIMessage('showList', prevMenu.title, {
+                items = prevMenu.items,
+                isSubmenu = #state.menuHistory > 0
+            })
+            
+            print("Successfully navigated back to previous menu")
         else
             -- If no history left, close the menu
             print("No menu history, closing UI")
-            display = false
-            SetNuiFocus(false, false)
+            setUIFocus(false)
             TriggerEvent('eskui:closeCallback')
         end
     end
@@ -311,7 +289,7 @@ end
 -- Register commands
 RegisterCommand('darkmode', function()
     darkMode = not darkMode
-    SendNUIMessage({type = 'toggleDarkMode'})
+    sendUIMessage('toggleDarkMode')
     TriggerEvent('chat:addMessage', {
         color = {149, 107, 213},
         args = {"ESKUI", "Dark mode " .. (darkMode and "enabled" or "disabled")}
@@ -319,9 +297,8 @@ RegisterCommand('darkmode', function()
 end, false)
 
 RegisterCommand('uisettings', function()
-    SendNUIMessage({type = 'showSettings'})
-    SetNuiFocus(true, true)
-    display = true
+    sendUIMessage('showSettings')
+    setUIFocus(true)
 end, false)
 
 -- Add command suggestions
@@ -430,17 +407,10 @@ end
 local function showUI(type, title, data, callback)
     if display then return end
     
-    display = true
-    SetNuiFocus(true, true)
+    setUIFocus(true)
     
-    -- Notify the interaction system that the UI has opened
-    -- Must be called BEFORE showing UI to prevent flicker
-    TriggerEvent('eskui:uiStateChanged', true)
-    
-    -- Prepare and send NUI message
-    local message = {type = type, title = title}
-    for k, v in pairs(data or {}) do message[k] = v end
-    SendNUIMessage(message)
+    -- Send NUI message
+    sendUIMessage(type, title, data)
     
     -- Register event handler for response
     local eventName = 'eskui:' .. string.sub(type, 5) .. 'Callback'
@@ -448,6 +418,38 @@ local function showUI(type, title, data, callback)
         if callback then callback(...) end
         return true
     end)
+end
+
+-- Create generic export for common UI types
+local function createUIExport(uiType, callbackProcessor)
+    return function(title, data, callback, extraData)
+        local uiData = {}
+        
+        -- Handle different parameter types based on UI type
+        if uiType == 'showList' then
+            uiData.items = data
+            uiData.isSubmenu = #(state.menuHistory or {}) > 0
+            
+            -- Store this menu in state for history tracking
+            state.currentMenuData = {
+                title = title,
+                items = data,
+                callback = callback
+            }
+        elseif uiType == 'showDropdown' then
+            uiData.options = data
+            uiData.selectedIndex = extraData -- selectedIndex parameter
+        end
+        
+        -- Show the UI
+        return showUI(uiType, title, uiData, function(...)
+            if callbackProcessor then
+                callbackProcessor(callback, ...)
+            elseif callback then
+                callback(...)
+            end
+        end)
+    end
 end
 
 -- Export UI functions with streamlined patterns
@@ -459,12 +461,12 @@ local function registerExports()
         end)
     end)
     
-    -- List selection
+    -- List selection - using the generic export creator
     exports('ShowList', function(title, items, callback, submenuHandler)
         -- Store the menu history for navigation
         if not state.menuHistory then state.menuHistory = {} end
         
-        -- Check if this is a submenu (but not a back navigation, which gets handled separately)
+        -- Check if this is a submenu (but not a back navigation)
         local isSubmenu = #state.menuHistory > 0
         
         -- Send items to UI
@@ -524,10 +526,8 @@ local function registerExports()
         }
         
         -- Send notification to UI
-        SendNUIMessage({
-            type = 'showNotification',
+        sendUIMessage('showNotification', data.title, {
             notificationType = data.notificationType,
-            title = data.title,
             message = data.message,
             duration = data.duration,
             icon = data.icon,
@@ -546,7 +546,7 @@ local function registerExports()
     -- Dark mode toggle
     exports('ToggleDarkMode', function()
         darkMode = not darkMode
-        SendNUIMessage({type = 'toggleDarkMode'})
+        sendUIMessage('toggleDarkMode')
         return darkMode
     end)
     
