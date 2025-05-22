@@ -40,5 +40,6 @@ files {
     'html/index.html',
     'html/interaction.html',
     'html/styles.css',
-    'html/script.js'
+    'html/script.js',
+    'html/menus.js'
 } 
