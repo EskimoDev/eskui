@@ -129,7 +129,10 @@ const shopEventHandlers = {
                 <div class="shop-item-name">${item.name}</div>
                 <div class="shop-item-price">${formattedPrice}</div>
                 ${item.description ? `<div class="shop-item-desc">${item.description}</div>` : ''}
-                <button class="shop-item-add">+</button>
+                <button class="shop-item-add button">
+                    <span>+</span>
+                    <div class="button-glow"></div>
+                </button>
             `;
             
             // Add click handler
@@ -240,11 +243,20 @@ const shopEventHandlers = {
                     <div class="shop-cart-item-price">$${item.price}</div>
                 </div>
                 <div class="shop-cart-item-quantity">
-                    <button class="shop-cart-item-quantity-btn decrease">-</button>
+                    <button class="shop-cart-item-quantity-btn decrease button cancel">
+                        <span>-</span>
+                        <div class="button-glow"></div>
+                    </button>
                     <span class="shop-cart-item-quantity-value">${item.quantity}</span>
-                    <button class="shop-cart-item-quantity-btn increase">+</button>
+                    <button class="shop-cart-item-quantity-btn increase button submit">
+                        <span>+</span>
+                        <div class="button-glow"></div>
+                    </button>
                 </div>
-                <button class="shop-cart-item-remove">×</button>
+                <button class="shop-cart-item-remove button cancel">
+                    <span>×</span>
+                    <div class="button-glow"></div>
+                </button>
             `;
             
             // Add event listeners
