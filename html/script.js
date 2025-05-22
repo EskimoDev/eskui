@@ -83,7 +83,7 @@ const ui = {
         state.cleanupHandlers = [];
         
         // Clear any water shimmer elements that might be lingering
-        document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+        clearGlowEffects();
     },
     
     closeAndSendData(containerId, endpoint, data) {
@@ -126,6 +126,148 @@ const ui = {
         sendNUIMessage('close');
     }
 };
+
+// Helper function to clear all glow effects
+function clearGlowEffects(element) {
+    const selector = '.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left';
+    if (element) {
+        element.querySelectorAll(selector).forEach(el => el.remove());
+    } else {
+        document.querySelectorAll(selector).forEach(el => el.remove());
+    }
+}
+
+// Helper function to add glow effects to an element
+function addGlowEffects(element) {
+    // Clear existing glow effects first
+    clearGlowEffects(element);
+    
+    // Create and add individual glow segments for independent animation
+    const glowSegments = ['top', 'right', 'bottom', 'left'];
+    glowSegments.forEach(side => {
+        const glowElement = document.createElement('div');
+        glowElement.className = `glow-${side}`;
+        element.appendChild(glowElement);
+    });
+    
+    // Create and add water shimmer element for the glow effect
+    const shimmer = document.createElement('div');
+    shimmer.className = 'water-shimmer';
+    element.appendChild(shimmer);
+}
+
+// Helper function to fade out glow effects
+function fadeOutGlowEffects(element) {
+    const glowElements = element.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left');
+    glowElements.forEach(el => {
+        el.style.transition = 'opacity 0.25s ease';
+        el.style.opacity = '0';
+        
+        // Remove after fade completes
+        setTimeout(() => el.remove(), 250);
+    });
+}
+
+// Helper function to handle list item selection
+function selectListItemUI(itemElement, listContainer, index, item) {
+    // Don't do anything if this item is already selected
+    if (itemElement.classList.contains('selected')) {
+        return;
+    }
+    
+    // If there's a previously selected item, deselect it
+    const previouslySelected = listContainer.querySelector('.list-item.selected');
+    if (previouslySelected && previouslySelected !== itemElement) {
+        // First deselect the previous item
+        previouslySelected.classList.add('deselecting');
+        previouslySelected.classList.remove('selected');
+        
+        // Fade out glow effects
+        fadeOutGlowEffects(previouslySelected);
+        
+        // Remove deselecting class after animation completes
+        setTimeout(() => {
+            previouslySelected.classList.remove('deselecting');
+        }, 300);
+    }
+    
+    // Deselect all other items
+    listContainer.querySelectorAll('.list-item').forEach(el => {
+        if (el !== itemElement && el !== previouslySelected) {
+            el.classList.remove('selected', 'deselecting');
+            clearGlowEffects(el);
+        }
+    });
+    
+    // Create a temporary element for the selection transition
+    const transitionOverlay = document.createElement('div');
+    transitionOverlay.className = 'selection-transition-overlay';
+    transitionOverlay.style.position = 'absolute';
+    transitionOverlay.style.top = '0';
+    transitionOverlay.style.left = '0';
+    transitionOverlay.style.right = '0';
+    transitionOverlay.style.bottom = '0';
+    transitionOverlay.style.borderRadius = '8px';
+    transitionOverlay.style.backgroundImage = 'var(--list-item-selected-bg)';
+    transitionOverlay.style.opacity = '0';
+    transitionOverlay.style.transition = 'opacity 0.4s ease';
+    transitionOverlay.style.zIndex = '0';
+    transitionOverlay.style.pointerEvents = 'none';
+    
+    // Add the transition overlay
+    itemElement.appendChild(transitionOverlay);
+    
+    // Trigger reflow to ensure the transition works
+    void transitionOverlay.offsetWidth;
+    
+    // Start the fade-in effect
+    transitionOverlay.style.opacity = '1';
+    
+    // Add the selected class after a slight delay to allow the fade to begin
+    setTimeout(() => {
+        // Add selected class
+        itemElement.classList.add('selected');
+        
+        // Remove the temporary transition overlay after the fade completes
+        setTimeout(() => {
+            if (transitionOverlay.parentNode) {
+                transitionOverlay.parentNode.removeChild(transitionOverlay);
+            }
+        }, 500);
+        
+        // Add glow effects
+        addGlowEffects(itemElement);
+    }, 50);
+    
+    // Store the selected item and index
+    state.selectedListItem = { index, item };
+    
+    // Find scroll content if this is a long text item
+    const scrollContent = itemElement.querySelector('.list-item-content.scroll');
+    if (scrollContent) {
+        const textSpan = scrollContent.querySelector('span');
+        if (textSpan && textSpan._animState) {
+            // Mark as hovering to trigger scroll animation after selection animation
+            textSpan._animState.isHovering = true;
+            
+            // Wait for selection animation to complete before starting scroll
+            setTimeout(() => {
+                if (textSpan._animState && textSpan._animState.isHovering) {
+                    console.log('Auto-starting scroll animation after selection');
+                    if (typeof textSpan._animState.startScrolling === 'function') {
+                        textSpan._animState.startScrolling();
+                    }
+                }
+            }, 250); // Wait for selection animation to complete
+        }
+    }
+    
+    // If it's a submenu or back button, automatically select it
+    if (item.submenu || item.isBack) {
+        console.log('Auto-selecting item (submenu or back):', item.label);
+        submitListSelection();
+    }
+}
 
 // Communication functions
 function sendNUIMessage(endpoint, data = {}) {
@@ -195,11 +337,50 @@ const uiHandlers = {
         state.selectedListItem = null;
         
         // Clear any existing glow elements for a fresh start
-        document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+        clearGlowEffects();
         
         // Setup periodic cleanup to prevent accumulation
         setupGlowEffectCleanup();
         
+        // Ensure items is an array
+        let itemsArray = this.validateListItems(items);
+        
+        // Add items
+        itemsArray.forEach((item, index) => {
+            const itemElement = this.createListItem(item, index, listContainer);
+            listContainer.appendChild(itemElement);
+            
+            // Add divider after each item except the last one
+            if (index < itemsArray.length - 1) {
+                const divider = document.createElement('div');
+                divider.className = 'list-divider';
+                listContainer.appendChild(divider);
+            }
+        });
+        
+        // Add back button listener for Escape key
+        ui.addEscapeHandler(() => {
+            // If this is a submenu, we should trigger a "back" action rather than just closing
+            if (isSubmenu) {
+                console.log('Escape pressed in submenu, going back');
+                const backItem = itemsArray.find(item => item.isBack);
+                if (backItem) {
+                    state.selectedListItem = { 
+                        index: itemsArray.findIndex(item => item.isBack), 
+                        item: backItem 
+                    };
+                    submitListSelection();
+                    return;
+                }
+            }
+            
+            // Otherwise just close the UI
+            console.log('Escape pressed, closing UI');
+            closeUI();
+        });
+    },
+    
+    validateListItems(items) {
         // Ensure items is an array
         let itemsArray = [];
         if (Array.isArray(items)) {
@@ -227,481 +408,272 @@ const uiHandlers = {
                 disabled: true
             }];
         }
+        return itemsArray;
+    },
+    
+    createListItem(item, index, listContainer) {
+        const itemElement = document.createElement('div');
+        itemElement.className = 'list-item' + (item.disabled ? ' disabled' : '');
         
-        // Add items
-        itemsArray.forEach((item, index) => {
-            const itemElement = document.createElement('div');
-            itemElement.className = 'list-item' + (item.disabled ? ' disabled' : '');
-            
-            const itemContent = document.createElement('div');
-            itemContent.className = 'list-item-content';
-            
-            let innerContent = '';
-            if (item.icon) {
-                innerContent += `<div class="list-item-icon">${item.icon}</div>`;
-            }
-            innerContent += `<span>${item.label}</span>`;
-            
-            // Add submenu indicator if item has a submenu
-            if (item.submenu) {
-                innerContent += `<div class="submenu-arrow">›</div>`;
-            }
-            
-            itemContent.innerHTML = innerContent;
-            
-            itemElement.appendChild(itemContent);
-            
-            // Add description if exists
-            if (item.description) {
-                const descElement = document.createElement('div');
-                descElement.className = 'list-item-desc';
-                descElement.textContent = item.description;
-                itemElement.appendChild(descElement);
-            }
-            
-            // Add click handler if not disabled
-            if (!item.disabled) {
-                itemElement.onclick = () => {
-                    console.log('Item clicked:', item.label, item);
-                    
-                    // Don't do anything if this item is already selected
-                    if (itemElement.classList.contains('selected')) {
-                        return;
-                    }
-                    
-                    // If there's a previously selected item, add deselecting animation
-                        const previouslySelected = listContainer.querySelector('.list-item.selected');
-                        if (previouslySelected && previouslySelected !== itemElement) {
-                            // First deselect the previous item
-                            previouslySelected.classList.add('deselecting');
-                            previouslySelected.classList.remove('selected');
-                            
-                            // Remove glow effects with a fade-out animation instead of instantly removing them
-                            const prevGlowElements = previouslySelected.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left');
-                            prevGlowElements.forEach(el => {
-                                el.style.transition = 'opacity 0.25s ease';
-                                el.style.opacity = '0';
-                            });
-                            
-                            // Wait for deselection animation to complete before selecting new item
-                            setTimeout(() => {
-                                previouslySelected.classList.remove('deselecting');
-                                // Remove the glow elements after fade-out
-                                prevGlowElements.forEach(el => el.remove());
-                            
-                            // Now select the new item
-                            itemElement.classList.add('selected');
-                            
-                            // Remove any existing glow elements before adding new ones
-                            itemElement.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
-                            
-                            // Create and add individual glow segments for independent animation
-                            const glowSegments = ['top', 'right', 'bottom', 'left'];
-                            glowSegments.forEach(side => {
-                                const glowElement = document.createElement('div');
-                                glowElement.className = `glow-${side}`;
-                                itemElement.appendChild(glowElement);
-                            });
-                            
-                            // Create and add water shimmer element for the glow effect
-                            const shimmer = document.createElement('div');
-                            shimmer.className = 'water-shimmer';
-                            itemElement.appendChild(shimmer);
-                            
-                            // Store the selected item and index
-                            state.selectedListItem = { index, item };
-                            
-                            // Find scroll content if this is a long text item
-                            const scrollContent = itemElement.querySelector('.list-item-content.scroll');
-                            if (scrollContent) {
-                                const textSpan = scrollContent.querySelector('span');
-                                if (textSpan && textSpan._animState) {
-                                    // Mark as hovering to trigger scroll animation after selection animation
-                                    textSpan._animState.isHovering = true;
-                                    
-                                    // Wait for selection animation to complete before starting scroll
-                                    setTimeout(() => {
-                                        if (textSpan._animState && textSpan._animState.isHovering) {
-                                            console.log('Auto-starting scroll animation after selection');
-                                            if (typeof textSpan._animState.startScrolling === 'function') {
-                                                textSpan._animState.startScrolling();
-                                            }
-                                        }
-                                    }, 250); // Wait for selection animation to complete
-                                }
-                            }
-                            
-                            // If it's a submenu or back button, automatically select it without requiring Submit button
-                            if (item.submenu || item.isBack) {
-                                console.log('Auto-selecting item (submenu or back):', item.label);
-                                submitListSelection();
-                            }
-                        }, 150); // Half the deselection animation time for a smoother feel
-                    } else {
-                        // Add deselecting animation to all items except the newly selected one
-                        listContainer.querySelectorAll('.list-item').forEach(el => {
-                            if (el !== itemElement) {
-                                // If it was previously selected, add deselecting animation
-                                if (el.classList.contains('selected')) {
-                                    el.classList.add('deselecting');
-                                    el.classList.remove('selected');
-                                    
-                                    // Fade out glow effects
-                                    const glowElements = el.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left');
-                                    glowElements.forEach(glowEl => {
-                                        glowEl.style.transition = 'opacity 0.25s ease';
-                                        glowEl.style.opacity = '0';
-                                        
-                                        // Remove after fade completes
-                                        setTimeout(() => glowEl.remove(), 250);
-                                    });
-                                    
-                                    // Remove deselecting class after animation completes
-                                    setTimeout(() => el.classList.remove('deselecting'), 300);
-                                } else {
-                                    el.classList.remove('selected', 'deselecting');
-                                    // Remove any existing glow elements
-                                    el.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(glowEl => glowEl.remove());
-                                }
-                            }
-                        });
-                        
-                                            // First create a fade-in effect
-                    // Create a temporary element for the selection transition
-                    const transitionOverlay = document.createElement('div');
-                    transitionOverlay.className = 'selection-transition-overlay';
-                    transitionOverlay.style.position = 'absolute';
-                    transitionOverlay.style.top = '0';
-                    transitionOverlay.style.left = '0';
-                    transitionOverlay.style.right = '0';
-                    transitionOverlay.style.bottom = '0';
-                    transitionOverlay.style.borderRadius = '8px';
-                    transitionOverlay.style.backgroundImage = 'var(--list-item-selected-bg)';
-                    transitionOverlay.style.opacity = '0';
-                    transitionOverlay.style.transition = 'opacity 0.4s ease';
-                    transitionOverlay.style.zIndex = '0';
-                    transitionOverlay.style.pointerEvents = 'none';
-                    
-                    // Add the transition overlay
-                    itemElement.appendChild(transitionOverlay);
-                    
-                    // Trigger reflow to ensure the transition works
-                    void transitionOverlay.offsetWidth;
-                    
-                    // Start the fade-in effect
-                    transitionOverlay.style.opacity = '1';
-                    
-                    // Add the selected class after a slight delay to allow the fade to begin
-                    setTimeout(() => {
-                        // Add selected class
-                        itemElement.classList.add('selected');
-                        
-                        // Remove the temporary transition overlay after the fade completes
-                        setTimeout(() => {
-                            if (transitionOverlay.parentNode) {
-                                transitionOverlay.parentNode.removeChild(transitionOverlay);
-                            }
-                        }, 500);
-                        
-                        // Remove any existing glow elements before adding new ones
-                        itemElement.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
-                        
-                        // Create and add individual glow segments for independent animation
-                        const glowSegments = ['top', 'right', 'bottom', 'left'];
-                        glowSegments.forEach(side => {
-                            const glowElement = document.createElement('div');
-                            glowElement.className = `glow-${side}`;
-                            itemElement.appendChild(glowElement);
-                        });
-                        
-                        // Create and add water shimmer element for the glow effect
-                        const shimmer = document.createElement('div');
-                        shimmer.className = 'water-shimmer';
-                        itemElement.appendChild(shimmer);
-                    }, 50);
-                        
-                        // Store the selected item and index
-                        state.selectedListItem = { index, item };
-                        
-                        // Find scroll content if this is a long text item
-                        const scrollContent = itemElement.querySelector('.list-item-content.scroll');
-                        if (scrollContent) {
-                            const textSpan = scrollContent.querySelector('span');
-                            if (textSpan && textSpan._animState) {
-                                // Mark as hovering to trigger scroll animation after selection animation
-                                textSpan._animState.isHovering = true;
-                                
-                                // Wait for selection animation to complete before starting scroll
-                                setTimeout(() => {
-                                    if (textSpan._animState && textSpan._animState.isHovering) {
-                                        console.log('Auto-starting scroll animation after selection');
-                                        if (typeof textSpan._animState.startScrolling === 'function') {
-                                            textSpan._animState.startScrolling();
-                                        }
-                                    }
-                                }, 250); // Wait for selection animation to complete
-                            }
-                        }
-                        
-                        // If it's a submenu or back button, automatically select it without requiring Submit button
-                        if (item.submenu || item.isBack) {
-                            console.log('Auto-selecting item (submenu or back):', item.label);
-                            submitListSelection();
-                        }
-                    }
+        const itemContent = document.createElement('div');
+        itemContent.className = 'list-item-content';
+        
+        let innerContent = '';
+        if (item.icon) {
+            innerContent += `<div class="list-item-icon">${item.icon}</div>`;
+        }
+        innerContent += `<span>${item.label}</span>`;
+        
+        // Add submenu indicator if item has a submenu
+        if (item.submenu) {
+            innerContent += `<div class="submenu-arrow">›</div>`;
+        }
+        
+        itemContent.innerHTML = innerContent;
+        
+        itemElement.appendChild(itemContent);
+        
+        // Add description if exists
+        if (item.description) {
+            const descElement = document.createElement('div');
+            descElement.className = 'list-item-desc';
+            descElement.textContent = item.description;
+            itemElement.appendChild(descElement);
+        }
+        
+        // Add click handler if not disabled
+        if (!item.disabled) {
+            itemElement.onclick = () => {
+                console.log('Item clicked:', item.label, item);
+                selectListItemUI(itemElement, listContainer, index, item);
+            };
+        }
+        
+        // Check if text is overflowing and add scroll animation
+        this.setupScrollAnimation(itemElement, itemContent, item);
+        
+        return itemElement;
+    },
+    
+    setupScrollAnimation(itemElement, itemContent, item) {
+        setTimeout(() => {
+            if (itemContent.scrollWidth > itemContent.clientWidth) {
+                itemContent.classList.add('scroll');
+                const textSpan = itemContent.querySelector('span');
+                
+                // State tracking for robust animation handling
+                const animState = {
+                    isScrolling: false,
+                    isFadingIn: false,
+                    isHovering: false,
+                    hoverTimer: null,
+                    resetTimer: null,
+                    pendingAnimation: null
                 };
-            }
-            
-            listContainer.appendChild(itemElement);
-            
-            // Add divider after each item except the last one
-            if (index < itemsArray.length - 1) {
-                const divider = document.createElement('div');
-                divider.className = 'list-divider';
-                listContainer.appendChild(divider);
-            }
-            
-            // Check if text is overflowing and add scroll animation
-            setTimeout(() => {
-                if (itemContent.scrollWidth > itemContent.clientWidth) {
-                    itemContent.classList.add('scroll');
-                    const textSpan = itemContent.querySelector('span');
+                
+                // Store animation state on the element to prevent race conditions
+                textSpan._animState = animState;
+                
+                // Clean reset function to ensure consistent state
+                const resetAnimationState = () => {
+                    // Clear any pending timers
+                    if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
+                    if (animState.resetTimer) clearTimeout(animState.resetTimer);
+                    if (animState.pendingAnimation) cancelAnimationFrame(animState.pendingAnimation);
                     
-                    // State tracking for robust animation handling
-                    const animState = {
-                        isScrolling: false,
-                        isFadingIn: false,
-                        isHovering: false,
-                        hoverTimer: null,
-                        resetTimer: null,
-                        pendingAnimation: null
-                    };
+                    // Remove animations first
+                    textSpan.classList.remove('scroll-animate', 'scroll-fade-in', 'entering-from-left');
                     
-                    // Store animation state on the element to prevent race conditions
-                    textSpan._animState = animState;
+                    // Apply a clean state with no transition first
+                    textSpan.style.transition = 'none';
+                    textSpan.style.opacity = '1';
+                    textSpan.style.filter = 'blur(0px)';
+                    textSpan.style.textShadow = 'none';
                     
-                    // Clean reset function to ensure consistent state
-                    const resetAnimationState = () => {
-                        // Clear any pending timers
-                        if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
-                        if (animState.resetTimer) clearTimeout(animState.resetTimer);
-                        if (animState.pendingAnimation) cancelAnimationFrame(animState.pendingAnimation);
-                        
-                        // Remove animations first
-                        textSpan.classList.remove('scroll-animate', 'scroll-fade-in', 'entering-from-left');
-                        
-                        // Apply a clean state with no transition first
+                    // Force reflow before setting position
+                    void textSpan.offsetWidth;
+                    
+                    // Set exact position to ensure consistency
+                    textSpan.style.transform = 'translateX(0)';
+                    
+                    // Force another reflow to ensure position is applied
+                    void textSpan.offsetWidth;
+                    
+                    // Clear any transition style after position is set
+                    textSpan.style.transition = '';
+                    
+                    // Remove resetting class if it exists
+                    itemContent.classList.remove('resetting');
+                    
+                    // Make sure the scroll class is maintained
+                    if (!itemContent.classList.contains('scroll')) {
+                        itemContent.classList.add('scroll');
+                    }
+                    
+                    // Reset state flags
+                    animState.isScrolling = false;
+                    animState.isFadingIn = false;
+                };
+                
+                // Start scrolling with debounce
+                const startScrolling = () => {
+                    // Don't restart if already scrolling
+                    if (animState.isScrolling) return;
+                    
+                    // Reset and prepare for scrolling
+                    resetAnimationState();
+                    
+                    // Always ensure starting position is exactly at 0
+                    textSpan.style.transform = 'translateX(0)';
+                    
+                    // Start scrolling with a small delay for stability
+                    animState.pendingAnimation = requestAnimationFrame(() => {
+                        // Remove any transitions first
                         textSpan.style.transition = 'none';
+                        void textSpan.offsetWidth; // Force reflow
+                        
+                        // Check if parent list item is selected
+                        const isSelected = itemElement.classList.contains('selected');
+                        
+                        // Start the animation
+                        textSpan.classList.add('scroll-animate');
+                        
+                        // If item is selected, we don't need additional delay - CSS handles it
+                        if (isSelected) {
+                            console.log('Item is selected, using CSS delay for scrolling');
+                        }
+                        
+                        animState.isScrolling = true;
+                        animState.pendingAnimation = null;
+                    });
+                };
+                
+                // Enhanced fade-in animation after scrolling completes
+                const startFancyFadeIn = () => {
+                    if (animState.isFadingIn) return;
+                    
+                    // Mark as fading in to prevent multiple triggers
+                    animState.isFadingIn = true;
+                    
+                    // Get the text content
+                    const originalText = textSpan.textContent;
+                    
+                    // Hide the text first
+                    textSpan.style.opacity = '0';
+                    textSpan.style.transform = 'translateX(0)';
+                    textSpan.style.filter = 'blur(4px)';
+                    
+                    // Force reflow
+                    void textSpan.offsetWidth;
+                    
+                    // Set a smoother transition for all properties
+                    textSpan.style.transition = 'opacity 0.4s ease-out, transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), filter 0.45s ease-out, text-shadow 0.45s ease-out';
+                    
+                    // Add subtle glow effect
+                    textSpan.style.textShadow = '0 0 8px rgba(255,255,255,0.15)';
+                    
+                    // Start the fade in and slide animation
+                    setTimeout(() => {
                         textSpan.style.opacity = '1';
+                        textSpan.style.transform = 'translateX(0)';
                         textSpan.style.filter = 'blur(0px)';
-                        textSpan.style.textShadow = 'none';
                         
-                        // Force reflow before setting position
-                        void textSpan.offsetWidth;
-                        
-                        // Set exact position to ensure consistency
-                        textSpan.style.transform = 'translateX(0)';
-                        
-                        // Force another reflow to ensure position is applied
-                        void textSpan.offsetWidth;
-                        
-                        // Clear any transition style after position is set
-                        textSpan.style.transition = '';
-                        
-                        // Remove resetting class if it exists
-                        itemContent.classList.remove('resetting');
-                        
-                        // Make sure the scroll class is maintained
-                        if (!itemContent.classList.contains('scroll')) {
-                            itemContent.classList.add('scroll');
-                        }
-                        
-                        // Reset state flags
-                        animState.isScrolling = false;
-                        animState.isFadingIn = false;
-                    };
-                    
-                    // Start scrolling with debounce
-                    const startScrolling = () => {
-                        // Don't restart if already scrolling
-                        if (animState.isScrolling) return;
-                        
-                        // Reset and prepare for scrolling
-                        resetAnimationState();
-                        
-                        // Always ensure starting position is exactly at 0
-                        textSpan.style.transform = 'translateX(0)';
-                        
-                        // Start scrolling with a small delay for stability
-                        animState.pendingAnimation = requestAnimationFrame(() => {
-                            // Remove any transitions first
-                            textSpan.style.transition = 'none';
-                            void textSpan.offsetWidth; // Force reflow
-                            
-                            // Check if parent list item is selected
-                            const isSelected = itemElement.classList.contains('selected');
-                            
-                            // Start the animation
-                            textSpan.classList.add('scroll-animate');
-                            
-                            // If item is selected, we don't need additional delay - CSS handles it
-                            if (isSelected) {
-                                console.log('Item is selected, using CSS delay for scrolling');
-                            }
-                            
-                            animState.isScrolling = true;
-                            animState.pendingAnimation = null;
-                        });
-                    };
-                    
-                    // Enhanced fade-in animation after scrolling completes
-                    const startFancyFadeIn = () => {
-                        if (animState.isFadingIn) return;
-                        
-                        // Mark as fading in to prevent multiple triggers
-                        animState.isFadingIn = true;
-                        
-                        // Get the text content
-                        const originalText = textSpan.textContent;
-                        
-                        // Hide the text first
-                        textSpan.style.opacity = '0';
-                        textSpan.style.transform = 'translateX(0)';
-                        textSpan.style.filter = 'blur(4px)';
-                        
-                        // Force reflow
-                        void textSpan.offsetWidth;
-                        
-                        // Set a smoother transition for all properties
-                        textSpan.style.transition = 'opacity 0.4s ease-out, transform 0.5s cubic-bezier(0.19, 1, 0.22, 1), filter 0.45s ease-out, text-shadow 0.45s ease-out';
-                        
-                        // Add subtle glow effect
-                        textSpan.style.textShadow = '0 0 8px rgba(255,255,255,0.15)';
-                        
-                        // Start the fade in and slide animation
+                        // Remove the glow after the animation
                         setTimeout(() => {
-                            textSpan.style.opacity = '1';
-                            textSpan.style.transform = 'translateX(0)';
-                            textSpan.style.filter = 'blur(0px)';
+                            textSpan.style.textShadow = 'none';
+                            animState.isFadingIn = false;
                             
-                            // Remove the glow after the animation
-                            setTimeout(() => {
-                                textSpan.style.textShadow = 'none';
-                                animState.isFadingIn = false;
-                                
-                                // Only restart scrolling if still hovering
-                                if (animState.isHovering && itemElement.classList.contains('selected')) {
-                                    setTimeout(() => startScrolling(), 800);
-                                } else {
-                                    resetAnimationState();
-                                }
-                            }, 450);
-                        }, 50);
-                    };
-                    
-                    // Store the startScrolling function in the animation state
-                    // so we can call it from outside this scope when needed
-                    animState.startScrolling = startScrolling;
-                    
-                    // Improved mouseenter with debounce to prevent rapid toggling
-                    itemElement.addEventListener('mouseenter', () => {
-                        // Mark as hovering
-                        animState.isHovering = true;
-                        
-                        // Debounce rapid hover in/out
-                        if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
-                        
-                        animState.hoverTimer = setTimeout(() => {
-                            // Only proceed if still hovering AND the item is selected
+                            // Only restart scrolling if still hovering
                             if (animState.isHovering && itemElement.classList.contains('selected')) {
-                                console.log('Item is both hovered and selected, starting scroll animation');
-                                startScrolling();
-                            }
-                        }, 50);
-                    });
-                    
-                    // Smooth transition to fade-in on mouseleave
-                    itemElement.addEventListener('mouseleave', () => {
-                        // Update hover state immediately
-                        animState.isHovering = false;
-                        
-                        // Clear hover timer if it exists
-                        if (animState.hoverTimer) {
-                            clearTimeout(animState.hoverTimer);
-                            animState.hoverTimer = null;
-                        }
-                        
-                        // Only handle leaving if we were scrolling
-                        if (animState.isScrolling) {
-                            // Stop the scroll animation immediately
-                            textSpan.classList.remove('scroll-animate');
-                            
-                            // Keep the fade mask by adding the resetting class
-                            itemContent.classList.add('resetting');
-                            
-                            // Clear any existing transitions
-                            textSpan.style.transition = 'transform 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
-                            
-                            // Reset position directly with transition instead of using animation class
-                            textSpan.style.transform = 'translateX(0)';
-                            
-                            // Set states
-                            animState.isScrolling = false;
-                            
-                            // Quick clean up to prevent jankiness
-                            animState.resetTimer = setTimeout(() => {
-                                // Remove resetting class first
-                                itemContent.classList.remove('resetting');
-                                
-                                // Full reset
-                                resetAnimationState();
-                            }, 300); // Match the transition duration
-                        }
-                    });
-                    
-                    // Handle end of scrolling animation
-                    textSpan.addEventListener('animationend', (e) => {
-                        if (e.animationName === 'scrollText' && animState.isScrolling) {
-                            // Stop current animation
-                            textSpan.classList.remove('scroll-animate');
-                            
-                            // If still hovering AND item is selected, start fancy fade-in
-                            if (animState.isHovering && itemElement.classList.contains('selected')) {
-                                // Start the enhanced fade-in effect
-                                startFancyFadeIn();
+                                setTimeout(() => startScrolling(), 800);
                             } else {
-                                // Not hovering or not selected, so reset fully
                                 resetAnimationState();
                             }
-                        } else if (e.animationName === 'textEnterFromLeft') {
-                            // When the entering-from-left animation completes, remove the class
-                            textSpan.classList.remove('entering-from-left');
+                        }, 450);
+                    }, 50);
+                };
+                
+                // Store the startScrolling function in the animation state
+                // so we can call it from outside this scope when needed
+                animState.startScrolling = startScrolling;
+                
+                // Improved mouseenter with debounce to prevent rapid toggling
+                itemElement.addEventListener('mouseenter', () => {
+                    // Mark as hovering
+                    animState.isHovering = true;
+                    
+                    // Debounce rapid hover in/out
+                    if (animState.hoverTimer) clearTimeout(animState.hoverTimer);
+                    
+                    animState.hoverTimer = setTimeout(() => {
+                        // Only proceed if still hovering AND the item is selected
+                        if (animState.isHovering && itemElement.classList.contains('selected')) {
+                            console.log('Item is both hovered and selected, starting scroll animation');
+                            startScrolling();
                         }
-                    });
-                }
-            }, 10);
-        });
-        
-        // Add back button listener for Escape key
-        ui.addEscapeHandler(() => {
-            // If this is a submenu, we should trigger a "back" action rather than just closing
-            if (isSubmenu) {
-                console.log('Escape pressed in submenu, going back');
-                const backItem = itemsArray.find(item => item.isBack);
-                if (backItem) {
-                    state.selectedListItem = { 
-                        index: itemsArray.findIndex(item => item.isBack), 
-                        item: backItem 
-                    };
-                    submitListSelection();
-                    return;
-                }
+                    }, 50);
+                });
+                
+                // Smooth transition to fade-in on mouseleave
+                itemElement.addEventListener('mouseleave', () => {
+                    // Update hover state immediately
+                    animState.isHovering = false;
+                    
+                    // Clear hover timer if it exists
+                    if (animState.hoverTimer) {
+                        clearTimeout(animState.hoverTimer);
+                        animState.hoverTimer = null;
+                    }
+                    
+                    // Only handle leaving if we were scrolling
+                    if (animState.isScrolling) {
+                        // Stop the scroll animation immediately
+                        textSpan.classList.remove('scroll-animate');
+                        
+                        // Keep the fade mask by adding the resetting class
+                        itemContent.classList.add('resetting');
+                        
+                        // Clear any existing transitions
+                        textSpan.style.transition = 'transform 0.3s cubic-bezier(0.19, 1, 0.22, 1)';
+                        
+                        // Reset position directly with transition instead of using animation class
+                        textSpan.style.transform = 'translateX(0)';
+                        
+                        // Set states
+                        animState.isScrolling = false;
+                        
+                        // Quick clean up to prevent jankiness
+                        animState.resetTimer = setTimeout(() => {
+                            // Remove resetting class first
+                            itemContent.classList.remove('resetting');
+                            
+                            // Full reset
+                            resetAnimationState();
+                        }, 300); // Match the transition duration
+                    }
+                });
+                
+                // Handle end of scrolling animation
+                textSpan.addEventListener('animationend', (e) => {
+                    if (e.animationName === 'scrollText' && animState.isScrolling) {
+                        // Stop current animation
+                        textSpan.classList.remove('scroll-animate');
+                        
+                        // If still hovering AND item is selected, start fancy fade-in
+                        if (animState.isHovering && itemElement.classList.contains('selected')) {
+                            // Start the enhanced fade-in effect
+                            startFancyFadeIn();
+                        } else {
+                            // Not hovering or not selected, so reset fully
+                            resetAnimationState();
+                        }
+                    } else if (e.animationName === 'textEnterFromLeft') {
+                        // When the entering-from-left animation completes, remove the class
+                        textSpan.classList.remove('entering-from-left');
+                    }
+                });
             }
-            
-            // Otherwise just close the UI
-            console.log('Escape pressed, closing UI');
-            closeUI();
-        });
+        }, 10);
     },
     
     showDropdown(title, options, selectedIndex = -1) {
@@ -856,37 +828,7 @@ const uiHandlers = {
         state.currentCategory = categories.length > 0 ? categories[0].id : null;
         
         // Populate categories
-        const categoriesContainer = document.getElementById('shop-categories');
-        categoriesContainer.innerHTML = '';
-        
-        categories.forEach(category => {
-            const categoryEl = document.createElement('div');
-            categoryEl.className = 'shop-category';
-            if (category.id === state.currentCategory) {
-                categoryEl.classList.add('active');
-            }
-            
-            categoryEl.innerHTML = `
-                <span class="shop-category-icon">${category.icon || ''}</span>
-                ${category.label}
-            `;
-            
-            categoryEl.addEventListener('click', () => {
-                // Set active category
-                state.currentCategory = category.id;
-                
-                // Update active class
-                document.querySelectorAll('.shop-category').forEach(el => {
-                    el.classList.remove('active');
-                });
-                categoryEl.classList.add('active');
-                
-                // Render items for this category
-                renderShopItems();
-            });
-            
-            categoriesContainer.appendChild(categoryEl);
-        });
+        this.renderShopCategories(categories);
         
         // Setup handlers
         document.getElementById('shop-cart-clear').addEventListener('click', clearCart);
@@ -928,6 +870,40 @@ const uiHandlers = {
         notifyUIVisibilityChange(true);
     },
     
+    renderShopCategories(categories) {
+        const categoriesContainer = document.getElementById('shop-categories');
+        categoriesContainer.innerHTML = '';
+        
+        categories.forEach(category => {
+            const categoryEl = document.createElement('div');
+            categoryEl.className = 'shop-category';
+            if (category.id === state.currentCategory) {
+                categoryEl.classList.add('active');
+            }
+            
+            categoryEl.innerHTML = `
+                <span class="shop-category-icon">${category.icon || ''}</span>
+                ${category.label}
+            `;
+            
+            categoryEl.addEventListener('click', () => {
+                // Set active category
+                state.currentCategory = category.id;
+                
+                // Update active class
+                document.querySelectorAll('.shop-category').forEach(el => {
+                    el.classList.remove('active');
+                });
+                categoryEl.classList.add('active');
+                
+                // Render items for this category
+                renderShopItems();
+            });
+            
+            categoriesContainer.appendChild(categoryEl);
+        });
+    },
+    
     hideOtherUIs(currentUI) {
         // When showing a submenu, don't hide the list-ui
         if (currentUI === 'list-ui' && state.currentUI === 'list') {
@@ -954,7 +930,6 @@ const notifications = {
         const container = document.getElementById('notifications-container');
         
         console.log('Creating notification with data:', data);
-        console.log('Container element:', container);
         
         // Set defaults
         const options = {
@@ -967,6 +942,24 @@ const notifications = {
             closable: data.closable !== false
         };
         
+        // Create notification element and add to DOM
+        const notification = this.createNotificationElement(id, options);
+        container.appendChild(notification);
+        
+        // Animate progress bar
+        this.animateProgressBar(notification, options.duration);
+        
+        // Set auto-close timer
+        const timer = setTimeout(() => this.close(id), options.duration);
+        
+        // Store notification data
+        this.active[id] = { element: notification, timer };
+        
+        console.log(`Created notification: ${id}`, options);
+        return id;
+    },
+    
+    createNotificationElement(id, options) {
         // Create notification element
         const notification = document.createElement('div');
         notification.id = id;
@@ -989,33 +982,24 @@ const notifications = {
             closeBtn.addEventListener('click', () => this.close(id));
         }
         
-        // Add to container
-        container.appendChild(notification);
-        
         // Apply current opacity setting
         notification.style.backgroundColor = state.darkMode 
             ? `rgba(28, 28, 30, ${state.windowOpacity})` 
             : `rgba(255, 255, 255, ${state.windowOpacity})`;
-        
-        // Animate progress bar
+            
+        return notification;
+    },
+    
+    animateProgressBar(notification, duration) {
         const progressBar = notification.querySelector('.notification-progress');
         progressBar.animate([
             { transform: 'scaleX(1)', opacity: 1 },
             { transform: 'scaleX(0)', opacity: 0.7 }
         ], {
-            duration: options.duration,
+            duration: duration,
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)', // Material Design standard easing
             fill: 'forwards'
         });
-        
-        // Set auto-close timer
-        const timer = setTimeout(() => this.close(id), options.duration);
-        
-        // Store notification data
-        this.active[id] = { element: notification, timer };
-        
-        console.log(`Created notification: ${id}`, options);
-        return id;
     },
     
     close(id) {
@@ -1067,12 +1051,30 @@ const notifications = {
     }
 };
 
+// Event handler system
+const eventHandlerSystem = {
+    registerHandlers(handlers, data) {
+        if (!handlers || !data || !data.type) return;
+        
+        const handler = handlers[data.type];
+        if (handler) {
+            try {
+                handler(data);
+            } catch (error) {
+                console.error(`Error executing handler for ${data.type}:`, error);
+            }
+        } else {
+            console.warn('Unknown message type:', data.type);
+        }
+    }
+};
+
 // Event handlers
 window.addEventListener('message', function(event) {
     const data = event.data;
     
     // Log received events for debugging
-    console.log('Received NUI event:', data.type, data);
+    console.log('Received NUI event:', data?.type, data);
     
     // Extra safety check
     if (!data || !data.type) {
@@ -1115,20 +1117,12 @@ window.addEventListener('message', function(event) {
             toggleDarkMode: () => toggleDarkMode(),
             showNotification: () => {
                 console.log('Processing showNotification event', data);
-                console.log('Notification type:', data.notificationType);
-                console.log('Notification title:', data.title);
-                console.log('Notification message:', data.message);
-                
                 // Create the notification
                 notifications.create(data);
             }
         };
         
-        if (handlers[data.type]) {
-            handlers[data.type]();
-        } else {
-            console.warn('Unknown message type:', data.type);
-        }
+        eventHandlerSystem.registerHandlers(handlers, data);
     } catch (error) {
         console.error('Error handling message event:', error);
     }
@@ -1154,7 +1148,7 @@ function closeUI() {
     sendNUIMessage('close');
     
     // Remove any lingering shimmer and glow effects
-    document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+    clearGlowEffects();
     
     // Notify that UI is now hidden
     notifyUIVisibilityChange(false);
@@ -1231,7 +1225,7 @@ function submitListSelection() {
     console.log('submitListSelection called, selectedListItem:', state.selectedListItem);
     
     // Clean all glow effects before proceeding to prevent stacking
-    document.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+    clearGlowEffects();
     
     if (state.selectedListItem) {
         // Use the selectListItem function which handles all types of selections
@@ -1383,47 +1377,27 @@ function setupGlowEffectCleanup() {
         
         // For each list item, ensure it has at most one of each glow element
         document.querySelectorAll('.list-item').forEach(item => {
-            // Count glow elements
-            const glowTopElements = item.querySelectorAll('.glow-top');
-            const glowRightElements = item.querySelectorAll('.glow-right');
-            const glowBottomElements = item.querySelectorAll('.glow-bottom');
-            const glowLeftElements = item.querySelectorAll('.glow-left');
-            const shimmerElements = item.querySelectorAll('.water-shimmer');
+            // Get all glow elements
+            const glowElements = {
+                top: item.querySelectorAll('.glow-top'),
+                right: item.querySelectorAll('.glow-right'),
+                bottom: item.querySelectorAll('.glow-bottom'),
+                left: item.querySelectorAll('.glow-left'),
+                shimmer: item.querySelectorAll('.water-shimmer')
+            };
             
             // Remove extras if there are more than one of each
-            if (glowTopElements.length > 1) {
-                for (let i = 1; i < glowTopElements.length; i++) {
-                    glowTopElements[i].remove();
+            Object.values(glowElements).forEach(elements => {
+                if (elements.length > 1) {
+                    for (let i = 1; i < elements.length; i++) {
+                        elements[i].remove();
+                    }
                 }
-            }
-            
-            if (glowRightElements.length > 1) {
-                for (let i = 1; i < glowRightElements.length; i++) {
-                    glowRightElements[i].remove();
-                }
-            }
-            
-            if (glowBottomElements.length > 1) {
-                for (let i = 1; i < glowBottomElements.length; i++) {
-                    glowBottomElements[i].remove();
-                }
-            }
-            
-            if (glowLeftElements.length > 1) {
-                for (let i = 1; i < glowLeftElements.length; i++) {
-                    glowLeftElements[i].remove();
-                }
-            }
-            
-            if (shimmerElements.length > 1) {
-                for (let i = 1; i < shimmerElements.length; i++) {
-                    shimmerElements[i].remove();
-                }
-            }
+            });
             
             // If item is not selected, remove all glow elements
             if (!item.classList.contains('selected')) {
-                item.querySelectorAll('.water-shimmer, .glow-top, .glow-right, .glow-bottom, .glow-left').forEach(el => el.remove());
+                clearGlowEffects(item);
             }
         });
     }, 500);
@@ -1433,6 +1407,161 @@ function setupGlowEffectCleanup() {
 }
 
 // Shopping cart functions
+const shopCart = {
+    render() {
+        const cartItemsContainer = document.getElementById('shop-cart-items');
+        const totalElement = document.getElementById('shop-cart-total-amount');
+        
+        cartItemsContainer.innerHTML = '';
+        
+        if (state.cart.length === 0) {
+            this.renderEmptyCart(cartItemsContainer);
+            totalElement.textContent = '$0';
+            return;
+        }
+        
+        let total = 0;
+        
+        state.cart.forEach(cartItem => {
+            const itemEl = this.createCartItemElement(cartItem);
+            
+            const subtotal = cartItem.item.price * cartItem.quantity;
+            total += subtotal;
+            
+            cartItemsContainer.appendChild(itemEl);
+        });
+        
+        totalElement.textContent = '$' + total.toLocaleString();
+    },
+    
+    renderEmptyCart(container) {
+        const emptyCart = document.createElement('div');
+        emptyCart.className = 'shop-cart-empty';
+        emptyCart.innerHTML = `
+            <div class="shop-cart-empty-icon">🛒</div>
+            <div class="shop-cart-empty-text">Your cart is empty</div>
+        `;
+        container.appendChild(emptyCart);
+    },
+    
+    createCartItemElement(cartItem) {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'shop-cart-item';
+        
+        itemEl.innerHTML = `
+            <div class="shop-cart-item-icon">${cartItem.item.icon || '📦'}</div>
+            <div class="shop-cart-item-details">
+                <div class="shop-cart-item-name">${cartItem.item.name}</div>
+                <div class="shop-cart-item-price">$${cartItem.item.price.toLocaleString()}</div>
+            </div>
+            <div class="shop-cart-item-quantity">
+                <div class="shop-cart-item-quantity-btn dec">-</div>
+                <div class="shop-cart-item-quantity-value">${cartItem.quantity}</div>
+                <div class="shop-cart-item-quantity-btn inc">+</div>
+            </div>
+            <div class="shop-cart-item-remove">×</div>
+        `;
+        
+        // Decrease quantity
+        itemEl.querySelector('.shop-cart-item-quantity-btn.dec').addEventListener('click', () => {
+            if (cartItem.quantity > 1) {
+                cartItem.quantity--;
+                this.render();
+            } else {
+                this.removeItem(cartItem.item.id);
+            }
+        });
+        
+        // Increase quantity
+        itemEl.querySelector('.shop-cart-item-quantity-btn.inc').addEventListener('click', () => {
+            cartItem.quantity++;
+            this.render();
+        });
+        
+        // Remove item completely
+        itemEl.querySelector('.shop-cart-item-remove').addEventListener('click', () => {
+            this.removeItem(cartItem.item.id);
+        });
+        
+        return itemEl;
+    },
+    
+    addItem(item) {
+        // Check if item already in cart
+        const existingItem = state.cart.find(cartItem => cartItem.item.id === item.id);
+        
+        if (existingItem) {
+            existingItem.quantity++;
+        } else {
+            state.cart.push({
+                item: item,
+                quantity: 1
+            });
+        }
+        
+        // Show brief animation on cart
+        const cartBtn = document.getElementById('shop-checkout-btn');
+        cartBtn.classList.add('pulse');
+        setTimeout(() => cartBtn.classList.remove('pulse'), 300);
+        
+        // Show notification
+        notifications.create({
+            type: 'success',
+            title: 'Added to cart',
+            message: `${item.name} has been added to your cart.`,
+            duration: 2000
+        });
+        
+        this.render();
+    },
+    
+    removeItem(itemId) {
+        state.cart = state.cart.filter(cartItem => cartItem.item.id !== itemId);
+        this.render();
+    },
+    
+    clear() {
+        state.cart = [];
+        this.render();
+        
+        notifications.create({
+            type: 'info',
+            title: 'Cart cleared',
+            message: 'All items have been removed from your cart.',
+            duration: 2000
+        });
+    },
+    
+    checkout() {
+        if (state.cart.length === 0) {
+            notifications.create({
+                type: 'warning',
+                title: 'Empty cart',
+                message: 'Your cart is empty. Add some items first!',
+                duration: 2000
+            });
+            return;
+        }
+        
+        // Calculate total
+        const total = state.cart.reduce((sum, item) => sum + (item.item.price * item.quantity), 0);
+        
+        // Send checkout data to server
+        ui.closeAndSendData('shopping-ui', 'shopCheckout', {
+            items: state.cart.map(item => ({
+                id: item.item.id,
+                quantity: item.quantity,
+                price: item.item.price
+            })),
+            total: total
+        });
+        
+        // Reset cart
+        state.cart = [];
+    }
+};
+
+// Rename existing functions to use the new shopCart object
 function renderShopItems() {
     const shopItemsContainer = document.getElementById('shop-items');
     shopItemsContainer.innerHTML = '';
@@ -1476,7 +1605,7 @@ function renderShopItems() {
         // Add to cart when clicked
         itemEl.querySelector('.shop-item-add').addEventListener('click', (e) => {
             e.stopPropagation();
-            addToCart(item);
+            shopCart.addItem(item);
         });
         
         // View item details when clicked
@@ -1489,146 +1618,25 @@ function renderShopItems() {
     });
 }
 
+// Replace existing functions with calls to our new object
 function renderCart() {
-    const cartItemsContainer = document.getElementById('shop-cart-items');
-    const totalElement = document.getElementById('shop-cart-total-amount');
-    
-    cartItemsContainer.innerHTML = '';
-    
-    if (state.cart.length === 0) {
-        const emptyCart = document.createElement('div');
-        emptyCart.className = 'shop-cart-empty';
-        emptyCart.innerHTML = `
-            <div class="shop-cart-empty-icon">🛒</div>
-            <div class="shop-cart-empty-text">Your cart is empty</div>
-        `;
-        cartItemsContainer.appendChild(emptyCart);
-        totalElement.textContent = '$0';
-        return;
-    }
-    
-    let total = 0;
-    
-    state.cart.forEach(cartItem => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'shop-cart-item';
-        
-        const subtotal = cartItem.item.price * cartItem.quantity;
-        total += subtotal;
-        
-        itemEl.innerHTML = `
-            <div class="shop-cart-item-icon">${cartItem.item.icon || '📦'}</div>
-            <div class="shop-cart-item-details">
-                <div class="shop-cart-item-name">${cartItem.item.name}</div>
-                <div class="shop-cart-item-price">$${cartItem.item.price.toLocaleString()}</div>
-            </div>
-            <div class="shop-cart-item-quantity">
-                <div class="shop-cart-item-quantity-btn dec">-</div>
-                <div class="shop-cart-item-quantity-value">${cartItem.quantity}</div>
-                <div class="shop-cart-item-quantity-btn inc">+</div>
-            </div>
-            <div class="shop-cart-item-remove">×</div>
-        `;
-        
-        // Decrease quantity
-        itemEl.querySelector('.shop-cart-item-quantity-btn.dec').addEventListener('click', () => {
-            if (cartItem.quantity > 1) {
-                cartItem.quantity--;
-                renderCart();
-            } else {
-                removeFromCart(cartItem.item.id);
-            }
-        });
-        
-        // Increase quantity
-        itemEl.querySelector('.shop-cart-item-quantity-btn.inc').addEventListener('click', () => {
-            cartItem.quantity++;
-            renderCart();
-        });
-        
-        // Remove item completely
-        itemEl.querySelector('.shop-cart-item-remove').addEventListener('click', () => {
-            removeFromCart(cartItem.item.id);
-        });
-        
-        cartItemsContainer.appendChild(itemEl);
-    });
-    
-    totalElement.textContent = '$' + total.toLocaleString();
+    shopCart.render();
 }
 
 function addToCart(item) {
-    // Check if item already in cart
-    const existingItem = state.cart.find(cartItem => cartItem.item.id === item.id);
-    
-    if (existingItem) {
-        existingItem.quantity++;
-    } else {
-        state.cart.push({
-            item: item,
-            quantity: 1
-        });
-    }
-    
-    // Show brief animation on cart
-    const cartBtn = document.getElementById('shop-checkout-btn');
-    cartBtn.classList.add('pulse');
-    setTimeout(() => cartBtn.classList.remove('pulse'), 300);
-    
-    // Show notification
-    notifications.create({
-        type: 'success',
-        title: 'Added to cart',
-        message: `${item.name} has been added to your cart.`,
-        duration: 2000
-    });
-    
-    renderCart();
+    shopCart.addItem(item);
 }
 
 function removeFromCart(itemId) {
-    state.cart = state.cart.filter(cartItem => cartItem.item.id !== itemId);
-    renderCart();
+    shopCart.removeItem(itemId);
 }
 
 function clearCart() {
-    state.cart = [];
-    renderCart();
-    
-    notifications.create({
-        type: 'info',
-        title: 'Cart cleared',
-        message: 'All items have been removed from your cart.',
-        duration: 2000
-    });
+    shopCart.clear();
 }
 
 function checkout() {
-    if (state.cart.length === 0) {
-        notifications.create({
-            type: 'warning',
-            title: 'Empty cart',
-            message: 'Your cart is empty. Add some items first!',
-            duration: 2000
-        });
-        return;
-    }
-    
-    // Calculate total
-    const total = state.cart.reduce((sum, item) => sum + (item.item.price * item.quantity), 0);
-    
-    // Send checkout data to server
-    ui.closeAndSendData('shopping-ui', 'shopCheckout', {
-        items: state.cart.map(item => ({
-            id: item.item.id,
-            quantity: item.quantity,
-            price: item.item.price
-        })),
-        total: total
-    });
-    
-    // Reset cart
-    state.cart = [];
+    shopCart.checkout();
 }
 
 // Interaction System
