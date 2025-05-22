@@ -129,7 +129,7 @@ const shopEventHandlers = {
                 <div class="shop-item-name">${item.name}</div>
                 <div class="shop-item-price">${formattedPrice}</div>
                 ${item.description ? `<div class="shop-item-desc">${item.description}</div>` : ''}
-                <button class="shop-item-add">Add to Cart</button>
+                <button class="shop-item-add">+</button>
             `;
             
             // Add click handler
