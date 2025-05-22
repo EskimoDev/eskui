@@ -7,8 +7,8 @@ local interactionThreadActive = false
 local isAnyUIVisible = false -- Flag to track if any UI is currently visible
 local isInitialized = false
 
--- Access darkMode variable from client.lua
-local darkMode = false
+-- Access DarkMode variable from client_menus.lua instead of having our own local copy
+-- local darkMode = false
 
 -- Create a function to get the nearbyInteractions for other scripts
 function GetNearbyInteractions()
@@ -21,13 +21,14 @@ exports('GetNearbyInteractions', GetNearbyInteractions)
 -- Listen for dark mode changes
 RegisterNetEvent('eskui:darkModeChanged')
 AddEventHandler('eskui:darkModeChanged', function(isEnabled)
-    darkMode = isEnabled
+    -- Update local variables based on the global DarkMode value
+    -- darkMode = isEnabled
     
     -- Update interaction prompt if it's showing
     if isInteractionShowing then
         -- Refresh the interaction prompt with new dark mode setting
         local promptConfig = {
-            darkMode = darkMode
+            darkMode = DarkMode
         }
         SendNUIMessage({
             type = 'updateInteractionDarkMode',
@@ -143,7 +144,7 @@ function InteractionPrompt.Show(config)
         textLeft = Config.Interaction.textLeft,
         textRight = Config.Interaction.textRight,
         pulseEffect = Config.Interaction.pulseEffect,
-        darkMode = darkMode -- Add the dark mode state
+        darkMode = DarkMode -- Use global DarkMode variable
     }
     
     -- Override with any provided config

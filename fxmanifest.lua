@@ -19,6 +19,7 @@ shared_scripts {
 -- Framework and client scripts
 client_scripts {
     'framework/framework.lua',
+    'client/client_menus.lua',
     'client/client.lua',
     'client/client_shop.lua',
     'client/client_test.lua',
