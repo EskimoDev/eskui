@@ -335,9 +335,31 @@ RegisterServerEvent('eskui:processShopPurchase')
 AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, paymentMethod)
     local source = source
     
+    if Config.Debug then
+        print("^1[ESKUI SERVER DEBUG] ========= PROCESSING SHOP PURCHASE =========^7")
+        print("^1[ESKUI SERVER DEBUG] Source: " .. source .. "^7")
+        print("^1[ESKUI SERVER DEBUG] Total Price: $" .. totalPrice .. "^7")
+        print("^1[ESKUI SERVER DEBUG] Payment Method: " .. paymentMethod .. "^7")
+        print("^1[ESKUI SERVER DEBUG] Items count: " .. #items .. "^7")
+        
+        for i, item in ipairs(items) do
+            print("^1[ESKUI SERVER DEBUG] Item #" .. i .. ": " .. (item.name or item.id or "unknown") .. 
+                  " x" .. (item.quantity or "unknown") .. "^7")
+        end
+    end
+    
     -- Make sure framework is initialized
     if not FrameworkInitialized then
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Framework not initialized, attempting initialization^7")
+        end
+        
         if not InitializeFramework() then
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Framework initialization failed, aborting purchase^7")
+                print("^1[ESKUI SERVER DEBUG] ========= PURCHASE ABORTED =========^7")
+            end
+            
             TriggerClientEvent('eskui:purchaseResult', source, false, "Shop system is not ready yet. Please try again later.")
             return
         end
@@ -350,19 +372,39 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
         xPlayer = ESX.GetPlayerFromId(source)
         
         if not xPlayer then
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] ESX player not found, aborting purchase^7")
+                print("^1[ESKUI SERVER DEBUG] ========= PURCHASE ABORTED =========^7")
+            end
+            
             TriggerClientEvent('eskui:purchaseResult', source, false, "Player not found")
             return
+        end
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] ESX player found: " .. xPlayer.identifier .. "^7")
         end
         
         -- Check if player has enough money
         local playerMoney
         if paymentMethod == Config.MoneyTypes.cash then
             playerMoney = xPlayer.getMoney()
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Player cash: $" .. playerMoney .. "^7")
+            end
         else
             playerMoney = xPlayer.getAccount(paymentMethod).money
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Player " .. paymentMethod .. ": $" .. playerMoney .. "^7")
+            end
         end
         
         if playerMoney < totalPrice then
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Player cannot afford purchase ($" .. totalPrice .. ")^7")
+                print("^1[ESKUI SERVER DEBUG] ========= PURCHASE ABORTED =========^7")
+            end
+            
             TriggerClientEvent('eskui:purchaseResult', source, false, "You don't have enough money")
             return
         end
@@ -370,17 +412,32 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
         -- Remove money
         if paymentMethod == Config.MoneyTypes.cash then
             xPlayer.removeMoney(totalPrice)
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Removed $" .. totalPrice .. " from player cash^7")
+            end
         else
             xPlayer.removeAccountMoney(paymentMethod, totalPrice)
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Removed $" .. totalPrice .. " from player " .. paymentMethod .. "^7")
+            end
+        end
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Starting item addition process^7")
         end
         
         -- Give items
         local purchasedItems = {}
-        for _, item in ipairs(items) do
+        for itemIndex, item in ipairs(items) do
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Processing item #" .. itemIndex .. ": " .. 
+                      (item.name or item.id or "unknown") .. " x" .. (item.quantity or 1) .. "^7")
+            end
+            
             -- Check if it's a weapon
             if item.name and (string.match(item.name, "WEAPON_") or string.match(item.name, "weapon_")) then
                 if Config.Debug then
-                    print("^2[ESKUI DEBUG] Adding weapon to player: " .. item.name .. "^7")
+                    print("^1[ESKUI SERVER DEBUG] Adding weapon to player: " .. item.name .. "^7")
                 end
                 xPlayer.addWeapon(item.name, 0)
                 table.insert(purchasedItems, {
@@ -389,7 +446,7 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
                 })
             else
                 if Config.Debug then
-                    print("^2[ESKUI DEBUG] Adding item to player: " .. (item.name or "nil") .. " x" .. (item.quantity or 0) .. "^7")
+                    print("^1[ESKUI SERVER DEBUG] Adding item to player: " .. (item.name or "nil") .. " x" .. (item.quantity or 0) .. "^7")
                 end
                 
                 -- Check if the item exists in ESX inventory before trying to add it
@@ -400,9 +457,12 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
                     local esxItem = ESX.Items[item.name]
                     if esxItem then
                         itemExists = true
+                        if Config.Debug then
+                            print("^1[ESKUI SERVER DEBUG] Item found in ESX.Items: " .. item.name .. "^7")
+                        end
                     else
                         if Config.Debug then
-                            print("^1[ESKUI ERROR] Item not found in ESX.Items: " .. (item.name or "nil") .. "^7")
+                            print("^1[ESKUI SERVER DEBUG] Item not found in ESX.Items: " .. (item.name or "nil") .. "^7")
                             
                             -- Show some available items for debugging
                             local count = 0
@@ -417,29 +477,46 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
                 else
                     -- For older ESX versions, we'll try to add the item and see if it works
                     if Config.Debug then
-                        print("^3[ESKUI WARNING] ESX.Items not available, will attempt to add item directly: " .. (item.name or "nil") .. "^7")
+                        print("^1[ESKUI SERVER DEBUG] ESX.Items not available, will attempt to add item directly: " .. (item.name or "nil") .. "^7")
                     end
                     itemExists = true -- Assume it exists and try adding it
                 end
                 
                 -- Add item to player inventory
                 if itemExists or not ESX.Items then
-                    xPlayer.addInventoryItem(item.name, item.quantity)
-                    
                     if Config.Debug then
-                        print("^2[ESKUI DEBUG] Added item: " .. item.name .. " x" .. item.quantity .. "^7")
+                        print("^1[ESKUI SERVER DEBUG] Adding item to inventory: " .. item.name .. " x" .. item.quantity .. "^7")
                     end
+                    
+                    local addResult = pcall(function()
+                        xPlayer.addInventoryItem(item.name, item.quantity)
+                    end)
+                    
+                    if addResult then
+                        if Config.Debug then
+                            print("^1[ESKUI SERVER DEBUG] Successfully added item: " .. item.name .. " x" .. item.quantity .. "^7")
+                        end
+                    else
+                        if Config.Debug then
+                            print("^1[ESKUI SERVER DEBUG] Error adding item: " .. item.name .. " x" .. item.quantity .. "^7")
+                        end
+                    end
+                    
+                    table.insert(purchasedItems, {
+                        name = GetItemLabel(item.name),
+                        quantity = item.quantity
+                    })
                 else
                     if Config.Debug then
-                        print("^1[ESKUI ERROR] Failed to add non-existent item: " .. item.name .. "^7")
+                        print("^1[ESKUI SERVER DEBUG] Failed to add non-existent item: " .. item.name .. "^7")
                     end
                 end
-                
-                table.insert(purchasedItems, {
-                    name = GetItemLabel(item.name),
-                    quantity = item.quantity
-                })
             end
+        end
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Purchase complete, " .. #purchasedItems .. " items added^7")
+            print("^1[ESKUI SERVER DEBUG] ========= PURCHASE SUCCESSFUL =========^7")
         end
         
         -- Send success message

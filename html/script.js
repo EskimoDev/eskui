@@ -846,7 +846,7 @@ const uiHandlers = {
         
         document.querySelector('#shopping-ui .titlebar-title').textContent = title;
         
-        // Reset cart
+        // Reset cart completely
         state.cart = [];
         
         // Set shop items

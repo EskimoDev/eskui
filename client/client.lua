@@ -6,6 +6,9 @@ local state = {
     menuHistory = {}
 }
 
+-- Shared checkout handler variable
+ShopCheckoutHandler = nil
+
 -- Common NUI callback handling
 local function handleNUICallback(name, handler)
     RegisterNUICallback(name, function(data, cb)
@@ -75,20 +78,46 @@ local callbacks = {
         exports['eskui']:CheckForNearbyAndShow()
     end,
     shopCheckout = function(data) 
+        if Config.Debug then
+            print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK TRIGGERED =========^7")
+            print("^6[ESKUI DEBUG] Data received from UI: " .. tostring(data ~= nil) .. "^7")
+            print("^6[ESKUI DEBUG] ShopCheckoutHandler: " .. tostring(ShopCheckoutHandler) .. "^7")
+        end
+        
+        -- Prevent duplicate checkout processes
+        if _G.checkoutInProgress then
+            if Config.Debug then
+                print("^6[ESKUI DEBUG] Checkout already in progress, ignoring duplicate callback^7")
+                print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK IGNORED =========^7")
+            end
+            return
+        end
+        
+        -- Set checkout in progress flag
+        _G.checkoutInProgress = true
+        
+        -- Clear the flag after 5 seconds in case something goes wrong
+        Citizen.SetTimeout(5000, function()
+            _G.checkoutInProgress = false
+            if Config.Debug then
+                print("^6[ESKUI DEBUG] Checkout in progress flag cleared after timeout^7")
+            end
+        end)
+        
         print("Received shop checkout callback with total: $" .. data.total)
         
         -- Add debugging to check item data
         if Config.Debug then
-            print("^2[ESKUI DEBUG] Processing shop checkout with " .. #data.items .. " items^7")
+            print("^6[ESKUI DEBUG] Processing shop checkout with " .. #data.items .. " items^7")
             
             for i, item in ipairs(data.items) do
-                print("^2[ESKUI DEBUG] Item #" .. i .. ": " .. item.id .. " x" .. item.quantity .. "^7")
+                print("^6[ESKUI DEBUG] Item #" .. i .. ": " .. item.id .. " x" .. item.quantity .. "^7")
                 
                 -- Make sure the item has the inventoryName property for the framework
                 if item.inventoryName then
-                    print("^2[ESKUI DEBUG]   - Using inventory name: " .. item.inventoryName .. "^7")
+                    print("^6[ESKUI DEBUG]   - Using inventory name: " .. item.inventoryName .. "^7")
                 else
-                    print("^3[ESKUI WARNING] No inventory name available for item: " .. item.id .. "^7")
+                    print("^6[ESKUI DEBUG] No inventory name available for item: " .. item.id .. "^7")
                 end
             end
         end
@@ -101,10 +130,28 @@ local callbacks = {
         TriggerEvent('eskui:uiStateChanged', false)
         
         -- Process the shop checkout
+        if Config.Debug then
+            print("^6[ESKUI DEBUG] Triggering eskui:shopCheckoutCallback event^7")
+        end
+        
         TriggerEvent('eskui:shopCheckoutCallback', data)
+        
+        if Config.Debug then
+            print("^6[ESKUI DEBUG] Event triggered successfully^7")
+            print("^6[ESKUI DEBUG] ShopCheckoutHandler after event: " .. tostring(ShopCheckoutHandler) .. "^7")
+            print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK COMPLETE =========^7")
+        end
         
         -- Check for nearby interactions and show prompt if in range
         exports['eskui']:CheckForNearbyAndShow()
+        
+        -- Clear the checkout in progress flag
+        Citizen.SetTimeout(500, function()
+            _G.checkoutInProgress = false
+            if Config.Debug then
+                print("^6[ESKUI DEBUG] Checkout in progress flag cleared^7")
+            end
+        end)
     end,
     submenuSelect = function(data) 
         -- Debug
@@ -283,6 +330,11 @@ TriggerEvent('chat:addSuggestion', '/uisettings', 'Open ESKUI settings menu')
 
 -- Handler registration with automatic cleanup
 local function registerEskuiHandler(event, handler)
+    -- Store handlers by event name to prevent duplicates
+    if not _G.registeredHandlers then
+        _G.registeredHandlers = {}
+    end
+    
     -- Validate inputs to prevent errors
     if not event or type(event) ~= 'string' then
         print("^1[ESKUI ERROR] Invalid event name passed to registerEskuiHandler^7")
@@ -294,11 +346,30 @@ local function registerEskuiHandler(event, handler)
         return nil
     end
     
+    -- Check for existing handler for this event and remove it
+    if _G.registeredHandlers[event] then
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Found existing handler for event: " .. event .. "^7")
+        end
+        
+        -- Remove the existing handler
+        RemoveEventHandler(_G.registeredHandlers[event])
+        _G.registeredHandlers[event] = nil
+        
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Removed existing handler for event: " .. event .. "^7")
+        end
+    end
+    
     -- Store handlerId in local scope before using it in the event handler
     local handlerId = nil
     
     -- Create the handler function first - add ... parameter to make it a vararg function
     local eventFunction = function(...)
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Event handler triggered for: " .. event .. "^7")
+        end
+        
         local result = false
         
         -- Call the handler with pcall to catch any errors
@@ -309,6 +380,10 @@ local function registerEskuiHandler(event, handler)
         -- Check if handler executed successfully
         if success then
             result = handlerResult
+            
+            if Config.Debug then
+                print("^2[ESKUI DEBUG] Handler executed successfully, result: " .. tostring(result) .. "^7")
+            end
         else
             print("^1[ESKUI ERROR] Error in event handler: " .. tostring(handlerResult) .. "^7")
         end
@@ -319,7 +394,16 @@ local function registerEskuiHandler(event, handler)
             if handlerId then
                 -- Use pcall to prevent errors if removal fails
                 pcall(function()
+                    if Config.Debug then
+                        print("^2[ESKUI DEBUG] Removing handler for event: " .. event .. "^7")
+                    end
+                    
                     RemoveEventHandler(handlerId)
+                    
+                    -- Also remove from our tracking table
+                    if _G.registeredHandlers then
+                        _G.registeredHandlers[event] = nil
+                    end
                 end)
                 handlerId = nil
             end
@@ -330,6 +414,13 @@ local function registerEskuiHandler(event, handler)
     
     -- Now register the handler and store the ID
     handlerId = AddEventHandler(event, eventFunction)
+    
+    -- Store in our tracking table
+    _G.registeredHandlers[event] = handlerId
+    
+    if Config.Debug then
+        print("^2[ESKUI DEBUG] Registered handler for event: " .. event .. " with ID: " .. tostring(handlerId) .. "^7")
+    end
     
     -- Return the handler ID for reference
     return handlerId
@@ -461,6 +552,14 @@ local function registerExports()
     
     -- Shop UI
     exports('ShowShop', function(title, categories, items, callback)
+        if Config.Debug then
+            print("^4[ESKUI DEBUG] ========= SHOWSHOP EXPORT CALLED =========^7")
+            print("^4[ESKUI DEBUG] Shop Title: " .. title .. "^7")
+            print("^4[ESKUI DEBUG] Categories: " .. #categories .. "^7")
+            print("^4[ESKUI DEBUG] Items: " .. #items .. "^7")
+            print("^4[ESKUI DEBUG] Current ShopCheckoutHandler: " .. tostring(ShopCheckoutHandler) .. "^7")
+        end
+        
         showUI('showShop', title, {
             categories = categories,
             items = items
@@ -468,10 +567,37 @@ local function registerExports()
         
         -- Register event handler for checkout response
         local eventName = 'eskui:shopCheckoutCallback'
-        return registerEskuiHandler(eventName, function(data)
+        
+        if Config.Debug then
+            print("^4[ESKUI DEBUG] Registering event handler for: " .. eventName .. "^7")
+        end
+        
+        -- Store the handler ID in the global variable from client_shop.lua
+        ShopCheckoutHandler = registerEskuiHandler(eventName, function(data)
+            if Config.Debug then
+                print("^4[ESKUI DEBUG] ========= SHOP CHECKOUT CALLBACK EXECUTED =========^7")
+                print("^4[ESKUI DEBUG] Handler callback received data: " .. tostring(data ~= nil) .. "^7")
+                if data and data.items then
+                    print("^4[ESKUI DEBUG] Items in checkout: " .. #data.items .. "^7")
+                end
+            end
+            
             if callback then callback(data) end
+            
+            if Config.Debug then
+                print("^4[ESKUI DEBUG] Original callback executed, returning true to remove handler^7")
+                print("^4[ESKUI DEBUG] ========= SHOP CHECKOUT CALLBACK COMPLETE =========^7")
+            end
+            
             return true -- Remove handler after callback is processed
         end)
+        
+        if Config.Debug then
+            print("^4[ESKUI DEBUG] Registered handler with ID: " .. tostring(ShopCheckoutHandler) .. "^7")
+            print("^4[ESKUI DEBUG] ========= SHOWSHOP EXPORT COMPLETE =========^7")
+        end
+        
+        return ShopCheckoutHandler -- Return the handler ID for reference
     end)
 end
 
@@ -536,3 +662,43 @@ Citizen.CreateThread(function()
         end
     end
 end) 
+
+-- Test commands for debugging
+if Config.Debug then
+    -- Debug command to check current UI state and handlers
+    RegisterCommand('debugshop', function()
+        print("^2[ESKUI DEBUG] ========= CURRENT UI STATE =========^7")
+        print("^2[ESKUI DEBUG] Display: " .. tostring(display) .. "^7")
+        print("^2[ESKUI DEBUG] Dark Mode: " .. tostring(darkMode) .. "^7")
+        print("^2[ESKUI DEBUG] Window Opacity: " .. tostring(windowOpacity) .. "^7")
+        print("^2[ESKUI DEBUG] Free Drag: " .. tostring(freeDrag) .. "^7")
+        print("^2[ESKUI DEBUG] ShopCheckoutHandler: " .. tostring(ShopCheckoutHandler) .. "^7")
+        
+        -- Check if any menu is open
+        if state.currentMenuData then
+            print("^2[ESKUI DEBUG] Current Menu: " .. (state.currentMenuData.title or "Unknown") .. "^7")
+            print("^2[ESKUI DEBUG] Menu Items: " .. (state.currentMenuData.items and #state.currentMenuData.items or 0) .. "^7")
+        else
+            print("^2[ESKUI DEBUG] No menu currently open^7")
+        end
+        
+        -- Check menu history
+        if state.menuHistory and #state.menuHistory > 0 then
+            print("^2[ESKUI DEBUG] Menu history size: " .. #state.menuHistory .. "^7")
+        else
+            print("^2[ESKUI DEBUG] No menu history^7")
+        end
+        
+        -- Force cleanup of any dangling handlers
+        if ShopCheckoutHandler then
+            print("^2[ESKUI DEBUG] Forcing cleanup of ShopCheckoutHandler^7")
+            RemoveEventHandler(ShopCheckoutHandler)
+            ShopCheckoutHandler = nil
+        end
+        
+        print("^2[ESKUI DEBUG] ========= END UI STATE =========^7")
+    end, false)
+    
+    -- Add command suggestion
+    TriggerEvent('chat:addSuggestion', '/debugshop', 'Debug the current shop UI state')
+end 

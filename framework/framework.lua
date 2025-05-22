@@ -383,21 +383,91 @@ end
 
 -- Process checkout
 function Framework.ProcessCheckout(data, paymentMethod)
+    if Config.Debug then
+        print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT STARTED =========^7")
+        print("^5[ESKUI DEBUG] Processing checkout in Framework.ProcessCheckout^7")
+        print("^5[ESKUI DEBUG] Payment method: " .. tostring(paymentMethod) .. "^7")
+    end
+    
+    -- Add a lock to prevent duplicate processing
+    if _G.purchaseLock then
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Purchase already in progress, blocking duplicate checkout^7")
+            print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED (DUPLICATE) =========^7")
+        end
+        return false, "Purchase already in progress"
+    end
+    
+    -- Set purchase lock
+    _G.purchaseLock = true
+    
+    -- Clear lock after 5 seconds in case something goes wrong
+    Citizen.SetTimeout(5000, function()
+        _G.purchaseLock = false
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Purchase lock automatically cleared after timeout^7")
+        end
+    end)
+    
     paymentMethod = paymentMethod or Config.DefaultMoneyType
     
     -- Get total price
     local totalPrice = data.total or 0
     if totalPrice <= 0 then
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Invalid purchase amount: " .. tostring(totalPrice) .. "^7")
+            print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED =========^7")
+        end
+        _G.purchaseLock = false
         return false, "Invalid purchase amount"
     end
     
     -- Check if player can afford
     if not Framework.CanPlayerAfford(totalPrice, paymentMethod) then
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Player cannot afford purchase of $" .. totalPrice .. "^7")
+            print("^5[ESKUI DEBUG] Player money: $" .. Framework.GetPlayerMoney(paymentMethod) .. "^7")
+            print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED =========^7")
+        end
+        _G.purchaseLock = false
         return false, "You cannot afford this purchase"
+    end
+    
+    if Config.Debug then
+        print("^5[ESKUI DEBUG] Player can afford purchase ($" .. totalPrice .. ")^7")
+        print("^5[ESKUI DEBUG] Player has $" .. Framework.GetPlayerMoney(paymentMethod) .. "^7")
+        print("^5[ESKUI DEBUG] Triggering server event 'eskui:processShopPurchase'^7")
+        print("^5[ESKUI DEBUG] Number of items: " .. #data.items .. "^7")
+        
+        for i, item in ipairs(data.items) do
+            print("^5[ESKUI DEBUG] Item #" .. i .. ": " .. (item.id or "unknown") .. 
+                  " x" .. (item.quantity or "unknown") .. 
+                  " @ $" .. (item.price or "unknown") .. 
+                  " = $" .. ((item.price or 0) * (item.quantity or 0)) .. "^7")
+        end
     end
     
     -- Send server event for processing
     TriggerServerEvent('eskui:processShopPurchase', data.items, totalPrice, paymentMethod)
+    
+    if Config.Debug then
+        print("^5[ESKUI DEBUG] Server event triggered successfully^7")
+        print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT COMPLETED =========^7")
+    end
+    
+    -- Register handler for purchase result to clear the lock
+    local resultHandler = RegisterNetEvent('eskui:purchaseResult')
+    AddEventHandler('eskui:purchaseResult', function()
+        -- Clear purchase lock when result comes back
+        _G.purchaseLock = false
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Purchase lock cleared after result received^7")
+        end
+        
+        -- Remove this handler
+        RemoveEventHandler(resultHandler)
+    end)
+    
     return true, "Purchase successful"
 end
 

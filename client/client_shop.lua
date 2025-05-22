@@ -3,6 +3,7 @@ local CurrentShop = nil
 local ShopBlips = {}
 local nearbyShops = {}
 local isInitialized = false
+local ShopCheckoutHandler = nil  -- Track the checkout event handler to prevent duplicates
 
 -- Wait for framework to initialize
 Citizen.CreateThread(function()
@@ -305,23 +306,47 @@ end)
 -- Show the shop UI with formatted items
 function ShowShopUI(shopData)
     if Config.Debug then
-        print("^2[ESKUI DEBUG] Showing shop UI for: " .. shopData.name .. "^7")
-        
-        -- Debug: Check if items have inventory names
-        for i, item in ipairs(shopData.items) do
-            print("^2[ESKUI DEBUG] Shop item #" .. i .. ": " .. item.name .. "^7")
-            print("^2[ESKUI DEBUG]   - Inventory name: " .. (item.inventoryName or "nil") .. "^7")
+        print("^3[ESKUI DEBUG] ========= SHOP UI OPENING =========^7")
+        print("^3[ESKUI DEBUG] Showing shop UI for: " .. shopData.name .. "^7")
+        print("^3[ESKUI DEBUG] ShopCheckoutHandler before clearing: " .. tostring(ShopCheckoutHandler) .. "^7")
+    end
+    
+    -- Remove any existing checkout callback handlers to prevent duplicates
+    if ShopCheckoutHandler then
+        RemoveEventHandler(ShopCheckoutHandler)
+        ShopCheckoutHandler = nil
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Removed existing shop checkout handler^7")
         end
+    else
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] No existing ShopCheckoutHandler to remove^7")
+        end
+    end
+    
+    -- Debug memory usage before UI opening
+    if Config.Debug then
+        collectgarbage("collect")
+        print("^3[ESKUI DEBUG] Memory usage before UI show: " .. collectgarbage("count") .. " KB^7")
     end
     
     -- Show shop UI using ESKUI
     exports['eskui']:ShowShop(shopData.name, shopData.categories, shopData.items, function(data)
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] ========= SHOP CALLBACK TRIGGERED =========^7")
+            print("^3[ESKUI DEBUG] ShopCheckoutHandler in callback: " .. tostring(ShopCheckoutHandler) .. "^7")
+        end
+        
         if not data then
             -- User cancelled - restore interaction prompt with a delay
+            if Config.Debug then
+                print("^3[ESKUI DEBUG] Shop cancelled, no data returned^7")
+            end
+            
             Citizen.SetTimeout(300, function()
                 exports['eskui']:CheckForNearbyAndShow()
                 if Config.Debug then
-                    print("^2[ESKUI DEBUG] Shop cancelled, checking for interactions^7")
+                    print("^3[ESKUI DEBUG] Shop cancelled, checking for interactions^7")
                 end
             end)
             return
@@ -329,8 +354,12 @@ function ShowShopUI(shopData)
         
         -- Debug the checkout data
         if Config.Debug then
-            print("^2[ESKUI DEBUG] Checkout initiated with " .. #data.items .. " items^7")
-            print("^2[ESKUI DEBUG] Total price: $" .. data.total .. "^7")
+            print("^3[ESKUI DEBUG] Checkout initiated with " .. #data.items .. " items^7")
+            print("^3[ESKUI DEBUG] Total price: $" .. data.total .. "^7")
+            
+            for i, item in ipairs(data.items) do
+                print("^3[ESKUI DEBUG] Item #" .. i .. ": " .. item.id .. " x" .. item.quantity .. "^7")
+            end
         end
         
         -- Ensure each cart item has the proper inventoryName from shopData
@@ -342,7 +371,7 @@ function ShowShopUI(shopData)
                     cartItem.name = shopItem.inventoryName
                     
                     if Config.Debug then
-                        print("^2[ESKUI DEBUG] Set item #" .. i .. " (" .. cartItem.id .. ") inventory name to: " .. cartItem.name .. "^7")
+                        print("^3[ESKUI DEBUG] Set item #" .. i .. " (" .. cartItem.id .. ") inventory name to: " .. cartItem.name .. "^7")
                     end
                     break
                 end
@@ -350,7 +379,17 @@ function ShowShopUI(shopData)
         end
         
         -- Try to process the checkout
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Processing checkout with Framework.ProcessCheckout^7")
+        end
+        
         local success, message = Framework.ProcessCheckout(data, Config.DefaultMoneyType)
+        
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Checkout process result: " .. tostring(success) .. ", " .. message .. "^7")
+            print("^3[ESKUI DEBUG] ShopCheckoutHandler after checkout: " .. tostring(ShopCheckoutHandler) .. "^7")
+            print("^3[ESKUI DEBUG] ========= SHOP CALLBACK COMPLETE =========^7")
+        end
         
         -- Handle result in the callback event
         
@@ -359,10 +398,16 @@ function ShowShopUI(shopData)
             TriggerEvent('eskui:uiStateChanged', false) -- Explicitly notify UI state change
             exports['eskui']:CheckForNearbyAndShow()
             if Config.Debug then
-                print("^2[ESKUI DEBUG] Shop checkout complete, checking for interactions^7")
+                print("^3[ESKUI DEBUG] Shop checkout complete, checking for interactions^7")
             end
         end)
     end)
+    
+    if Config.Debug then
+        print("^3[ESKUI DEBUG] Shop UI opened, new ShopCheckoutHandler: " .. tostring(ShopCheckoutHandler) .. "^7")
+        print("^3[ESKUI DEBUG] Memory usage after UI show: " .. collectgarbage("count") .. " KB^7")
+        print("^3[ESKUI DEBUG] ========= SHOP UI OPENED =========^7")
+    end
 end
 
 -- Register commands for testing
