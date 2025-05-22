@@ -831,14 +831,14 @@ const uiHandlers = {
         this.renderShopCategories(categories);
         
         // Setup handlers
-        document.getElementById('shop-cart-clear').addEventListener('click', clearCart);
-        document.getElementById('shop-checkout-btn').addEventListener('click', checkout);
+        document.getElementById('shop-cart-clear').addEventListener('click', () => shopCart.clear());
+        document.getElementById('shop-checkout-btn').addEventListener('click', () => shopCart.checkout());
         
         // Render items for initial category
         renderShopItems();
         
         // Render empty cart
-        renderCart();
+        shopCart.render();
         
         // Add special shop escape handler that notifies the game
         ui.addEscapeHandler(() => {
@@ -1533,6 +1533,12 @@ const shopCart = {
     },
     
     checkout() {
+        // Flag to prevent multiple checkout attempts in quick succession
+        if (this._isCheckingOut) {
+            console.log('Checkout already in progress, ignoring duplicate call');
+            return;
+        }
+        
         if (state.cart.length === 0) {
             notifications.create({
                 type: 'warning',
@@ -1543,25 +1549,36 @@ const shopCart = {
             return;
         }
         
+        // Set checkout in progress flag
+        this._isCheckingOut = true;
+        
         // Calculate total
         const total = state.cart.reduce((sum, item) => sum + (item.item.price * item.quantity), 0);
         
+        // Store cart items for sending to server (before clearing the cart)
+        const cartItems = state.cart.map(item => ({
+            id: item.item.id,
+            quantity: item.quantity,
+            price: item.item.price
+        }));
+        
+        // Clear the cart first to prevent re-triggering on UI closure
+        state.cart = [];
+        
         // Send checkout data to server
         ui.closeAndSendData('shopping-ui', 'shopCheckout', {
-            items: state.cart.map(item => ({
-                id: item.item.id,
-                quantity: item.quantity,
-                price: item.item.price
-            })),
+            items: cartItems,
             total: total
         });
         
-        // Reset cart
-        state.cart = [];
+        // Reset checkout flag after a delay
+        setTimeout(() => {
+            this._isCheckingOut = false;
+        }, 2000);
     }
 };
 
-// Rename existing functions to use the new shopCart object
+// Function to render shop items in the shop UI
 function renderShopItems() {
     const shopItemsContainer = document.getElementById('shop-items');
     shopItemsContainer.innerHTML = '';
@@ -1616,27 +1633,6 @@ function renderShopItems() {
         
         shopItemsContainer.appendChild(itemEl);
     });
-}
-
-// Replace existing functions with calls to our new object
-function renderCart() {
-    shopCart.render();
-}
-
-function addToCart(item) {
-    shopCart.addItem(item);
-}
-
-function removeFromCart(itemId) {
-    shopCart.removeItem(itemId);
-}
-
-function clearCart() {
-    shopCart.clear();
-}
-
-function checkout() {
-    shopCart.checkout();
 }
 
 // Interaction System
