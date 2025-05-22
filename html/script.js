@@ -7,7 +7,7 @@ const state = {
     windowOpacity: 0.95,
     freeDrag: false,
     selectedListItem: null,
-    // Shopping cart state
+    // Shopping cart state (managed in shops.js)
     cart: [],
     currentCategory: null,
     shopItems: []
@@ -84,6 +84,9 @@ const ui = {
         
         // Clear any water shimmer elements that might be lingering
         clearGlowEffects();
+        
+        // Ensure NUI focus is reset
+        sendNUIMessage('close');
     },
     
     closeAndSendData(containerId, endpoint, data) {
@@ -247,100 +250,9 @@ const uiHandlers = {
         
         // Notify that UI is now visible
         notifyUIVisibilityChange(true);
-    },
-    
-    showShop(title, categories, items) {
-        state.currentUI = 'shop';
-        ui.show('shopping-ui');
-        this.hideOtherUIs('shopping-ui');
-        
-        document.querySelector('#shopping-ui .titlebar-title').textContent = title;
-        
-        // Reset cart completely
-        state.cart = [];
-        
-        // Set shop items
-        state.shopItems = items;
-        
-        // Set initial category
-        state.currentCategory = categories.length > 0 ? categories[0].id : null;
-        
-        // Populate categories
-        this.renderShopCategories(categories);
-        
-        // Setup handlers
-        document.getElementById('shop-cart-clear').addEventListener('click', () => shopCart.clear());
-        document.getElementById('shop-checkout-btn').addEventListener('click', () => shopCart.checkout());
-        
-        // Render items for initial category
-        renderShopItems();
-        
-        // Render empty cart
-        shopCart.render();
-        
-        // Add special shop escape handler that notifies the game
-        ui.addEscapeHandler(() => {
-            // Check if shop is still open
-            if (document.getElementById('shopping-ui').style.display === 'flex') {
-                console.log('Shop closed via ESC key, sending special notification');
-                
-                // First close the UI
-                ui.hideAllUIs();
-                ui.resetState();
-                
-                // Notify that UI is now hidden
-                notifyUIVisibilityChange(false);
-                
-                // Then send close message to release NUI focus and notify about shop close
-                fetch(`https://${GetParentResourceName()}/shopClosed`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                }).catch(error => {
-                    console.error('Error notifying game of shop close:', error);
-                });
-            } else {
-                closeUI();
-            }
-        });
-        
-        // Notify that UI is now visible
-        notifyUIVisibilityChange(true);
-    },
-    
-    renderShopCategories(categories) {
-        const categoriesContainer = document.getElementById('shop-categories');
-        categoriesContainer.innerHTML = '';
-        
-        categories.forEach(category => {
-            const categoryEl = document.createElement('div');
-            categoryEl.className = 'shop-category';
-            if (category.id === state.currentCategory) {
-                categoryEl.classList.add('active');
-            }
-            
-            categoryEl.innerHTML = `
-                <span class="shop-category-icon">${category.icon || ''}</span>
-                ${category.label}
-            `;
-            
-            categoryEl.addEventListener('click', () => {
-                // Set active category
-                state.currentCategory = category.id;
-                
-                // Update active class
-                document.querySelectorAll('.shop-category').forEach(el => {
-                    el.classList.remove('active');
-                });
-                categoryEl.classList.add('active');
-                
-                // Render items for this category
-                renderShopItems();
-            });
-            
-            categoriesContainer.appendChild(categoryEl);
-        });
     }
+    
+    // Shop UI handlers moved to shops.js
 };
 
 // Notification system
@@ -533,9 +445,10 @@ window.addEventListener('message', function(event) {
                 console.log('Processing showSettings event');
                 uiHandlers.showSettings();
             },
+            // Shop UI handler moved to shops.js
             showShop: () => {
                 console.log('Processing showShop event');
-                uiHandlers.showShop(data.title, data.categories, data.items);
+                shopEventHandlers.showShop(data);
             },
             toggleDarkMode: () => toggleDarkMode(),
             showNotification: () => {
@@ -553,34 +466,11 @@ window.addEventListener('message', function(event) {
 
 // UI action functions
 function closeUI() {
-    // Check if shop UI is open
-    const isShopOpen = document.getElementById('shopping-ui').style.display === 'flex';
+    console.log("closeUI function called");
+    ui.closeCurrentUI();
     
-    // Hide all UIs
-    ui.hideAllUIs();
-    
-    // Reset state and send close message
-    ui.resetState();
+    // Explicitly send close message to ensure NUI focus is reset
     sendNUIMessage('close');
-    
-    // Remove any lingering shimmer and glow effects
-    clearGlowEffects();
-    
-    // Notify that UI is now hidden
-    notifyUIVisibilityChange(false);
-    
-    // Check if it was the shop that was closed, and send a special message
-    if (isShopOpen) {
-        console.log('Shop UI was closed, sending special notification to check for interactions');
-        // Call a special function to restore shop interactions
-        fetch(`https://${GetParentResourceName()}/shopClosed`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-        }).catch(error => {
-            console.error('Error notifying game of shop close:', error);
-        });
-    }
 }
 
 function saveSettings() {
@@ -750,235 +640,6 @@ function setupGlowEffectCleanup() {
     
     // Add the interval to cleanup handlers so it gets cleared when UI is closed
     state.cleanupHandlers.push(() => clearInterval(glowCleanupInterval));
-}
-
-// Shopping cart functions
-const shopCart = {
-    render() {
-        const cartItemsContainer = document.getElementById('shop-cart-items');
-        const totalElement = document.getElementById('shop-cart-total-amount');
-        
-        cartItemsContainer.innerHTML = '';
-        
-        if (state.cart.length === 0) {
-            this.renderEmptyCart(cartItemsContainer);
-            totalElement.textContent = '$0';
-            return;
-        }
-        
-        let total = 0;
-        
-        state.cart.forEach(cartItem => {
-            const itemEl = this.createCartItemElement(cartItem);
-            
-            const subtotal = cartItem.item.price * cartItem.quantity;
-            total += subtotal;
-            
-            cartItemsContainer.appendChild(itemEl);
-        });
-        
-        totalElement.textContent = '$' + total.toLocaleString();
-    },
-    
-    renderEmptyCart(container) {
-        const emptyCart = document.createElement('div');
-        emptyCart.className = 'shop-cart-empty';
-        emptyCart.innerHTML = `
-            <div class="shop-cart-empty-icon">🛒</div>
-            <div class="shop-cart-empty-text">Your cart is empty</div>
-        `;
-        container.appendChild(emptyCart);
-    },
-    
-    createCartItemElement(cartItem) {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'shop-cart-item';
-        
-        itemEl.innerHTML = `
-            <div class="shop-cart-item-icon">${cartItem.item.icon || '📦'}</div>
-            <div class="shop-cart-item-details">
-                <div class="shop-cart-item-name">${cartItem.item.name}</div>
-                <div class="shop-cart-item-price">$${cartItem.item.price.toLocaleString()}</div>
-            </div>
-            <div class="shop-cart-item-quantity">
-                <div class="shop-cart-item-quantity-btn dec">-</div>
-                <div class="shop-cart-item-quantity-value">${cartItem.quantity}</div>
-                <div class="shop-cart-item-quantity-btn inc">+</div>
-            </div>
-            <div class="shop-cart-item-remove">×</div>
-        `;
-        
-        // Decrease quantity
-        itemEl.querySelector('.shop-cart-item-quantity-btn.dec').addEventListener('click', () => {
-            if (cartItem.quantity > 1) {
-                cartItem.quantity--;
-                this.render();
-            } else {
-                this.removeItem(cartItem.item.id);
-            }
-        });
-        
-        // Increase quantity
-        itemEl.querySelector('.shop-cart-item-quantity-btn.inc').addEventListener('click', () => {
-            cartItem.quantity++;
-            this.render();
-        });
-        
-        // Remove item completely
-        itemEl.querySelector('.shop-cart-item-remove').addEventListener('click', () => {
-            this.removeItem(cartItem.item.id);
-        });
-        
-        return itemEl;
-    },
-    
-    addItem(item) {
-        // Check if item already in cart
-        const existingItem = state.cart.find(cartItem => cartItem.item.id === item.id);
-        
-        if (existingItem) {
-            existingItem.quantity++;
-        } else {
-            state.cart.push({
-                item: item,
-                quantity: 1
-            });
-        }
-        
-        // Show brief animation on cart
-        const cartBtn = document.getElementById('shop-checkout-btn');
-        cartBtn.classList.add('pulse');
-        setTimeout(() => cartBtn.classList.remove('pulse'), 300);
-        
-        // Show notification
-        notifications.create({
-            type: 'success',
-            title: 'Added to cart',
-            message: `${item.name} has been added to your cart.`,
-            duration: 2000
-        });
-        
-        this.render();
-    },
-    
-    removeItem(itemId) {
-        state.cart = state.cart.filter(cartItem => cartItem.item.id !== itemId);
-        this.render();
-    },
-    
-    clear() {
-        state.cart = [];
-        this.render();
-        
-        notifications.create({
-            type: 'info',
-            title: 'Cart cleared',
-            message: 'All items have been removed from your cart.',
-            duration: 2000
-        });
-    },
-    
-    checkout() {
-        // Flag to prevent multiple checkout attempts in quick succession
-        if (this._isCheckingOut) {
-            console.log('Checkout already in progress, ignoring duplicate call');
-            return;
-        }
-        
-        if (state.cart.length === 0) {
-            notifications.create({
-                type: 'warning',
-                title: 'Empty cart',
-                message: 'Your cart is empty. Add some items first!',
-                duration: 2000
-            });
-            return;
-        }
-        
-        // Set checkout in progress flag
-        this._isCheckingOut = true;
-        
-        // Calculate total
-        const total = state.cart.reduce((sum, item) => sum + (item.item.price * item.quantity), 0);
-        
-        // Store cart items for sending to server (before clearing the cart)
-        const cartItems = state.cart.map(item => ({
-            id: item.item.id,
-            quantity: item.quantity,
-            price: item.item.price
-        }));
-        
-        // Clear the cart first to prevent re-triggering on UI closure
-        state.cart = [];
-        
-        // Send checkout data to server
-        ui.closeAndSendData('shopping-ui', 'shopCheckout', {
-            items: cartItems,
-            total: total
-        });
-        
-        // Reset checkout flag after a delay
-        setTimeout(() => {
-            this._isCheckingOut = false;
-        }, 2000);
-    }
-};
-
-// Function to render shop items in the shop UI
-function renderShopItems() {
-    const shopItemsContainer = document.getElementById('shop-items');
-    shopItemsContainer.innerHTML = '';
-    
-    // Filter items by current category
-    const filteredItems = state.currentCategory 
-        ? state.shopItems.filter(item => item.category === state.currentCategory)
-        : state.shopItems;
-    
-    if (filteredItems.length === 0) {
-        const emptyMessage = document.createElement('div');
-        emptyMessage.className = 'shop-cart-empty';
-        emptyMessage.innerHTML = `
-            <div class="shop-cart-empty-icon">📦</div>
-            <div class="shop-cart-empty-text">No items in this category</div>
-        `;
-        shopItemsContainer.appendChild(emptyMessage);
-        return;
-    }
-    
-    filteredItems.forEach(item => {
-        const itemEl = document.createElement('div');
-        itemEl.className = 'shop-item';
-        
-        let imageContent = '';
-        if (item.image) {
-            imageContent = `<img src="${item.image}" alt="${item.name}">`;
-        } else {
-            // Use emoji as fallback
-            imageContent = item.icon || '🛒';
-        }
-        
-        itemEl.innerHTML = `
-            <div class="shop-item-image">${imageContent}</div>
-            <div class="shop-item-name">${item.name}</div>
-            ${item.description ? `<div class="shop-item-desc">${item.description}</div>` : ''}
-            <div class="shop-item-price">$${item.price.toLocaleString()}</div>
-            <div class="shop-item-add">+</div>
-        `;
-        
-        // Add to cart when clicked
-        itemEl.querySelector('.shop-item-add').addEventListener('click', (e) => {
-            e.stopPropagation();
-            shopCart.addItem(item);
-        });
-        
-        // View item details when clicked
-        itemEl.addEventListener('click', () => {
-            // In future, show item details modal here
-            console.log('View item details:', item);
-        });
-        
-        shopItemsContainer.appendChild(itemEl);
-    });
 }
 
 // Interaction System

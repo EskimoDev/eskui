@@ -41,5 +41,6 @@ files {
     'html/interaction.html',
     'html/styles.css',
     'html/script.js',
-    'html/menus.js'
+    'html/menus.js',
+    'html/shops.js'
 } 
