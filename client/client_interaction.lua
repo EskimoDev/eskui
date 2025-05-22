@@ -5,6 +5,7 @@ local isInteractionShowing = false
 local nearbyInteractions = {}
 local interactionThreadActive = false
 local isAnyUIVisible = false -- Flag to track if any UI is currently visible
+local isInitialized = false
 
 -- Access darkMode variable from client.lua
 local darkMode = false
@@ -62,22 +63,43 @@ end)
 
 -- Initialize the interaction prompt system
 Citizen.CreateThread(function()
+    -- Wait a moment for everything to load
+    Citizen.Wait(1000)
+    
     -- Wait for framework to initialize
-    while not Framework.IsInitialized() do
-        Citizen.Wait(100)
-    end
-    
-    -- Load the interaction prompt UI
-    interactionNUI = LoadResourceFile(GetCurrentResourceName(), "html/interaction.html")
-    
-    -- Start checking for nearby interactions
-    CheckNearbyInteractions()
+    Framework.WaitForInitialization(function()
+        isInitialized = true
+        
+        -- Load the interaction prompt UI
+        interactionNUI = LoadResourceFile(GetCurrentResourceName(), "html/interaction.html")
+        
+        -- Start checking for nearby interactions
+        CheckNearbyInteractions()
+        
+        -- Register shop interactions with a delay to ensure everything is loaded
+        Citizen.SetTimeout(1000, function()
+            InteractionPrompt.RegisterShops()
+            if Config.Debug then
+                print("^2[ESKUI] Registered shop interactions after framework initialization^7")
+            end
+        end)
+        
+        if Config.Debug then
+            print("^2[ESKUI] Interaction system initialized after framework ready^7")
+        end
+    end)
 end)
 
 -- Global key listener for interaction key
 Citizen.CreateThread(function()
     while true do
         Citizen.Wait(0)
+        
+        -- Skip if not initialized
+        if not isInitialized then
+            Citizen.Wait(500)
+            goto continue
+        end
         
         -- Check if the interaction key is pressed
         if IsControlJustPressed(0, Config.Interaction.key) then
@@ -94,6 +116,8 @@ Citizen.CreateThread(function()
                 end)
             end
         end
+        
+        ::continue::
     end
 end)
 
@@ -159,6 +183,14 @@ end
 
 -- Register a new interaction zone
 function InteractionPrompt.Register(id, coords, radius, config, action)
+    -- Skip if not initialized
+    if not isInitialized then
+        if Config.Debug then
+            print("^3[ESKUI] Cannot register interaction - system not initialized yet^7")
+        end
+        return nil
+    end
+    
     -- Handle arrays of coordinates
     if type(coords[1]) == "table" or type(coords[1]) == "vector3" then
         for _, coord in ipairs(coords) do
@@ -194,8 +226,23 @@ end
 
 -- Create interactions for all shop locations
 function InteractionPrompt.RegisterShops()
-    if not Config.Shops then return end
+    if not Config.Shops then 
+        if Config.Debug then
+            print("^3[ESKUI] Cannot register shop interactions - Config.Shops is nil^7")
+        end
+        return 
+    end
     
+    -- Clear any existing shop interactions first
+    local newInteractions = {}
+    for _, interaction in ipairs(nearbyInteractions) do
+        if not string.match(interaction.id, "^shop_") then
+            table.insert(newInteractions, interaction)
+        end
+    end
+    nearbyInteractions = newInteractions
+    
+    -- Register all shops
     for shopIndex, shop in ipairs(Config.Shops) do
         local shopConfig = {
             textLeft = "Press",
@@ -214,6 +261,10 @@ function InteractionPrompt.RegisterShops()
             end
         )
     end
+    
+    if Config.Debug then
+        print("^2[ESKUI] Registered " .. #Config.Shops .. " shop interactions^7")
+    end
 end
 
 -- Check for nearby interactions continuously
@@ -221,6 +272,12 @@ function CheckNearbyInteractions()
     Citizen.CreateThread(function()
         while true do
             Citizen.Wait(500) -- Check every half second
+            
+            -- Skip if not initialized
+            if not isInitialized then
+                Citizen.Wait(1000)
+                goto continue
+            end
             
             local playerPed = PlayerPedId()
             local playerCoords = GetEntityCoords(playerPed)
@@ -243,6 +300,8 @@ function CheckNearbyInteractions()
             elseif not nearestInteraction and isInteractionShowing then
                 InteractionPrompt.Hide()
             end
+            
+            ::continue::
         end
     end)
 end
@@ -328,6 +387,14 @@ end
 
 -- Check if player is near an interaction and show prompt if needed
 function InteractionPrompt.CheckForNearbyAndShow()
+    -- Skip if not initialized
+    if not isInitialized then
+        if Config.Debug then
+            print("^3[ESKUI] Cannot check for nearby interactions - system not initialized^7")
+        end
+        return
+    end
+    
     -- Wait a short moment to ensure other operations complete
     Citizen.SetTimeout(100, function()
         -- Don't show the interaction if there's already an active interaction thread
@@ -397,12 +464,14 @@ exports('CheckForNearbyAndShow', InteractionPrompt.CheckForNearbyAndShow)
 RegisterNetEvent('onClientResourceStart')
 AddEventHandler('onClientResourceStart', function(resourceName)
     if resourceName == GetCurrentResourceName() then
-        -- Register shop interactions
-        Citizen.SetTimeout(2000, function()
-            InteractionPrompt.RegisterShops()
-            if Config.Debug then
-                print("^2[ESKUI] Registered shop interactions on resource start^7")
-            end
+        -- Register shop interactions after framework initialization
+        Framework.WaitForInitialization(function()
+            Citizen.SetTimeout(2000, function()
+                InteractionPrompt.RegisterShops()
+                if Config.Debug then
+                    print("^2[ESKUI] Registered shop interactions on resource start^7")
+                end
+            end)
         end)
     end
 end)

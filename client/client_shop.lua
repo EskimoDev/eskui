@@ -2,19 +2,27 @@
 local CurrentShop = nil
 local ShopBlips = {}
 local nearbyShops = {}
+local isInitialized = false
 
 -- Wait for framework to initialize
 Citizen.CreateThread(function()
-    -- Wait for framework to initialize
-    while not Framework.IsInitialized() do
-        Citizen.Wait(100)
-    end
+    -- Wait for resource to fully start
+    Citizen.Wait(1000)
     
-    -- Create shop blips
-    CreateShopBlips()
-    
-    -- Start shop location checking
-    CheckNearbyShops()
+    -- Initialize the shops module once the framework is ready
+    Framework.WaitForInitialization(function()
+        isInitialized = true
+        
+        -- Create shop blips
+        CreateShopBlips()
+        
+        -- Start shop location checking
+        CheckNearbyShops()
+        
+        if Config.Debug then
+            print("^2[ESKUI] Shop system initialized after framework ready^7")
+        end
+    end)
 end)
 
 -- Result handler for shop purchases
@@ -89,6 +97,12 @@ function CheckNearbyShops()
         while true do
             Citizen.Wait(1000) -- Check every second
             
+            -- Skip processing if not initialized
+            if not isInitialized then
+                Citizen.Wait(1000)
+                goto continue
+            end
+            
             local playerPed = PlayerPedId()
             local playerCoords = GetEntityCoords(playerPed)
             local previousShopCount = #nearbyShops
@@ -102,7 +116,7 @@ function CheckNearbyShops()
                     print("^1[ESKUI] ERROR: Config.Shops is nil in CheckNearbyShops^7")
                 end
                 Citizen.Wait(5000) -- Wait longer before checking again
-                return
+                goto continue
             end
             
             for shopIndex, shop in ipairs(Config.Shops) do
@@ -129,6 +143,8 @@ function CheckNearbyShops()
             if previousShopCount > 0 and #nearbyShops == 0 then
                 DrawingMarkers = false
             end
+            
+            ::continue::
         end
     end)
 end
@@ -206,16 +222,28 @@ end
 
 -- Open a shop
 function OpenShop(shop)
+    -- Ensure framework is initialized
+    if not Framework.IsInitialized() then
+        Framework.ShowNotification("Shop system is not ready yet. Please try again in a moment.", "error")
+        
+        -- Try to initialize the framework and retry opening the shop
+        Framework.WaitForInitialization(function()
+            -- Retry opening the shop after framework is initialized
+            OpenShop(shop)
+        end)
+        return
+    end
+    
     -- Set current shop
     CurrentShop = shop
     
     if Config.Debug then
         print("^2[ESKUI DEBUG] Opening shop: " .. shop.name .. "^7")
-        print("^2[ESKUI DEBUG] Using framework: " .. Config.Framework .. "^7")
+        print("^2[ESKUI DEBUG] Using framework: " .. Framework.GetFrameworkName() .. "^7")
     end
     
     -- Fetch shop items (using callback for ESX/QBCore or event for standalone)
-    if Config.Framework == 'esx' then
+    if Framework.GetFrameworkName() == 'esx' then
         if Config.Debug then
             print("^2[ESKUI DEBUG] Triggering ESX server callback for shop items^7")
         end
@@ -245,7 +273,7 @@ function OpenShop(shop)
             
             ShowShopUI(shopData)
         end, shop.name)
-    elseif Config.Framework == 'qbcore' then
+    elseif Framework.GetFrameworkName() == 'qbcore' then
         QBCore.Functions.TriggerCallback('eskui:getShopItems', function(shopData)
             if not shopData then
                 Framework.ShowNotification("This shop is currently unavailable", "error")
@@ -341,6 +369,12 @@ end
 if Config.Debug then
     -- Command to open nearest shop
     RegisterCommand('openshop', function()
+        -- Make sure framework is initialized first
+        if not Framework.IsInitialized() then
+            Framework.ShowNotification("Framework not initialized yet. Please wait a moment.", "warning")
+            return
+        end
+        
         if #nearbyShops > 0 then
             local nearestShop = nearbyShops[1]
             for _, shopData in ipairs(nearbyShops) do
@@ -357,6 +391,12 @@ if Config.Debug then
     
     -- Command to open a specific shop by index
     RegisterCommand('shop', function(source, args)
+        -- Make sure framework is initialized first
+        if not Framework.IsInitialized() then
+            Framework.ShowNotification("Framework not initialized yet. Please wait a moment.", "warning")
+            return
+        end
+        
         -- Verify Config.Shops exists to prevent nil error
         if Config.Shops == nil then
             Framework.ShowNotification("Config.Shops is nil. Make sure cfg/shops.lua is loaded correctly.", "error")
@@ -376,7 +416,7 @@ if Config.Debug then
         -- Check framework initialization
         local frameworkStatus = Framework.IsInitialized() and "Initialized" or "Not initialized"
         print("^2[ESKUI DEBUG] Framework status: " .. frameworkStatus .. "^7")
-        print("^2[ESKUI DEBUG] Current framework: " .. (Config.Framework or "nil") .. "^7")
+        print("^2[ESKUI DEBUG] Current framework: " .. (Framework.GetFrameworkName() or "nil") .. "^7")
         
         -- Check Config.Shops
         if Config.Shops then
@@ -488,7 +528,7 @@ if Config.Debug then
     
     -- Test ESX shop callback directly
     RegisterCommand('testesxshop', function()
-        if Config.Framework ~= 'esx' then
+        if Framework.GetFrameworkName() ~= 'esx' then
             print("^3[ESKUI DEBUG] This command is only for ESX framework mode^7")
             return
         end

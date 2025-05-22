@@ -2,81 +2,297 @@
 
 local ESX = nil
 local QBCore = nil
+local FrameworkInitialized = false
+local FrameworkInitializationInProgress = false
 
--- Initialize the framework
-Citizen.CreateThread(function()
+-- Listen for client-side framework initialization
+RegisterNetEvent('eskui:initializingFramework')
+AddEventHandler('eskui:initializingFramework', function(frameworkName)
+    -- This event is triggered by the client when it starts initializing a framework
+    if Config.Debug then
+        print("^3[ESKUI] Client is initializing " .. frameworkName .. " framework^7")
+    end
+end)
+
+-- Initialize the framework with improved coordination
+function InitializeFramework()
+    -- Prevent multiple initialization attempts running simultaneously
+    if FrameworkInitializationInProgress then
+        return
+    end
+    
+    FrameworkInitializationInProgress = true
+    
     -- Wait to make sure config is fully loaded
-    Citizen.Wait(1000)
+    Citizen.Wait(500)
     
     -- Ensure Config table exists
     if Config == nil then
         print("^1[ESKUI] ERROR: Config is nil in server_shop.lua. Waiting for Config to be available...^7")
         
-        -- Wait longer and try again
+        -- Wait longer and try again with exponential backoff
+        local waitTime = 500
+        local maxWaitTime = 2000
         local attempts = 0
-        while Config == nil and attempts < 30 do
-            Citizen.Wait(1000)
+        local maxAttempts = 20
+        
+        while Config == nil and attempts < maxAttempts do
+            waitTime = math.min(waitTime * 1.5, maxWaitTime)
+            Citizen.Wait(waitTime)
             attempts = attempts + 1
+            
+            if attempts % 5 == 0 then
+                print("^3[ESKUI] Still waiting for Config to be available... (Attempt " .. attempts .. "/" .. maxAttempts .. ")^7")
+            end
         end
         
         if Config == nil then
-            print("^1[ESKUI] ERROR: Config is still nil after waiting 30 seconds. Please check your config.lua file.^7")
-            return
+            print("^1[ESKUI] ERROR: Config is still nil after multiple attempts. Please check your config.lua file.^7")
+            FrameworkInitializationInProgress = false
+            return false
         else
-            print("[ESKUI] Config is now available after waiting")
+            print("^2[ESKUI] Config is now available after waiting^7")
         end
     end
     
+    -- Check if framework is specified
+    if not Config.Framework then
+        print("^1[ESKUI] ERROR: Config.Framework is not specified in config.lua^7")
+        FrameworkInitializationInProgress = false
+        return false
+    end
+    
     if Config.Framework == 'esx' then
-        -- Modern ESX initialization using exports
-        ESX = exports['es_extended']:getSharedObject()
+        -- Try to get ESX
+        local esxSuccess, esxResult = pcall(function()
+            return exports['es_extended']:getSharedObject()
+        end)
         
-        if ESX then
-            if Config.Debug then
-                print("[ESKUI] ESX Framework initialized on server")
-            end
+        if esxSuccess and esxResult then
+            ESX = esxResult
+            FrameworkInitialized = true
+            FrameworkInitializationInProgress = false
+            print("^2[ESKUI] ESX Framework initialized on server^7")
+            
+            -- Set up server callbacks
+            SetupESXCallbacks()
+            return true
         else
-            print("^1[ESKUI] ERROR: Failed to get ESX shared object, trying again in 5 seconds...^7")
-            
-            -- Try again after a delay
-            Citizen.Wait(5000)
-            ESX = exports['es_extended']:getSharedObject()
-            
-            if ESX then
-                print("[ESKUI] ESX Framework initialized on server after retry")
-            else
-                print("^1[ESKUI] ERROR: Failed to get ESX shared object after retry^7")
-            end
+            print("^3[ESKUI] ESX shared object not available yet, will retry later^7")
+            FrameworkInitializationInProgress = false
+            return false
         end
-        
     elseif Config.Framework == 'qbcore' then
-        QBCore = exports['qb-core']:GetCoreObject()
+        -- Try to get QBCore
+        local qbSuccess, qbResult = pcall(function()
+            return exports['qb-core']:GetCoreObject()
+        end)
         
-        if QBCore then
-            if Config.Debug then
-                print("[ESKUI] QBCore Framework initialized on server")
-            end
+        if qbSuccess and qbResult then
+            QBCore = qbResult
+            FrameworkInitialized = true
+            FrameworkInitializationInProgress = false
+            print("^2[ESKUI] QBCore Framework initialized on server^7")
+            
+            -- Set up server callbacks
+            SetupQBCoreCallbacks()
+            return true
         else
-            print("^1[ESKUI] ERROR: Failed to get QBCore object, trying again in 5 seconds...^7")
-            
-            -- Try again after a delay
-            Citizen.Wait(5000)
-            QBCore = exports['qb-core']:GetCoreObject()
-            
-            if QBCore then
-                print("[ESKUI] QBCore Framework initialized on server after retry")
-            else
-                print("^1[ESKUI] ERROR: Failed to get QBCore object after retry^7")
-            end
+            print("^3[ESKUI] QBCore object not available yet, will retry later^7")
+            FrameworkInitializationInProgress = false
+            return false
         end
     elseif Config.Framework == 'standalone' then
-        if Config.Debug then
-            print("[ESKUI] Standalone mode initialized on server")
-        end
+        FrameworkInitialized = true
+        FrameworkInitializationInProgress = false
+        print("^2[ESKUI] Standalone mode initialized on server^7")
+        
+        -- Set up standalone callbacks
+        SetupStandaloneCallbacks()
+        return true
     else
-        print("^1[ESKUI] ERROR: Invalid framework selected in config.lua^7")
+        print("^1[ESKUI] ERROR: Invalid framework '" .. Config.Framework .. "' selected in config.lua^7")
+        FrameworkInitializationInProgress = false
+        return false
     end
-end)
+end
+
+-- Set up ESX callbacks
+function SetupESXCallbacks()
+    if not ESX then
+        print("^1[ESKUI] ERROR: Cannot set up ESX callbacks - ESX is nil^7")
+        return
+    end
+    
+    ESX.RegisterServerCallback('eskui:getShopItems', function(source, cb, shopName)
+        local shop = Config.GetShop(shopName)
+        
+        if not shop then
+            print("^1[ESKUI] ERROR: Shop not found: " .. (shopName or "nil") .. "^7")
+            cb(false)
+            return
+        end
+        
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Getting items for shop: " .. shopName .. ", found: " .. tostring(shop ~= nil) .. "^7")
+            print("^2[ESKUI DEBUG] Shop has " .. #shop.items .. " items^7")
+        end
+        
+        -- Format items based on framework
+        local formattedItems = {}
+        for i, item in ipairs(shop.items) do
+            -- Add safety check for inventory property
+            if not item.inventory then
+                if Config.Debug then
+                    print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
+                end
+                
+                -- Create a default inventory property if missing
+                item.inventory = {
+                    esx = item.id,
+                    qbcore = item.id
+                }
+            end
+            
+            local inventoryName = item.inventory.esx or item.id
+            
+            if Config.Debug then
+                print("^2[ESKUI DEBUG] Adding item: " .. item.name .. " with inventory name: " .. inventoryName .. "^7")
+            end
+            
+            -- Add item
+            table.insert(formattedItems, {
+                id = item.id,
+                name = item.name,
+                price = item.price,
+                category = item.category,
+                icon = item.icon,
+                description = item.description,
+                inventoryName = inventoryName,
+                weapon = item.weapon or false
+            })
+        end
+        
+        if Config.Debug then
+            print("^2[ESKUI DEBUG] Formatted " .. #formattedItems .. " items for shop: " .. shopName .. "^7")
+        end
+        
+        cb({
+            name = shop.name,
+            categories = shop.categories,
+            items = formattedItems
+        })
+    end)
+    
+    print("^2[ESKUI] ESX callbacks registered successfully^7")
+end
+
+-- Set up QBCore callbacks
+function SetupQBCoreCallbacks()
+    if not QBCore then
+        print("^1[ESKUI] ERROR: Cannot set up QBCore callbacks - QBCore is nil^7")
+        return
+    end
+    
+    QBCore.Functions.CreateCallback('eskui:getShopItems', function(source, cb, shopName)
+        local shop = Config.GetShop(shopName)
+        
+        if not shop then
+            cb(false)
+            return
+        end
+        
+        -- Format items based on framework
+        local formattedItems = {}
+        for i, item in ipairs(shop.items) do
+            -- Add safety check for inventory property
+            if not item.inventory then
+                if Config.Debug then
+                    print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
+                end
+                
+                -- Create a default inventory property if missing
+                item.inventory = {
+                    esx = item.id,
+                    qbcore = item.id
+                }
+            end
+            
+            local inventoryName = item.inventory.qbcore or item.id
+            
+            -- Add item
+            table.insert(formattedItems, {
+                id = item.id,
+                name = item.name,
+                price = item.price,
+                category = item.category,
+                icon = item.icon,
+                description = item.description,
+                inventoryName = inventoryName,
+                weapon = item.weapon or false
+            })
+        end
+        
+        cb({
+            name = shop.name,
+            categories = shop.categories,
+            items = formattedItems
+        })
+    end)
+    
+    print("^2[ESKUI] QBCore callbacks registered successfully^7")
+end
+
+-- Set up standalone callbacks (using events)
+function SetupStandaloneCallbacks()
+    -- Standalone mode uses events instead of callbacks
+    RegisterNetEvent('eskui:getShopItems')
+    AddEventHandler('eskui:getShopItems', function(shopName)
+        local source = source
+        local shop = Config.GetShop(shopName)
+        
+        if not shop then
+            TriggerClientEvent('eskui:receiveShopItems', source, false)
+            return
+        end
+        
+        -- Format items (standalone uses the item ID directly)
+        local formattedItems = {}
+        for i, item in ipairs(shop.items) do
+            -- Add safety check for inventory property
+            if not item.inventory then
+                if Config.Debug then
+                    print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
+                end
+                
+                -- Create a default inventory property if missing
+                item.inventory = {
+                    esx = item.id,
+                    qbcore = item.id
+                }
+            end
+            
+            table.insert(formattedItems, {
+                id = item.id or "unknown_" .. i,
+                name = item.name or "Unknown Item " .. i,
+                price = item.price or 0,
+                category = item.category or "misc",
+                icon = item.icon or "📦",
+                description = item.description or "No description available",
+                inventoryName = item.id,
+                weapon = item.weapon or false
+            })
+        end
+        
+        TriggerClientEvent('eskui:receiveShopItems', source, {
+            name = shop.name,
+            categories = shop.categories,
+            items = formattedItems
+        })
+    end)
+    
+    print("^2[ESKUI] Standalone callbacks registered successfully^7")
+end
 
 -- Helper function to get item label for ESX
 local function GetESXItemLabel(itemName)
@@ -118,6 +334,15 @@ end
 RegisterServerEvent('eskui:processShopPurchase')
 AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, paymentMethod)
     local source = source
+    
+    -- Make sure framework is initialized
+    if not FrameworkInitialized then
+        if not InitializeFramework() then
+            TriggerClientEvent('eskui:purchaseResult', source, false, "Shop system is not ready yet. Please try again later.")
+            return
+        end
+    end
+    
     local xPlayer, Player
     
     -- Check framework
@@ -276,234 +501,45 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
     end
 end)
 
--- Get the shop items for a specific store
--- Fixed server callback registration to use framework-specific methods
-if Config.Framework == 'esx' then
-    if ESX then
-        ESX.RegisterServerCallback('eskui:getShopItems', function(source, cb, shopName)
-            local shop = Config.GetShop(shopName)
-            
-            if not shop then
-                print("^1[ESKUI] ERROR: Shop not found: " .. (shopName or "nil") .. "^7")
-                cb(false)
-                return
-            end
-            
-            if Config.Debug then
-                print("^2[ESKUI DEBUG] Getting items for shop: " .. shopName .. ", found: " .. tostring(shop ~= nil) .. "^7")
-                print("^2[ESKUI DEBUG] Shop has " .. #shop.items .. " items^7")
-            end
-            
-            -- Format items based on framework
-            local formattedItems = {}
-            for i, item in ipairs(shop.items) do
-                -- Add safety check for inventory property
-                if not item.inventory then
-                    if Config.Debug then
-                        print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
-                    end
-                    
-                    -- Create a default inventory property if missing
-                    item.inventory = {
-                        esx = item.id,
-                        qbcore = item.id
-                    }
-                end
-                
-                local inventoryName = item.inventory.esx or item.id
-                
-                if Config.Debug then
-                    print("^2[ESKUI DEBUG] Adding item: " .. item.name .. " with inventory name: " .. inventoryName .. "^7")
-                end
-                
-                -- Add item
-                table.insert(formattedItems, {
-                    id = item.id,
-                    name = item.name,
-                    price = item.price,
-                    category = item.category,
-                    icon = item.icon,
-                    description = item.description,
-                    inventoryName = inventoryName,
-                    weapon = item.weapon or false
-                })
-            end
-            
-            if Config.Debug then
-                print("^2[ESKUI DEBUG] Formatted " .. #formattedItems .. " items for shop: " .. shopName .. "^7")
-            end
-            
-            cb({
-                name = shop.name,
-                categories = shop.categories,
-                items = formattedItems
-            })
-        end)
-    else
-        print("^1[ESKUI] ERROR: ESX is not initialized yet, trying again in 5 seconds^7")
-        -- Try to initialize ESX again after a delay
+-- Start the initialization process
+Citizen.CreateThread(function()
+    -- Delay initialization slightly to ensure everything is loaded
+    Citizen.Wait(1000)
+    
+    -- First initialization attempt
+    if not InitializeFramework() then
+        -- If first attempt fails, set up a retry mechanism with exponential backoff
+        local initialWaitTime = 1000
+        local maxWaitTime = 5000
+        local waitTime = initialWaitTime
+        local attempts = 1
+        local maxAttempts = 10
+        
         Citizen.CreateThread(function()
-            Citizen.Wait(5000)
-            ESX = exports['es_extended']:getSharedObject()
-            if ESX then
-                print("[ESKUI] ESX successfully initialized after retry")
+            while not FrameworkInitialized and attempts < maxAttempts do
+                -- Wait with increasing delay between attempts
+                Citizen.Wait(waitTime)
                 
-                -- Register the callback after successful initialization
-                ESX.RegisterServerCallback('eskui:getShopItems', function(source, cb, shopName)
-                    local shop = Config.GetShop(shopName)
-                    
-                    if not shop then
-                        print("^1[ESKUI] ERROR: Shop not found: " .. (shopName or "nil") .. "^7")
-                        cb(false)
-                        return
-                    end
-                    
-                    -- Format items based on framework
-                    local formattedItems = {}
-                    for i, item in ipairs(shop.items) do
-                        -- Add safety check for inventory property
-                        if not item.inventory then
-                            if Config.Debug then
-                                print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
-                            end
-                            
-                            -- Create a default inventory property if missing
-                            item.inventory = {
-                                esx = item.id,
-                                qbcore = item.id
-                            }
-                        end
-                        
-                        local inventoryName = item.inventory.esx or item.id
-                        
-                        -- Add item
-                        table.insert(formattedItems, {
-                            id = item.id,
-                            name = item.name,
-                            price = item.price,
-                            category = item.category,
-                            icon = item.icon,
-                            description = item.description,
-                            inventoryName = inventoryName,
-                            weapon = item.weapon or false
-                        })
-                    end
-                    
-                    cb({
-                        name = shop.name,
-                        categories = shop.categories,
-                        items = formattedItems
-                    })
-                end)
-            else
-                print("^1[ESKUI] ERROR: ESX could not be initialized after retry^7")
+                -- Increase wait time (capped at maxWaitTime)
+                waitTime = math.min(waitTime * 1.5, maxWaitTime)
+                attempts = attempts + 1
+                
+                -- Try to initialize again
+                if InitializeFramework() then
+                    print("^2[ESKUI] Framework successfully initialized after " .. attempts .. " attempts^7")
+                    break
+                else
+                    print("^3[ESKUI] Framework initialization attempt " .. attempts .. "/" .. maxAttempts .. " failed, trying again in " .. math.floor(waitTime/1000) .. " seconds^7")
+                end
+            end
+            
+            if not FrameworkInitialized then
+                print("^1[ESKUI] WARNING: Framework could not be initialized after " .. maxAttempts .. " attempts. Some features may not work correctly.^7")
+                print("^1[ESKUI] Please check if the required framework (" .. (Config and Config.Framework or "unknown") .. ") is running and properly configured.^7")
             end
         end)
     end
-elseif Config.Framework == 'qbcore' then
-    if QBCore then
-        QBCore.Functions.CreateCallback('eskui:getShopItems', function(source, cb, shopName)
-            local shop = Config.GetShop(shopName)
-            
-            if not shop then
-                cb(false)
-                return
-            end
-            
-            -- Format items based on framework
-            local formattedItems = {}
-            for i, item in ipairs(shop.items) do
-                -- Add safety check for inventory property
-                if not item.inventory then
-                    if Config.Debug then
-                        print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
-                    end
-                    
-                    -- Create a default inventory property if missing
-                    item.inventory = {
-                        esx = item.id,
-                        qbcore = item.id
-                    }
-                end
-                
-                local inventoryName = item.inventory.qbcore or item.id
-                
-                -- Add item
-                table.insert(formattedItems, {
-                    id = item.id,
-                    name = item.name,
-                    price = item.price,
-                    category = item.category,
-                    icon = item.icon,
-                    description = item.description,
-                    inventoryName = inventoryName,
-                    weapon = item.weapon or false
-                })
-            end
-            
-            cb({
-                name = shop.name,
-                categories = shop.categories,
-                items = formattedItems
-            })
-        end)
-    else
-        print("^1[ESKUI] ERROR: QBCore is not initialized yet, trying again in 5 seconds^7")
-        -- Try to initialize QBCore again after a delay
-        Citizen.CreateThread(function()
-            Citizen.Wait(5000)
-            QBCore = exports['qb-core']:GetCoreObject()
-            if QBCore then
-                print("[ESKUI] QBCore successfully initialized after retry")
-            else
-                print("^1[ESKUI] ERROR: QBCore could not be initialized after retry^7")
-            end
-        end)
-    end
-else
-    -- Standalone mode uses events instead of callbacks
-    RegisterNetEvent('eskui:getShopItems')
-    AddEventHandler('eskui:getShopItems', function(shopName)
-        local source = source
-        local shop = Config.GetShop(shopName)
-        
-        if not shop then
-            TriggerClientEvent('eskui:receiveShopItems', source, false)
-            return
-        end
-        
-        -- Format items (standalone uses the item ID directly)
-        local formattedItems = {}
-        for i, item in ipairs(shop.items) do
-            -- Add safety check for inventory property
-            if not item.inventory then
-                if Config.Debug then
-                    print("^3[ESKUI WARNING] Item #" .. i .. " '" .. item.id .. "' is missing inventory property^7")
-                end
-                
-                -- Create a default inventory property if missing
-                item.inventory = {
-                    esx = item.id,
-                    qbcore = item.id
-                }
-            end
-            
-            table.insert(formattedItems, {
-                id = item.id or "unknown_" .. i,
-                name = item.name or "Unknown Item " .. i,
-                price = item.price or 0,
-                category = item.category or "misc",
-                icon = item.icon or "📦",
-                description = item.description or "No description available",
-                inventoryName = item.id,
-                weapon = item.weapon or false
-            })
-        end
-        
-        TriggerClientEvent('eskui:receiveShopItems', source, {
-            name = shop.name,
-            categories = shop.categories,
-            items = formattedItems
-        })
-    end)
-end 
+end)
+
+-- Print startup message
+print("^2[ESKUI] Server module initialized^7") 
