@@ -720,12 +720,26 @@ const shopEventHandlers = {
             this.paymentFlow.processingTimeout = null;
         }
         
-        // Reset payment flow state
+        // Reset payment flow state completely
         this.paymentFlow.currentScreen = 'shop';
         this.paymentFlow.selectedMethod = null;
+        this.paymentFlow.purchaseComplete = false;
         
-        // Clear stored shop main content
+        // Clear cart and shop data
+        state.cart = [];
+        
+        // Clear stored shop main content to force rebuild on next open
         this.originalShopMain = null;
+        
+        // Reset UI elements if they exist (without errors if not)
+        try {
+            const shopMain = document.querySelector('.shop-main');
+            if (shopMain) {
+                shopMain.innerHTML = `<div class="shop-items-grid" id="shop-items"></div>`;
+            }
+        } catch (e) {
+            console.log("Couldn't reset shop UI elements:", e);
+        }
         
         // Close UI and reset NUI focus - this is the ONLY place
         // where we should be closing the UI and resetting focus
