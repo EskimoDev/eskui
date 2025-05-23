@@ -8,8 +8,8 @@ Config.Debug = true -- Set to false in production
 
 -- Money settings
 Config.MoneyTypes = {
-    cash = "money",  -- ESX cash account name (can be "money" or direct money property)
-    bank = "bank"    -- ESX bank account name
+    cash = "cash",
+    bank = "bank"
 }
 Config.DefaultMoneyType = Config.MoneyTypes.cash -- Which account to use by default
 

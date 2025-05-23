@@ -302,49 +302,14 @@ function Framework.GetPlayerMoney(account)
     account = account or Config.DefaultMoneyType
     
     if FrameworkName == 'esx' then
-        local playerData = ESX.GetPlayerData()
-        
-        if account == Config.MoneyTypes.cash or account == "money" then
-            -- For cash, prioritize accounts array first (where the real money is usually stored)
-            local accounts = playerData.accounts
-            if accounts then
-                for i = 1, #accounts do
-                    if accounts[i].name == "money" then
-                        if Config.Debug then
-                            print("^2[ESKUI DEBUG] GetPlayerMoney: Using accounts array for 'money' account: $" .. accounts[i].money .. "^7")
-                        end
-                        return accounts[i].money
-                    end
-                end
-            end
-            
-            -- Fallback: try direct money property if accounts array doesn't have it
-            if playerData.money and playerData.money > 0 then
-                if Config.Debug then
-                    print("^2[ESKUI DEBUG] GetPlayerMoney: Using direct money property: $" .. playerData.money .. "^7")
-                end
-                return playerData.money
-            end
-            
-            if Config.Debug then
-                print("^3[ESKUI DEBUG] GetPlayerMoney: No money found for account 'money'^7")
-            end
+        if account == Config.MoneyTypes.cash then
+            return ESX.GetPlayerData().money
         else
-            -- For bank and other accounts, look in accounts array
-            local accounts = playerData.accounts
-            if accounts then
-                for i = 1, #accounts do
-                    if accounts[i].name == account then
-                        if Config.Debug then
-                            print("^2[ESKUI DEBUG] GetPlayerMoney: Using accounts array for '" .. account .. "' account: $" .. accounts[i].money .. "^7")
-                        end
-                        return accounts[i].money
-                    end
+            local accounts = ESX.GetPlayerData().accounts
+            for i = 1, #accounts do
+                if accounts[i].name == account then
+                    return accounts[i].money
                 end
-            end
-            
-            if Config.Debug then
-                print("^3[ESKUI DEBUG] GetPlayerMoney: No account found for '" .. account .. "'^7")
             end
         end
     elseif FrameworkName == 'qbcore' then
@@ -421,8 +386,7 @@ function Framework.ProcessCheckout(data, paymentMethod)
     if Config.Debug then
         print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT STARTED =========^7")
         print("^5[ESKUI DEBUG] Processing checkout in Framework.ProcessCheckout^7")
-        print("^5[ESKUI DEBUG] Payment method from parameter: " .. tostring(paymentMethod) .. "^7")
-        print("^5[ESKUI DEBUG] Payment method from data: " .. tostring(data.paymentMethod) .. "^7")
+        print("^5[ESKUI DEBUG] Payment method: " .. tostring(paymentMethod) .. "^7")
     end
     
     -- Add a lock to prevent duplicate processing
@@ -445,12 +409,7 @@ function Framework.ProcessCheckout(data, paymentMethod)
         end
     end)
     
-    -- Use payment method from data if available, otherwise use parameter or default
-    local selectedPaymentMethod = data.paymentMethod or paymentMethod or Config.DefaultMoneyType
-    
-    if Config.Debug then
-        print("^5[ESKUI DEBUG] Final payment method: " .. tostring(selectedPaymentMethod) .. "^7")
-    end
+    paymentMethod = paymentMethod or Config.DefaultMoneyType
     
     -- Get total price
     local totalPrice = data.total or 0
@@ -464,22 +423,19 @@ function Framework.ProcessCheckout(data, paymentMethod)
     end
     
     -- Check if player can afford
-    if not Framework.CanPlayerAfford(totalPrice, selectedPaymentMethod) then
+    if not Framework.CanPlayerAfford(totalPrice, paymentMethod) then
         if Config.Debug then
             print("^5[ESKUI DEBUG] Player cannot afford purchase of $" .. totalPrice .. "^7")
-            print("^5[ESKUI DEBUG] Player money (" .. selectedPaymentMethod .. "): $" .. Framework.GetPlayerMoney(selectedPaymentMethod) .. "^7")
+            print("^5[ESKUI DEBUG] Player money: $" .. Framework.GetPlayerMoney(paymentMethod) .. "^7")
             print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED =========^7")
         end
         _G.purchaseLock = false
-        
-        -- Create more descriptive error message
-        local accountName = selectedPaymentMethod == "bank" and "bank account" or "cash"
-        return false, "You don't have enough money in your " .. accountName .. " ($" .. Framework.GetPlayerMoney(selectedPaymentMethod) .. " available, $" .. totalPrice .. " required)"
+        return false, "You cannot afford this purchase"
     end
     
     if Config.Debug then
         print("^5[ESKUI DEBUG] Player can afford purchase ($" .. totalPrice .. ")^7")
-        print("^5[ESKUI DEBUG] Player has $" .. Framework.GetPlayerMoney(selectedPaymentMethod) .. " in " .. selectedPaymentMethod .. "^7")
+        print("^5[ESKUI DEBUG] Player has $" .. Framework.GetPlayerMoney(paymentMethod) .. "^7")
         print("^5[ESKUI DEBUG] Triggering server event 'eskui:processShopPurchase'^7")
         print("^5[ESKUI DEBUG] Number of items: " .. #data.items .. "^7")
         
@@ -492,7 +448,7 @@ function Framework.ProcessCheckout(data, paymentMethod)
     end
     
     -- Send server event for processing
-    TriggerServerEvent('eskui:processShopPurchase', data.items, totalPrice, selectedPaymentMethod)
+    TriggerServerEvent('eskui:processShopPurchase', data.items, totalPrice, paymentMethod)
     
     if Config.Debug then
         print("^5[ESKUI DEBUG] Server event triggered successfully^7")

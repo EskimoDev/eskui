@@ -178,7 +178,6 @@ RegisterCommand('testshop', function()
         if data then
             print('Checkout completed:')
             print('Total: $' .. data.total)
-            print('Payment method: ' .. (data.paymentMethod or 'cash'))
             for i, item in ipairs(data.items) do
                 print(('- %s x%d ($%d each)'):format(item.id, item.quantity, item.price))
             end
@@ -187,7 +186,7 @@ RegisterCommand('testshop', function()
             exports['eskui']:ShowNotification({
                 type = 'success',
                 title = 'Purchase Successful',
-                message = ('You spent $%s on %d items using %s'):format(data.total, #data.items, data.paymentMethod == 'bank' and 'bank account' or 'cash'),
+                message = ('You spent $%s on %d items'):format(data.total, #data.items),
                 duration = 5000
             })
         end
