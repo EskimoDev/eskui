@@ -3,9 +3,18 @@
 
 // Shop event handlers
 const shopEventHandlers = {
+    // Payment flow state
+    paymentFlow: {
+        currentScreen: 'shop', // 'shop', 'payment-method', 'payment-processing', 'payment-success', 'payment-failure'
+        selectedMethod: null,
+        processingTimeout: null,
+        purchaseComplete: false // Track if the current purchase is complete
+    },
+    
     showShop(data) {
         console.log("shopEventHandlers.showShop called", data);
         state.currentUI = 'shop';
+        this.paymentFlow.currentScreen = 'shop';
         ui.show('shopping-ui');
         
         // Set the shop title
@@ -36,16 +45,12 @@ const shopEventHandlers = {
         
         // Add escape handler
         ui.addEscapeHandler(() => {
-            closeUI();
-            // Explicitly send close message to ensure NUI focus is reset
-            sendNUIMessage('close');
+            this.exitShopping();
         });
         
         // Add close button handler
         document.querySelector('#shopping-ui .close-button').onclick = () => {
-            closeUI();
-            // Explicitly send close message to ensure NUI focus is reset
-            sendNUIMessage('close');
+            this.exitShopping();
         };
         
         // Notify that UI is now visible
@@ -200,6 +205,7 @@ const shopEventHandlers = {
     updateCartUI() {
         const container = document.getElementById('shop-cart-items');
         const totalElement = document.getElementById('shop-cart-total-amount');
+        const checkoutBtn = document.getElementById('shop-checkout-btn');
         
         // Clear container
         container.innerHTML = '';
@@ -217,8 +223,16 @@ const shopEventHandlers = {
                 </div>
             `;
             totalElement.textContent = '$0';
+            
+            // Disable checkout button when cart is empty
+            checkoutBtn.disabled = true;
+            checkoutBtn.classList.add('disabled');
             return;
         }
+        
+        // Enable checkout button when cart has items
+        checkoutBtn.disabled = false;
+        checkoutBtn.classList.remove('disabled');
         
         // Add cart items
         state.cart.forEach(item => {
@@ -270,7 +284,10 @@ const shopEventHandlers = {
         }
     },
     
+    // Handle checkout and transition to payment method screen
     checkout() {
+        console.log("Checkout button clicked - refreshing player balances");
+        
         // Check if cart is empty
         if (state.cart.length === 0) {
             notifications.create({
@@ -282,17 +299,440 @@ const shopEventHandlers = {
             return;
         }
         
+        // Clear any running timers before starting a new checkout flow
+        if (this.paymentFlow.processingTimeout) {
+            clearTimeout(this.paymentFlow.processingTimeout);
+            this.paymentFlow.processingTimeout = null;
+        }
+        
+        // Reset payment flow state
+        this.paymentFlow.selectedMethod = null;
+        
+        console.log("Starting payment flow - maintaining NUI focus throughout all screens");
+        
+        // Show the payment method selection screen
+        // This will trigger a fresh server-side balance check
+        // Important: NUI focus remains active during the entire payment flow
+        this.showPaymentMethodScreen();
+    },
+    
+    // New method to show the payment method selection screen
+    showPaymentMethodScreen() {
+        // Update payment flow state
+        this.paymentFlow.currentScreen = 'payment-method';
+        
+        // Get shop main container
+        const shopMain = document.querySelector('.shop-main');
+        
+        // Calculate total
+        const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Store the contents of shopMain before replacing
+        if (!this.originalShopMain) {
+            this.originalShopMain = shopMain.innerHTML;
+        }
+        
+        // Always show payment method UI with loading state
+        shopMain.innerHTML = `
+            <div class="payment-method-screen">
+                <h2>Select Payment Method</h2>
+                <p class="payment-total">Total: $${total.toLocaleString()}</p>
+                
+                <div class="payment-methods">
+                    <button class="payment-method-btn loading" data-method="cash">
+                        <span class="payment-method-icon">💵</span>
+                        <span class="payment-method-label">Cash</span>
+                        <span class="payment-method-balance loading">Loading...</span>
+                    </button>
+                    <button class="payment-method-btn loading" data-method="bank">
+                        <span class="payment-method-icon">🏦</span>
+                        <span class="payment-method-label">Bank</span>
+                        <span class="payment-method-balance loading">Loading...</span>
+                    </button>
+                </div>
+                
+                <div class="payment-actions">
+                    <button class="button cancel" id="payment-cancel-btn">Cancel</button>
+                </div>
+            </div>
+        `;
+        
+        // Update the shop title
+        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Payment Method';
+        
+        // Add event listener for the cancel button
+        document.getElementById('payment-cancel-btn').addEventListener('click', () => {
+            this.returnToShop();
+        });
+        
+        // Always fetch fresh player balances from the client
+        // Never use cached values to ensure balances are current after purchases
+        this.fetchPlayerBalances().then(balances => {
+            // Format balances
+            const cashBalance = balances.cash || 0;
+            const bankBalance = balances.bank || 0;
+            
+            console.log('Fetched updated player balances:', { cash: cashBalance, bank: bankBalance });
+            
+            // Check if player can afford with each payment method
+            const cashDisabled = cashBalance < total;
+            const bankDisabled = bankBalance < total;
+            
+            // Update the UI with actual balances
+            const cashBtn = shopMain.querySelector('.payment-method-btn[data-method="cash"]');
+            const bankBtn = shopMain.querySelector('.payment-method-btn[data-method="bank"]');
+            
+            // Update cash button
+            cashBtn.classList.remove('loading');
+            if (cashDisabled) {
+                cashBtn.classList.add('disabled');
+                cashBtn.innerHTML = `
+                    <span class="payment-method-icon">💵</span>
+                    <span class="payment-method-label">Cash</span>
+                    <span class="payment-method-balance insufficient">$${cashBalance.toLocaleString()}</span>
+                    <span class="payment-method-insufficient">Insufficient Funds</span>
+                `;
+            } else {
+                cashBtn.innerHTML = `
+                    <span class="payment-method-icon">💵</span>
+                    <span class="payment-method-label">Cash</span>
+                    <span class="payment-method-balance">$${cashBalance.toLocaleString()}</span>
+                `;
+                cashBtn.addEventListener('click', () => {
+                    this.selectPaymentMethod('cash');
+                });
+            }
+            
+            // Update bank button
+            bankBtn.classList.remove('loading');
+            if (bankDisabled) {
+                bankBtn.classList.add('disabled');
+                bankBtn.innerHTML = `
+                    <span class="payment-method-icon">🏦</span>
+                    <span class="payment-method-label">Bank</span>
+                    <span class="payment-method-balance insufficient">$${bankBalance.toLocaleString()}</span>
+                    <span class="payment-method-insufficient">Insufficient Funds</span>
+                `;
+            } else {
+                bankBtn.innerHTML = `
+                    <span class="payment-method-icon">🏦</span>
+                    <span class="payment-method-label">Bank</span>
+                    <span class="payment-method-balance">$${bankBalance.toLocaleString()}</span>
+                `;
+                bankBtn.addEventListener('click', () => {
+                    this.selectPaymentMethod('bank');
+                });
+            }
+            
+            // Show notification if player can't afford either method
+            if (cashDisabled && bankDisabled) {
+                notifications.create({
+                    type: 'error',
+                    title: 'Insufficient Funds',
+                    message: 'You cannot afford this purchase with any payment method.',
+                    duration: 5000
+                });
+            }
+        }).catch(error => {
+            console.error('Error fetching player balances:', error);
+            
+            // Show error message and return to shop
+            notifications.create({
+                type: 'error',
+                title: 'Error',
+                message: 'Could not retrieve account balances. Please try again.',
+                duration: 5000
+            });
+            
+            // Go back to shop
+            setTimeout(() => this.returnToShop(), 1000);
+        });
+    },
+    
+    // Helper method to fetch player balances
+    fetchPlayerBalances() {
+        return new Promise((resolve, reject) => {
+            // Add a cache-busting parameter to ensure we get fresh data
+            const cacheBuster = new Date().getTime();
+            
+            fetch(`https://${GetParentResourceName()}/getPlayerBalances`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cacheBuster })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Received player balances:', data);
+                resolve(data);
+            })
+            .catch(error => {
+                console.error('Error fetching player balances:', error);
+                reject(error);
+            });
+        });
+    },
+    
+    // New method to handle payment method selection
+    selectPaymentMethod(method) {
+        console.log(`Payment method selected: ${method} - maintaining NUI focus`);
+        
+        // Store selected method
+        this.paymentFlow.selectedMethod = method;
+        
+        // Show processing screen without closing UI or resetting NUI focus
+        this.showPaymentProcessingScreen();
+    },
+    
+    // New method to show payment processing screen
+    showPaymentProcessingScreen() {
+        // Update payment flow state
+        this.paymentFlow.currentScreen = 'payment-processing';
+        
+        // Get shop main container
+        const shopMain = document.querySelector('.shop-main');
+        
+        // Replace with payment processing screen
+        shopMain.innerHTML = `
+            <div class="payment-processing-screen">
+                <div class="payment-loader"></div>
+                <h2>Processing Payment</h2>
+                <p>Please wait while we process your payment...</p>
+            </div>
+        `;
+        
+        // Update the shop title
+        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Processing Payment';
+        
+        // Process the payment after a short delay (simulating network request)
+        this.paymentFlow.processingTimeout = setTimeout(() => {
+            this.processPayment();
+        }, 2000);
+    },
+    
+    // New method to process payment
+    processPayment() {
         // Calculate total
         const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
         // Prepare checkout data
         const checkoutData = {
             items: state.cart,
-            total: total
+            total: total,
+            paymentMethod: this.paymentFlow.selectedMethod
         };
         
-        // Close UI and send checkout data
-        ui.closeAndSendData('shopping-ui', 'shopCheckout', checkoutData);
+        console.log("Processing payment - maintaining NUI focus");
+        
+        // Always show the processing screen for at least 1.5 seconds
+        // to prevent UI flashing and improve user experience
+        const minProcessingTime = 1500;
+        const startTime = Date.now();
+        
+        // Send checkout data to server WITHOUT closing UI or resetting NUI focus
+        // Use a custom endpoint that doesn't imply closing
+        fetch(`https://${GetParentResourceName()}/shopCheckout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(checkoutData)
+        })
+        .then(() => {
+            // Always show success screen after processing
+            // The server will handle the actual success/failure via notifications
+            // Ensure we've displayed the processing screen for at least the minimum time
+            const elapsed = Date.now() - startTime;
+            const remainingTime = Math.max(0, minProcessingTime - elapsed);
+            
+            console.log(`Payment processed - transitioning to success screen in ${remainingTime}ms`);
+            setTimeout(() => this.showPaymentSuccessScreen(), remainingTime);
+        })
+        .catch(error => {
+            console.error('Error processing payment:', error);
+            
+            // Wait the minimum processing time before showing failure
+            const elapsed = Date.now() - startTime;
+            const remainingTime = Math.max(0, minProcessingTime - elapsed);
+            
+            console.log(`Payment failed - transitioning to failure screen in ${remainingTime}ms`);
+            setTimeout(() => this.showPaymentFailureScreen(), remainingTime);
+        });
+    },
+    
+    // Method to show payment success screen
+    showPaymentSuccessScreen() {
+        // Update payment flow state
+        this.paymentFlow.currentScreen = 'payment-success';
+        
+        // Get shop main container
+        const shopMain = document.querySelector('.shop-main');
+        
+        // Calculate total
+        const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Replace with payment success screen
+        shopMain.innerHTML = `
+            <div class="payment-result-screen payment-success">
+                <div class="payment-result-icon">✅</div>
+                <h2>Payment Successful</h2>
+                <p>Your payment of $${total.toLocaleString()} has been processed successfully.</p>
+                <p>Thank you for your purchase!</p>
+                <div class="payment-actions">
+                    <button class="button submit" id="continue-shopping-btn">Continue Shopping</button>
+                    <button class="button cancel" id="exit-shopping-btn">Exit</button>
+                </div>
+            </div>
+        `;
+        
+        // Update the shop title
+        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Payment Successful';
+        
+        // Add event listeners for buttons
+        document.getElementById('continue-shopping-btn').addEventListener('click', () => {
+            // Clear the cart, this purchase is complete
+            state.cart = [];
+            
+            // Important: The money has been spent, so any cached balance data should be cleared
+            // This ensures that future checkout attempts will fetch fresh balance data
+            this.originalShopMain = null; // Force complete rebuild of shop UI
+            
+            console.log("Payment successful - returning to shop to enable new purchase");
+            
+            // Signal that this purchase is complete
+            this.paymentFlow.purchaseComplete = true;
+            
+            // Return to the shop for a new shopping experience
+            this.returnToShop();
+            
+            // Show success notification
+            notifications.create({
+                type: 'success',
+                title: 'Purchase Complete',
+                message: 'Your purchase was successful!',
+                duration: 3000
+            });
+        });
+        
+        document.getElementById('exit-shopping-btn').addEventListener('click', () => {
+            this.exitShopping();
+        });
+    },
+    
+    // New method to show payment failure screen
+    showPaymentFailureScreen() {
+        // Update payment flow state
+        this.paymentFlow.currentScreen = 'payment-failure';
+        
+        // Get shop main container
+        const shopMain = document.querySelector('.shop-main');
+        
+        // Calculate total
+        const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Replace with payment failure screen
+        shopMain.innerHTML = `
+            <div class="payment-result-screen payment-failure">
+                <div class="payment-result-icon">❌</div>
+                <h2>Payment Failed</h2>
+                <p>We couldn't process your payment of $${total.toLocaleString()}.</p>
+                <p>Reason: Insufficient funds.</p>
+                <div class="payment-actions">
+                    <button class="button submit" id="try-another-method-btn">Try Another Method</button>
+                    <button class="button" id="continue-shopping-failure-btn">Continue Shopping</button>
+                    <button class="button cancel" id="exit-shopping-failure-btn">Exit</button>
+                </div>
+            </div>
+        `;
+        
+        // Update the shop title
+        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Payment Failed';
+        
+        // Add event listeners for buttons
+        document.getElementById('try-another-method-btn').addEventListener('click', () => {
+            this.showPaymentMethodScreen();
+        });
+        
+        document.getElementById('continue-shopping-failure-btn').addEventListener('click', () => {
+            this.returnToShop();
+        });
+        
+        document.getElementById('exit-shopping-failure-btn').addEventListener('click', () => {
+            this.exitShopping();
+        });
+    },
+    
+    // Method to return to the shop screen
+    returnToShop() {
+        console.log("Returning to shop main screen - maintaining NUI focus");
+        
+        // Store if this was a completed purchase
+        const wasSuccessfulPurchase = this.paymentFlow.purchaseComplete;
+        
+        // Update payment flow state
+        this.paymentFlow.currentScreen = 'shop';
+        this.paymentFlow.selectedMethod = null;
+        this.paymentFlow.purchaseComplete = false; // Reset purchase completed flag
+        
+        // Get shop main container and restore original content
+        const shopMain = document.querySelector('.shop-main');
+        if (this.originalShopMain) {
+            shopMain.innerHTML = this.originalShopMain;
+        } else {
+            shopMain.innerHTML = `<div class="shop-items-grid" id="shop-items"></div>`;
+        }
+        
+        // Update the shop title back to "Shop"
+        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Shop';
+        
+        // Very important: Repopulate items and reattach event handlers
+        if (state.currentCategory) {
+            this.selectCategory(state.currentCategory);
+        } else if (state.shopItems) {
+            this.populateItems(state.shopItems);
+        }
+        
+        // Update cart UI
+        this.updateCartUI();
+        
+        // Re-add event listeners for checkout and clear cart
+        document.getElementById('shop-cart-clear').onclick = () => this.clearCart();
+        document.getElementById('shop-checkout-btn').onclick = () => this.checkout();
+        
+        // For successful purchases, explicitly tell the client that 
+        // we've returned to shop and are ready for a new purchase
+        if (wasSuccessfulPurchase) {
+            console.log("Sending shopReadyForNewPurchase event to client after successful purchase");
+            fetch(`https://${GetParentResourceName()}/shopReadyForNewPurchase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            }).catch(error => {
+                console.error('Error sending ready event:', error);
+            });
+        }
+    },
+    
+    // Method to exit shopping completely
+    exitShopping() {
+        console.log("Explicitly exiting shopping UI and closing NUI focus");
+        
+        // Clear any running timers
+        if (this.paymentFlow.processingTimeout) {
+            clearTimeout(this.paymentFlow.processingTimeout);
+            this.paymentFlow.processingTimeout = null;
+        }
+        
+        // Reset payment flow state
+        this.paymentFlow.currentScreen = 'shop';
+        this.paymentFlow.selectedMethod = null;
+        
+        // Clear stored shop main content
+        this.originalShopMain = null;
+        
+        // Close UI and reset NUI focus - this is the ONLY place
+        // where we should be closing the UI and resetting focus
+        closeUI();
+        
+        // Explicitly send close message to ensure NUI focus is reset
+        sendNUIMessage('close');
     }
 };
 

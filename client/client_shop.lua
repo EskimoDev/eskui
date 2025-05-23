@@ -607,4 +607,274 @@ if Config.Debug then
             end
         end, "General Store")
     end, false)
-end 
+end
+
+-- Modify the Framework.ProcessCheckout function to handle payment method
+function Framework.ProcessCheckout(data, paymentMethod)
+    if Config.Debug then
+        print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT STARTED =========^7")
+        print("^5[ESKUI DEBUG] Processing checkout in Framework.ProcessCheckout^7")
+        print("^5[ESKUI DEBUG] Payment method from UI: " .. tostring(data.paymentMethod) .. "^7")
+        print("^5[ESKUI DEBUG] Default payment method: " .. tostring(paymentMethod) .. "^7")
+    end
+    
+    -- Use payment method from UI if provided
+    if data.paymentMethod then
+        paymentMethod = data.paymentMethod
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Using payment method from UI: " .. paymentMethod .. "^7")
+        end
+    end
+    
+    -- Add a lock to prevent duplicate processing
+    if _G.purchaseLock then
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Purchase already in progress, blocking duplicate checkout^7")
+            print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED (DUPLICATE) =========^7")
+        end
+        return false, "Purchase already in progress"
+    end
+    
+    -- Set purchase lock
+    _G.purchaseLock = true
+    
+    -- Clear lock after 5 seconds in case something goes wrong
+    Citizen.SetTimeout(5000, function()
+        _G.purchaseLock = false
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Purchase lock automatically cleared after timeout^7")
+        end
+    end)
+    
+    -- Get total price
+    local totalPrice = data.total or 0
+    if totalPrice <= 0 then
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Invalid purchase amount: " .. tostring(totalPrice) .. "^7")
+            print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED =========^7")
+        end
+        _G.purchaseLock = false
+        return false, "Invalid purchase amount"
+    end
+    
+    -- Check if player can afford with the selected payment method
+    if not Framework.CanPlayerAfford(totalPrice, paymentMethod) then
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Player cannot afford purchase of $" .. totalPrice .. " with " .. paymentMethod .. "^7")
+            print("^5[ESKUI DEBUG] Player money: $" .. Framework.GetPlayerMoney(paymentMethod) .. "^7")
+            print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT ABORTED =========^7")
+        end
+        _G.purchaseLock = false
+        return false, "You cannot afford this purchase with " .. paymentMethod
+    end
+    
+    if Config.Debug then
+        print("^5[ESKUI DEBUG] Player can afford purchase ($" .. totalPrice .. ") with " .. paymentMethod .. "^7")
+        print("^5[ESKUI DEBUG] Player has $" .. Framework.GetPlayerMoney(paymentMethod) .. "^7")
+        print("^5[ESKUI DEBUG] Triggering server event 'eskui:processShopPurchase'^7")
+        print("^5[ESKUI DEBUG] Number of items: " .. #data.items .. "^7")
+        
+        for i, item in ipairs(data.items) do
+            print("^5[ESKUI DEBUG] Item #" .. i .. ": " .. (item.id or "unknown") .. 
+                  " x" .. (item.quantity or "unknown") .. 
+                  " @ $" .. (item.price or "unknown") .. 
+                  " = $" .. ((item.price or 0) * (item.quantity or 0)) .. "^7")
+        end
+    end
+    
+    -- Send server event for processing with payment method
+    TriggerServerEvent('eskui:processShopPurchase', data.items, totalPrice, paymentMethod)
+    
+    if Config.Debug then
+        print("^5[ESKUI DEBUG] Server event triggered successfully^7")
+        print("^5[ESKUI DEBUG] ========= FRAMEWORK CHECKOUT COMPLETED =========^7")
+    end
+    
+    -- Register handler for purchase result to clear the lock
+    local resultHandler = RegisterNetEvent('eskui:purchaseResult')
+    AddEventHandler('eskui:purchaseResult', function()
+        -- Clear purchase lock when result comes back
+        _G.purchaseLock = false
+        if Config.Debug then
+            print("^5[ESKUI DEBUG] Purchase lock cleared after result received^7")
+        end
+        
+        -- Remove this handler
+        RemoveEventHandler(resultHandler)
+    end)
+    
+    return true, "Purchase successful"
+end
+
+-- Handle shop checkout
+local function handleShopCheckout(data)
+    if Config.Debug then
+        print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK TRIGGERED =========^7")
+        print("^6[ESKUI DEBUG] Data received from UI: " .. tostring(data ~= nil) .. "^7")
+        print("^6[ESKUI DEBUG] Maintaining NUI focus during payment flow^7")
+    end
+    
+    -- Prevent duplicate checkout processes
+    if _G.checkoutInProgress then
+        if Config.Debug then
+            print("^6[ESKUI DEBUG] Checkout already in progress, ignoring duplicate callback^7")
+            print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK IGNORED =========^7")
+        end
+        return
+    end
+    
+    -- Set checkout in progress flag
+    _G.checkoutInProgress = true
+    
+    -- Clear the flag after timeout (consolidated to one place)
+    Citizen.SetTimeout(5000, function()
+        _G.checkoutInProgress = false
+        if Config.Debug then
+            print("^6[ESKUI DEBUG] Checkout in progress flag cleared after timeout^7")
+        end
+    end)
+    
+    print("Received shop checkout callback with total: $" .. data.total)
+    
+    -- Add debugging to check item data
+    if Config.Debug then
+        print("^6[ESKUI DEBUG] Processing shop checkout with " .. #data.items .. " items^7")
+        print("^6[ESKUI DEBUG] Using payment method: " .. (data.paymentMethod or "default") .. "^7")
+        
+        for i, item in ipairs(data.items) do
+            print("^6[ESKUI DEBUG] Item #" .. i .. ": " .. item.id .. " x" .. item.quantity .. "^7")
+            
+            -- Make sure the item has the inventoryName property for the framework
+            if item.inventoryName then
+                print("^6[ESKUI DEBUG]   - Using inventory name: " .. item.inventoryName .. "^7")
+            else
+                print("^6[ESKUI DEBUG] No inventory name available for item: " .. item.id .. "^7")
+            end
+        end
+    end
+    
+    -- IMPORTANT: Keep UI open with NUI focus during the entire payment flow
+    -- Do NOT reset focus or close the UI during payment processing
+    
+    -- Process the shop checkout
+    if Config.Debug then
+        print("^6[ESKUI DEBUG] Triggering eskui:shopCheckoutCallback event^7")
+    end
+    
+    TriggerEvent('eskui:shopCheckoutCallback', data)
+    
+    if Config.Debug then
+        print("^6[ESKUI DEBUG] Event triggered successfully^7")
+        print("^6[ESKUI DEBUG] ========= SHOP CHECKOUT NUI CALLBACK COMPLETE =========^7")
+    end
+    
+    -- Return a callback response to let the UI know we've processed the request
+    -- This doesn't close the UI or reset NUI focus
+    cb({success = true})
+end
+
+-- Register NUI callbacks
+RegisterNUICallback('shopCheckout', handleShopCheckout)
+
+-- Add this new function to fetch player balances
+function GetPlayerBalances()
+    if Config.Debug then
+        print("^3[ESKUI DEBUG] Getting player balances from server^7")
+    end
+    
+    -- We'll store the result in this variable
+    local balances = {
+        cash = 0,
+        bank = 0
+    }
+    
+    -- Use a promise to make this synchronous for the NUI callback
+    local p = promise.new()
+    
+    -- Trigger server event to get fresh balances
+    TriggerServerEvent('eskui:getPlayerBalances')
+    
+    -- Register a one-time event handler for the response
+    local eventHandler = RegisterNetEvent('eskui:receivePlayerBalances')
+    AddEventHandler('eskui:receivePlayerBalances', function(cashAmount, bankAmount)
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Received fresh balances from server:^7")
+            print("^3[ESKUI DEBUG] Cash: $" .. cashAmount .. "^7")
+            print("^3[ESKUI DEBUG] Bank: $" .. bankAmount .. "^7")
+        end
+        
+        -- Update the balances
+        balances.cash = cashAmount
+        balances.bank = bankAmount
+        
+        -- Resolve the promise
+        p:resolve(true)
+        
+        -- Remove the event handler
+        RemoveEventHandler(eventHandler)
+    end)
+    
+    -- Wait for the promise to be resolved (with a timeout)
+    Citizen.SetTimeout(1000, function()
+        if not p:isResolved() then
+            if Config.Debug then
+                print("^1[ESKUI DEBUG] Timeout waiting for server balances, using default values^7")
+            end
+            p:resolve(false)
+        end
+    end)
+    
+    -- Wait for the promise
+    Citizen.Await(p)
+    
+    return balances
+end
+
+-- Add a new NUI callback to get balances
+RegisterNUICallback('getPlayerBalances', function(data, cb)
+    local balances = GetPlayerBalances()
+    cb(balances)
+end)
+
+-- Add a new NUI callback for when the shop is ready for a new purchase
+RegisterNUICallback('shopReadyForNewPurchase', function(data, cb)
+    if Config.Debug then
+        print("^3[ESKUI DEBUG] ========= SHOP READY FOR NEW PURCHASE =========^7")
+    end
+    
+    -- Reset any flags or locks that might prevent a new purchase
+    _G.purchaseLock = false
+    _G.checkoutInProgress = false
+    
+    -- Clear any stale data
+    if ShopCheckoutHandler then
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Removing existing ShopCheckoutHandler to prepare for new purchase^7")
+        end
+        RemoveEventHandler(ShopCheckoutHandler)
+        ShopCheckoutHandler = nil
+    end
+    
+    -- Let the current shop know it should reopen with fresh state
+    if CurrentShop then
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Reopening shop with fresh state for: " .. CurrentShop.name .. "^7")
+        end
+        
+        -- Use the direct ShowShopUI function without full OpenShop to maintain the current UI session
+        -- We don't want to close and reopen the UI, just refresh the internal state
+        OpenShop(CurrentShop)
+    else
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Warning: No current shop to refresh!^7")
+        end
+    end
+    
+    if Config.Debug then
+        print("^3[ESKUI DEBUG] Shop state reset successfully for new purchase^7")
+        print("^3[ESKUI DEBUG] ========= SHOP READY COMPLETE =========^7")
+    end
+    
+    -- Return a success response
+    cb({success = true})
+end) 

@@ -41,7 +41,7 @@ Config.Shops = {
             {
                 id = 'bread',
                 name = 'Bread',
-                price = 10,
+                price = 100000,
                 category = 'food',
                 icon = '🍞',
                 description = 'Fresh baked bread',

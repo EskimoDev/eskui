@@ -190,6 +190,15 @@ local function handleNUICallback(name, handler)
             return
         end
         
+        -- Special case for shopCheckout callback - don't close UI
+        if name == 'shopCheckout' then
+            -- Keep the UI open
+            setUIFocus(true)
+            
+            if handler then handler(data) end
+            return
+        end
+        
         -- For regular callbacks, reset focus and close UI
         setUIFocus(false)
         

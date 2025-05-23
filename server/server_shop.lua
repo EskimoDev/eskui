@@ -339,7 +339,7 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
         print("^1[ESKUI SERVER DEBUG] ========= PROCESSING SHOP PURCHASE =========^7")
         print("^1[ESKUI SERVER DEBUG] Source: " .. source .. "^7")
         print("^1[ESKUI SERVER DEBUG] Total Price: $" .. totalPrice .. "^7")
-        print("^1[ESKUI SERVER DEBUG] Payment Method: " .. paymentMethod .. "^7")
+        print("^1[ESKUI SERVER DEBUG] Payment Method: " .. (paymentMethod or "default") .. "^7")
         print("^1[ESKUI SERVER DEBUG] Items count: " .. #items .. "^7")
         
         for i, item in ipairs(items) do
@@ -347,6 +347,9 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
                   " x" .. (item.quantity or "unknown") .. "^7")
         end
     end
+    
+    -- Default to cash if no payment method specified
+    paymentMethod = paymentMethod or Config.MoneyTypes.cash
     
     -- Make sure framework is initialized
     if not FrameworkInitialized then
@@ -619,4 +622,104 @@ Citizen.CreateThread(function()
 end)
 
 -- Print startup message
-print("^2[ESKUI] Server module initialized^7") 
+print("^2[ESKUI] Server module initialized^7")
+
+-- Add handler for getting player balances directly from server
+RegisterNetEvent('eskui:getPlayerBalances')
+AddEventHandler('eskui:getPlayerBalances', function()
+    local source = source
+    
+    if Config.Debug then
+        print("^1[ESKUI SERVER DEBUG] ========= GET PLAYER BALANCES =========^7")
+        print("^1[ESKUI SERVER DEBUG] Source: " .. source .. "^7")
+    end
+    
+    -- Make sure framework is initialized
+    if not FrameworkInitialized then
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Framework not initialized, attempting initialization^7")
+        end
+        
+        if not InitializeFramework() then
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] Framework initialization failed, returning zero balances^7")
+                print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST FAILED =========^7")
+            end
+            
+            TriggerClientEvent('eskui:receivePlayerBalances', source, 0, 0)
+            return
+        end
+    end
+    
+    local cashBalance = 0
+    local bankBalance = 0
+    
+    -- Check framework
+    if Config.Framework == 'esx' then
+        local xPlayer = ESX.GetPlayerFromId(source)
+        
+        if not xPlayer then
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] ESX player not found, returning zero balances^7")
+                print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST FAILED =========^7")
+            end
+            
+            TriggerClientEvent('eskui:receivePlayerBalances', source, 0, 0)
+            return
+        end
+        
+        -- Get cash balance
+        cashBalance = xPlayer.getMoney()
+        
+        -- Get bank balance
+        bankBalance = xPlayer.getAccount('bank').money
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] ESX player found: " .. xPlayer.identifier .. "^7")
+            print("^1[ESKUI SERVER DEBUG] Cash balance: $" .. cashBalance .. "^7")
+            print("^1[ESKUI SERVER DEBUG] Bank balance: $" .. bankBalance .. "^7")
+            print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST SUCCESSFUL =========^7")
+        end
+        
+    elseif Config.Framework == 'qbcore' then
+        local Player = QBCore.Functions.GetPlayer(source)
+        
+        if not Player then
+            if Config.Debug then
+                print("^1[ESKUI SERVER DEBUG] QBCore player not found, returning zero balances^7")
+                print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST FAILED =========^7")
+            end
+            
+            TriggerClientEvent('eskui:receivePlayerBalances', source, 0, 0)
+            return
+        end
+        
+        -- Get cash balance
+        cashBalance = Player.Functions.GetMoney('cash')
+        
+        -- Get bank balance
+        bankBalance = Player.Functions.GetMoney('bank')
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] QBCore player found^7")
+            print("^1[ESKUI SERVER DEBUG] Cash balance: $" .. cashBalance .. "^7")
+            print("^1[ESKUI SERVER DEBUG] Bank balance: $" .. bankBalance .. "^7")
+            print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST SUCCESSFUL =========^7")
+        end
+        
+    else
+        -- Standalone mode - use dummy values or implement your own logic
+        cashBalance = 5000
+        bankBalance = 10000
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Using standalone mode with dummy balances^7")
+            print("^1[ESKUI SERVER DEBUG] Cash balance: $" .. cashBalance .. "^7")
+            print("^1[ESKUI SERVER DEBUG] Bank balance: $" .. bankBalance .. "^7")
+            print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST SUCCESSFUL =========^7")
+        end
+    end
+    
+    -- Send balances back to client
+    TriggerClientEvent('eskui:receivePlayerBalances', source, cashBalance, bankBalance)
+end) 
