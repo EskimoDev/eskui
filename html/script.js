@@ -7,6 +7,8 @@ const state = {
     windowOpacity: 0.95,
     freeDrag: false,
     selectedListItem: null,
+    // New notification position setting
+    notificationPosition: 'top-right',
     // Shopping cart state (managed in shops.js)
     cart: [],
     currentCategory: null,
@@ -244,11 +246,29 @@ const uiHandlers = {
         
         document.getElementById('free-drag-toggle').checked = state.freeDrag;
         
+        // Set current notification position
+        const positionButtons = document.querySelectorAll('.notification-position-pill');
+        
+        // Set selected pill
+        positionButtons.forEach(btn => {
+            // Clear any existing glow effects first
+            clearGlowEffects(btn);
+            
+            if (btn.dataset.position === state.notificationPosition) {
+                btn.classList.add('selected');
+                // Add glow effects to the selected pill
+                addGlowEffects(btn);
+            } else {
+                btn.classList.remove('selected');
+            }
+        });
+        
         // Store original settings to restore if canceled
         const originalSettings = {
             darkMode: state.darkMode,
             opacity: state.windowOpacity,
-            freeDrag: state.freeDrag
+            freeDrag: state.freeDrag,
+            notificationPosition: state.notificationPosition
         };
         
         // Add event listeners for interactive settings
@@ -264,6 +284,35 @@ const uiHandlers = {
         
         document.getElementById('free-drag-toggle').addEventListener('change', e => {
             applyFreeDrag(e.target.checked, false);
+        });
+        
+        // Add event listeners for notification position buttons
+        positionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove selected class from all buttons
+                positionButtons.forEach(b => {
+                    b.classList.remove('selected');
+                    // Clear any existing glow effects
+                    clearGlowEffects(b);
+                });
+                
+                // Add selected class to clicked button
+                btn.classList.add('selected');
+                
+                // Add glow effects to the selected pill
+                addGlowEffects(btn);
+                
+                // Apply position
+                applyNotificationPosition(btn.dataset.position, false);
+                
+                // Show a temporary notification
+                notifications.create({
+                    type: 'success',
+                    title: 'Position Updated',
+                    message: `Notifications will now appear at the ${btn.dataset.position.replace('-', ' ')} position`,
+                    duration: 2000
+                });
+            });
         });
         
         // Override standard close handler to restore original settings
@@ -533,13 +582,15 @@ function saveSettings() {
     const newSettings = {
         darkMode: document.getElementById('dark-mode-toggle').checked,
         opacity: parseInt(document.getElementById('opacity-slider').value) / 100,
-        freeDrag: document.getElementById('free-drag-toggle').checked
+        freeDrag: document.getElementById('free-drag-toggle').checked,
+        notificationPosition: document.querySelector('.notification-position-pill.selected').dataset.position
     };
     
     // Apply and save all settings
     applyDarkMode(newSettings.darkMode, true);
     applyOpacity(newSettings.opacity, true);
     applyFreeDrag(newSettings.freeDrag, true);
+    applyNotificationPosition(newSettings.notificationPosition, true);
     
     // Close the settings UI
     ui.closeAndSendData('settings-ui', 'close');
@@ -549,6 +600,7 @@ function restoreSettings(settings) {
     applyDarkMode(settings.darkMode, false);
     applyOpacity(settings.opacity, false);
     applyFreeDrag(settings.freeDrag, false);
+    applyNotificationPosition(settings.notificationPosition, false);
 }
 
 // Settings management functions
@@ -637,6 +689,26 @@ function toggleDarkMode() {
     applyDarkMode(!state.darkMode, true);
 }
 
+function applyNotificationPosition(position, shouldSave) {
+    if (position !== state.notificationPosition || !shouldSave) {
+        state.notificationPosition = position;
+        
+        // Apply position to notification container
+        const container = document.getElementById('notifications-container');
+        
+        // Remove all position classes
+        container.classList.remove('top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right');
+        
+        // Add selected position class
+        container.classList.add(position);
+        
+        if (shouldSave) {
+            localStorage.setItem('eskui_notificationPosition', position);
+            sendNUIMessage('notificationPositionChanged', { notificationPosition: position });
+        }
+    }
+}
+
 // Initialize settings from saved preferences
 function initializeSettings() {
     // Dark mode
@@ -651,6 +723,14 @@ function initializeSettings() {
     // Free drag
     if (localStorage.getItem('eskui_freeDrag') === 'true') {
         applyFreeDrag(true, false);
+    }
+    
+    // Notification position
+    const savedPosition = localStorage.getItem('eskui_notificationPosition');
+    if (savedPosition) {
+        applyNotificationPosition(savedPosition, false);
+    } else {
+        applyNotificationPosition(state.notificationPosition, false);
     }
 }
 
@@ -787,4 +867,6 @@ function updateInteractionDarkMode(isDarkMode) {
 document.addEventListener('DOMContentLoaded', function() {
     // Setup the interaction frame
     setupInteractionFrame();
-}); 
+});
+
+ 

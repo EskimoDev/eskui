@@ -1145,6 +1145,8 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid var(--list-divider-color);
+    width: 100%; /* Ensure full width */
+    max-width: 100%; /* Prevent overflow */
 }
 
 .setting-row:last-child {
@@ -1160,6 +1162,8 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 .setting-control {
     display: flex;
     align-items: center;
+    justify-content: flex-end; /* Align content back to the right */
+    width: 100%; /* Take full width */
 }
 
 .settings-buttons {
@@ -1675,16 +1679,59 @@ body.dark-mode .setting-label {
 /* Notification styles */
 .notifications-container {
     position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 9999;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    width: 330px;
-    max-width: 95%;
+    max-width: 400px;
     pointer-events: none;
+}
+
+/* Default position (top-right) if no position class is specified */
+.notifications-container:not(.top-left):not(.top-center):not(.top-right):not(.bottom-left):not(.bottom-center):not(.bottom-right) {
+    top: 20px;
+    right: 20px;
+}
+
+.notifications-container > * {
+    pointer-events: auto;
+}
+
+/* Top positions */
+.notifications-container.top-left {
+    top: 20px;
+    left: 20px;
+}
+
+.notifications-container.top-center {
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.notifications-container.top-right {
+    top: 20px;
+    right: 20px;
+}
+
+/* Bottom positions */
+.notifications-container.bottom-left {
+    bottom: 20px;
+    left: 20px;
+    flex-direction: column-reverse;
+}
+
+.notifications-container.bottom-center {
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: column-reverse;
+}
+
+.notifications-container.bottom-right {
+    bottom: 20px;
+    right: 20px;
+    flex-direction: column-reverse;
 }
 
 .notification {
@@ -3007,4 +3054,211 @@ body.dark-mode .shop-cart-footer {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Notification Position Selector */
+.notification-position-selector {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start; /* Align to the left instead of center */
+    padding: 10px 0;
+}
+
+.pill-container {
+    width: 100%;
+    max-width: 100%; /* Take full width */
+    border-radius: 16px;
+    padding: 15px; /* Increased padding */
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+body.dark-mode .pill-container {
+    background: rgba(30, 30, 40, 0.3);
+    border: 1px solid rgba(60, 60, 80, 0.2);
+}
+
+.notification-position-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 20px; /* Further increased gap for much wider appearance */
+    width: 100%;
+}
+
+.notification-position-pill {
+    height: 25px; /* Reduced to 50% of previous height */
+    width: 100%; /* Take full width in the grid cell */
+    background: rgba(255, 255, 255, 0.15); /* Slightly more visible background */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12.5px; /* Adjusted to match new height */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15); /* Stronger drop shadow */
+}
+
+.notification-position-pill:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.notification-position-pill.selected {
+    background: var(--btn-submit-bg, var(--accent-gradient));
+    color: var(--btn-submit-color, white);
+    border: 1px solid var(--btn-submit-border, rgba(0, 123, 255, 0.8));
+    box-shadow: 0 0 10px rgba(33, 133, 208, 0.5), 0 3px 12px rgba(0, 0, 0, 0.2);
+    position: relative;
+    overflow: hidden;
+    transform: translateY(-1px);
+}
+
+/* Add water shimmer effect from list item */
+.notification-position-pill.selected::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    z-index: 1;
+    animation: waterShimmer 2s infinite linear;
+}
+
+/* Add water wave effect like in list items */
+.notification-position-pill.selected .water-shimmer {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.07) 20%,
+        rgba(255, 255, 255, 0.13) 50%,
+        rgba(255, 255, 255, 0.07) 80%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    z-index: 1;
+    pointer-events: none;
+    animation: waterWave 2.5s ease-in-out infinite;
+    transform-origin: center;
+}
+
+/* Add glow segments like in list items */
+.notification-position-pill.selected .glow-top,
+.notification-position-pill.selected .glow-right,
+.notification-position-pill.selected .glow-bottom,
+.notification-position-pill.selected .glow-left {
+    content: "";
+    position: absolute;
+    filter: blur(4px);
+    background: var(--glow-effect);
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.4;
+    mix-blend-mode: screen;
+    will-change: opacity, filter, transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Add glow effects around the selected pill */
+.notification-position-pill.selected::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 15px;
+    background: transparent;
+    z-index: -1;
+    box-shadow: 0 0 15px rgba(33, 133, 208, 0.6);
+    animation: glowPulse 2s infinite;
+}
+
+/* Position each glow segment on pills */
+.notification-position-pill.selected .glow-top {
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-radius: 6px 6px 0 0;
+    animation: glowTopAnimation 4s ease-in-out infinite;
+}
+
+.notification-position-pill.selected .glow-right {
+    top: 0;
+    right: -3px;
+    bottom: 0;
+    width: 6px;
+    border-radius: 0 6px 6px 0;
+    animation: glowRightAnimation 3.7s ease-in-out infinite;
+    animation-delay: 0.3s;
+}
+
+.notification-position-pill.selected .glow-bottom {
+    bottom: -3px;
+    left: 0;
+    right: 0;
+    height: 6px;
+    border-radius: 0 0 6px 6px;
+    animation: glowBottomAnimation 4.2s ease-in-out infinite;
+    animation-delay: 0.7s;
+}
+
+.notification-position-pill.selected .glow-left {
+    top: 0;
+    left: -3px;
+    bottom: 0;
+    width: 6px;
+    border-radius: 6px 0 0 6px;
+    animation: glowLeftAnimation 3.5s ease-in-out infinite;
+    animation-delay: 0.5s;
+}
+
+/* Dark mode styles */
+body.dark-mode .notification-position-pill {
+    background: rgba(40, 40, 60, 0.5);
+    border-color: rgba(60, 60, 80, 0.3);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .notification-position-pill:hover {
+    background: rgba(50, 50, 70, 0.6);
+}
+
+body.dark-mode .notification-position-pill.selected {
+    background: var(--btn-submit-bg, linear-gradient(135deg, rgba(0, 100, 230, 0.7), rgba(0, 100, 230, 0.9)));
+    color: var(--btn-submit-color, white);
+    border: 1px solid var(--btn-submit-border, rgba(0, 100, 230, 0.8));
+    box-shadow: 0 0 15px rgba(0, 100, 230, 0.4), 0 3px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+body.dark-mode .notification-position-pill.selected .water-shimmer {
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.05) 20%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0.05) 80%,
+        rgba(255, 255, 255, 0) 100%
+    );
+}
+
+body.dark-mode .notification-position-pill.selected::after {
+    box-shadow: 0 0 15px rgba(0, 100, 230, 0.5);
 }

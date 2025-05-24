@@ -6,6 +6,7 @@ Display = false
 DarkMode = false
 WindowOpacity = 0.95
 FreeDrag = false
+NotificationPosition = 'top-right'
 State = {
     menuHistory = {}
 }
@@ -521,6 +522,11 @@ local callbacks = {
     end,
     opacityChanged = function(data) WindowOpacity = data.windowOpacity end,
     freeDragChanged = function(data) FreeDrag = data.freeDrag end,
+    notificationPositionChanged = function(data) 
+        NotificationPosition = data.notificationPosition
+        -- Trigger event for other modules
+        TriggerEvent('eskui:notificationPositionChanged', NotificationPosition)
+    end,
     close = function() 
         setUIFocus(false)
         TriggerEvent('eskui:closeCallback')
