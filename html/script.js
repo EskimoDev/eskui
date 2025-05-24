@@ -85,8 +85,19 @@ const ui = {
         // Clear any water shimmer elements that might be lingering
         clearGlowEffects();
         
-        // Ensure NUI focus is reset
-        sendNUIMessage('close');
+        // Check if we're in the payment flow before resetting NUI focus
+        const inPaymentFlow = state.currentUI === 'shop' && 
+                               window.shopEventHandlers && 
+                               window.shopEventHandlers.paymentFlow && 
+                               window.shopEventHandlers.paymentFlow.currentScreen !== 'shop';
+        
+        // Only reset NUI focus if not in payment flow
+        if (!inPaymentFlow) {
+            console.log("Not in payment flow, resetting NUI focus");
+            sendNUIMessage('close');
+        } else {
+            console.log("In payment flow, maintaining NUI focus");
+        }
     },
     
     closeAndSendData(containerId, endpoint, data) {
@@ -94,11 +105,20 @@ const ui = {
             this.resetState();
             sendNUIMessage(endpoint, data);
             
-            // Always send a close message to ensure NUI focus is released
-            if (endpoint !== 'close') {
+            // Check if we're in the payment flow before resetting NUI focus
+            const inPaymentFlow = state.currentUI === 'shop' && 
+                                  window.shopEventHandlers && 
+                                  window.shopEventHandlers.paymentFlow && 
+                                  window.shopEventHandlers.paymentFlow.currentScreen !== 'shop';
+            
+            // Always send a close message to ensure NUI focus is released, but only if not in payment flow
+            if (endpoint !== 'close' && !inPaymentFlow) {
                 setTimeout(() => {
+                    console.log("closeAndSendData: Not in payment flow, resetting NUI focus");
                     sendNUIMessage('close');
                 }, 100);
+            } else if (inPaymentFlow) {
+                console.log("closeAndSendData: In payment flow, maintaining NUI focus");
             }
         });
     },
@@ -124,9 +144,22 @@ const ui = {
         state.cleanupHandlers.forEach(fn => fn());
         state.cleanupHandlers = [];
         
-        // Reset state and send close message
+        // Reset state
         this.resetState();
-        sendNUIMessage('close');
+        
+        // Check if we're in the payment flow before resetting NUI focus
+        const inPaymentFlow = state.currentUI === 'shop' && 
+                              window.shopEventHandlers && 
+                              window.shopEventHandlers.paymentFlow && 
+                              window.shopEventHandlers.paymentFlow.currentScreen !== 'shop';
+        
+        // Only reset NUI focus if not in payment flow
+        if (!inPaymentFlow) {
+            console.log("hideAllUIs: Not in payment flow, resetting NUI focus");
+            sendNUIMessage('close');
+        } else {
+            console.log("hideAllUIs: In payment flow, maintaining NUI focus");
+        }
     }
 };
 
@@ -479,8 +512,20 @@ function closeUI() {
     console.log("closeUI function called");
     ui.closeCurrentUI();
     
-    // Explicitly send close message to ensure NUI focus is reset
-    sendNUIMessage('close');
+    // Check if we're in the payment flow before resetting NUI focus
+    // This prevents the camera movement issue when payment completes
+    const inPaymentFlow = state.currentUI === 'shop' && 
+                          window.shopEventHandlers && 
+                          window.shopEventHandlers.paymentFlow && 
+                          window.shopEventHandlers.paymentFlow.currentScreen !== 'shop';
+    
+    // Only send close message to reset NUI focus if not in payment flow
+    if (!inPaymentFlow) {
+        console.log("Not in payment flow, sending close message to reset NUI focus");
+        sendNUIMessage('close');
+    } else {
+        console.log("In payment flow, maintaining NUI focus");
+    }
 }
 
 function saveSettings() {

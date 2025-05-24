@@ -901,7 +901,7 @@ const shopEventHandlers = {
         }, 2000);
     },
     
-    // New method to process payment
+    // Method to process payment
     processPayment() {
         // Calculate total
         const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
