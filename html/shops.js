@@ -276,11 +276,64 @@ const shopEventHandlers = {
     clearCart() {
         // Confirm dialog
         if (state.cart.length > 0) {
-            // Simple confirmation
-            if (confirm('Are you sure you want to clear your cart?')) {
+            // Create a confirmation dialog element
+            const confirmDialog = document.createElement('div');
+            confirmDialog.className = 'cart-confirm-dialog';
+            
+            // Add the message and buttons
+            confirmDialog.innerHTML = `
+                <div class="cart-confirm-message">Are you sure?</div>
+                <div class="cart-confirm-buttons">
+                    <button class="cart-confirm-btn yes">Yes</button>
+                    <button class="cart-confirm-btn no">No</button>
+                </div>
+            `;
+            
+            // Position the dialog below the clear button
+            const clearButton = document.getElementById('shop-cart-clear');
+            const clearBtnRect = clearButton.getBoundingClientRect();
+            
+            // Apply styles for positioning
+            confirmDialog.style.position = 'absolute';
+            confirmDialog.style.top = `${clearBtnRect.bottom + 5}px`;
+            confirmDialog.style.right = `${window.innerWidth - clearBtnRect.right}px`;
+            confirmDialog.style.zIndex = '1000';
+            confirmDialog.style.background = 'var(--background-color)';
+            confirmDialog.style.padding = '10px';
+            confirmDialog.style.borderRadius = '8px';
+            confirmDialog.style.boxShadow = 'var(--window-shadow)';
+            confirmDialog.style.border = '1px solid var(--border-color)';
+            confirmDialog.style.textAlign = 'center';
+            
+            // Add the dialog to the document
+            document.body.appendChild(confirmDialog);
+            
+            // Add event listeners for buttons
+            const yesButton = confirmDialog.querySelector('.cart-confirm-btn.yes');
+            const noButton = confirmDialog.querySelector('.cart-confirm-btn.no');
+            
+            // Yes button - clear the cart
+            yesButton.addEventListener('click', () => {
                 state.cart = [];
                 this.updateCartUI();
-            }
+                document.body.removeChild(confirmDialog);
+            });
+            
+            // No button - just close the dialog
+            noButton.addEventListener('click', () => {
+                document.body.removeChild(confirmDialog);
+            });
+            
+            // Close dialog if user clicks elsewhere
+            setTimeout(() => {
+                const clickOutsideHandler = (e) => {
+                    if (!confirmDialog.contains(e.target) && e.target !== clearButton) {
+                        document.body.removeChild(confirmDialog);
+                        document.removeEventListener('click', clickOutsideHandler);
+                    }
+                };
+                document.addEventListener('click', clickOutsideHandler);
+            }, 10);
         }
     },
     
@@ -332,12 +385,25 @@ const shopEventHandlers = {
             this.originalShopMain = shopMain.innerHTML;
         }
         
+        // Hide sidebar when in payment mode
+        document.querySelector('.shop-sidebar').style.display = 'none';
+        
+        // Adjust main content width
+        shopMain.style.width = '100%';
+        
+        // Expand content grid to two columns: main and cart
+        const contentEl = document.querySelector('.shop-window .content');
+        if (contentEl) {
+            contentEl.style.gridTemplateColumns = '1fr 350px';
+        }
+        
         // Always show payment method UI with loading state
         shopMain.innerHTML = `
             <div class="payment-method-screen">
                 <h2>Select Payment Method</h2>
                 <p class="payment-total">Total: $${total.toLocaleString()}</p>
                 
+                <div class="payment-methods-container">
                 <div class="payment-methods">
                     <button class="payment-method-btn loading" data-method="cash">
                         <span class="payment-method-icon">💵</span>
@@ -353,6 +419,13 @@ const shopEventHandlers = {
                         <div class="payment-method-tax-container" id="bank-tax-container"></div>
                         <div class="payment-method-taxed-price" id="bank-taxed-price"></div>
                     </button>
+                    </div>
+                    
+                    <div class="payment-summary">
+                        <div class="payment-summary-box">
+                            <div class="payment-final-price" id="payment-final-price">Final price: $${total.toLocaleString()}</div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="payment-actions">
@@ -382,17 +455,25 @@ const shopEventHandlers = {
             const bankTaxContainer = document.getElementById('bank-tax-container');
             const cashTaxedPrice = document.getElementById('cash-taxed-price');
             const bankTaxedPrice = document.getElementById('bank-taxed-price');
+            const finalPriceElement = document.getElementById('payment-final-price');
             
             // Calculate and display taxed prices
+            let highestTaxedTotal = total;
+            
             if (taxData && taxData.cash && taxData.cash !== false) {
                 const taxRate = parseFloat(taxData.cash);
                 const taxAmount = Math.floor(total * (taxRate / 100));
                 const taxedTotal = total + taxAmount;
                 
+                // Update highest taxed total if applicable
+                if (taxedTotal > highestTaxedTotal) {
+                    highestTaxedTotal = taxedTotal;
+                }
+                
                 cashTaxContainer.innerHTML = `
                     <div class="payment-method-tax">
                         <span class="payment-method-tax-icon">🧾</span>
-                        <span class="payment-method-tax-text">${taxData.cash}% VAT tax applied</span>
+                        <span class="payment-method-tax-text">${taxData.cash}% VAT tax</span>
                     </div>
                 `;
                 cashTaxContainer.style.display = 'block';
@@ -400,7 +481,7 @@ const shopEventHandlers = {
                 // Add taxed price display
                 cashTaxedPrice.innerHTML = `
                     <div class="payment-method-taxed-price-display">
-                        <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                        $${taxedTotal.toLocaleString()}
                     </div>
                 `;
                 cashTaxedPrice.style.display = 'block';
@@ -414,10 +495,15 @@ const shopEventHandlers = {
                 const taxAmount = Math.floor(total * (taxRate / 100));
                 const taxedTotal = total + taxAmount;
                 
+                // Update highest taxed total if applicable
+                if (taxedTotal > highestTaxedTotal) {
+                    highestTaxedTotal = taxedTotal;
+                }
+                
                 bankTaxContainer.innerHTML = `
                     <div class="payment-method-tax">
                         <span class="payment-method-tax-icon">🧾</span>
-                        <span class="payment-method-tax-text">${taxData.bank}% VAT tax applied</span>
+                        <span class="payment-method-tax-text">${taxData.bank}% VAT tax</span>
                     </div>
                 `;
                 bankTaxContainer.style.display = 'block';
@@ -425,7 +511,7 @@ const shopEventHandlers = {
                 // Add taxed price display
                 bankTaxedPrice.innerHTML = `
                     <div class="payment-method-taxed-price-display">
-                        <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                        $${taxedTotal.toLocaleString()}
                     </div>
                 `;
                 bankTaxedPrice.style.display = 'block';
@@ -433,6 +519,9 @@ const shopEventHandlers = {
                 bankTaxContainer.style.display = 'none';
                 bankTaxedPrice.style.display = 'none';
             }
+            
+            // Update the final price display with the highest taxed total
+            finalPriceElement.textContent = `Final price: $${highestTaxedTotal.toLocaleString()}`;
         })
         .catch(error => {
             console.error('Error fetching tax rates:', error);
@@ -518,17 +607,25 @@ const shopEventHandlers = {
                 const bankTaxContainer = document.getElementById('bank-tax-container');
                 const cashTaxedPrice = document.getElementById('cash-taxed-price');
                 const bankTaxedPrice = document.getElementById('bank-taxed-price');
+                const finalPriceElement = document.getElementById('payment-final-price');
                 
                 // Calculate and display taxed prices
+                let highestTaxedTotal = total;
+                
                 if (taxData && taxData.cash && taxData.cash !== false) {
                     const taxRate = parseFloat(taxData.cash);
                     const taxAmount = Math.floor(total * (taxRate / 100));
                     const taxedTotal = total + taxAmount;
                     
+                    // Update highest taxed total if applicable
+                    if (taxedTotal > highestTaxedTotal) {
+                        highestTaxedTotal = taxedTotal;
+                    }
+                    
                     cashTaxContainer.innerHTML = `
                         <div class="payment-method-tax">
                             <span class="payment-method-tax-icon">🧾</span>
-                            <span class="payment-method-tax-text">${taxData.cash}% VAT tax applied</span>
+                            <span class="payment-method-tax-text">${taxData.cash}% VAT tax</span>
                         </div>
                     `;
                     cashTaxContainer.style.display = 'block';
@@ -536,7 +633,7 @@ const shopEventHandlers = {
                     // Add taxed price display
                     cashTaxedPrice.innerHTML = `
                         <div class="payment-method-taxed-price-display">
-                            <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                            $${taxedTotal.toLocaleString()}
                         </div>
                     `;
                     cashTaxedPrice.style.display = 'block';
@@ -550,10 +647,15 @@ const shopEventHandlers = {
                     const taxAmount = Math.floor(total * (taxRate / 100));
                     const taxedTotal = total + taxAmount;
                     
+                    // Update highest taxed total if applicable
+                    if (taxedTotal > highestTaxedTotal) {
+                        highestTaxedTotal = taxedTotal;
+                    }
+                    
                     bankTaxContainer.innerHTML = `
                         <div class="payment-method-tax">
                             <span class="payment-method-tax-icon">🧾</span>
-                            <span class="payment-method-tax-text">${taxData.bank}% VAT tax applied</span>
+                            <span class="payment-method-tax-text">${taxData.bank}% VAT tax</span>
                         </div>
                     `;
                     bankTaxContainer.style.display = 'block';
@@ -561,7 +663,7 @@ const shopEventHandlers = {
                     // Add taxed price display
                     bankTaxedPrice.innerHTML = `
                         <div class="payment-method-taxed-price-display">
-                            <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                            $${taxedTotal.toLocaleString()}
                         </div>
                     `;
                     bankTaxedPrice.style.display = 'block';
@@ -569,6 +671,9 @@ const shopEventHandlers = {
                     bankTaxContainer.style.display = 'none';
                     bankTaxedPrice.style.display = 'none';
                 }
+                
+                // Update the final price display with the highest taxed total
+                finalPriceElement.textContent = `Final price: $${highestTaxedTotal.toLocaleString()}`;
             })
             .catch(error => {
                 console.error('Error fetching tax rates:', error);
@@ -886,28 +991,78 @@ const shopEventHandlers = {
         
         // Get shop main container and restore original content
         const shopMain = document.querySelector('.shop-main');
-        if (this.originalShopMain) {
-            shopMain.innerHTML = this.originalShopMain;
-        } else {
-            shopMain.innerHTML = `<div class="shop-items-grid" id="shop-items"></div>`;
+        
+        // Safely restore sidebar - check if it exists first
+        const sidebar = document.querySelector('.shop-sidebar');
+        if (sidebar) {
+            sidebar.style.display = 'flex';
+        }
+        
+        // Safely restore grid layout to three columns
+        const contentElRestore = document.querySelector('.shop-window .content');
+        if (contentElRestore) {
+            contentElRestore.style.gridTemplateColumns = '';
+        }
+        
+        // Restore shop main width
+        if (shopMain) {
+            shopMain.style.width = '';
+            
+            // Safely restore content
+            try {
+                if (this.originalShopMain) {
+                    shopMain.innerHTML = this.originalShopMain;
+                } else {
+                    shopMain.innerHTML = `<div class="shop-items-grid" id="shop-items"></div>`;
+                }
+            } catch (error) {
+                console.error('Error restoring shop main content:', error);
+                // Fallback - create new content
+                shopMain.innerHTML = `<div class="shop-items-grid" id="shop-items"></div>`;
+            }
         }
         
         // Update the shop title back to "Shop"
-        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Shop';
-        
-        // Very important: Repopulate items and reattach event handlers
-        if (state.currentCategory) {
-            this.selectCategory(state.currentCategory);
-        } else if (state.shopItems) {
-            this.populateItems(state.shopItems);
+        const titleBar = document.querySelector('#shopping-ui .titlebar-title');
+        if (titleBar) {
+            titleBar.textContent = 'Shop';
         }
         
-        // Update cart UI
-        this.updateCartUI();
-        
-        // Re-add event listeners for checkout and clear cart
-        document.getElementById('shop-cart-clear').onclick = () => this.clearCart();
-        document.getElementById('shop-checkout-btn').onclick = () => this.checkout();
+        // Very important: Repopulate items and reattach event handlers
+        try {
+            if (state.currentCategory) {
+                this.selectCategory(state.currentCategory);
+            } else if (state.shopItems) {
+                this.populateItems(state.shopItems);
+            }
+            
+            // Update cart UI
+            this.updateCartUI();
+            
+            // Re-add event listeners for checkout and clear cart
+            const clearCartBtn = document.getElementById('shop-cart-clear');
+            if (clearCartBtn) {
+                clearCartBtn.onclick = () => this.clearCart();
+            }
+            
+            const checkoutBtn = document.getElementById('shop-checkout-btn');
+            if (checkoutBtn) {
+                checkoutBtn.onclick = () => this.checkout();
+            }
+        } catch (error) {
+            console.error('Error repopulating shop content:', error);
+            // If there's an error, try to rebuild the shop completely
+            setTimeout(() => {
+                this.originalShopMain = null;
+                if (shopMain) {
+                    shopMain.innerHTML = `<div class="shop-items-grid" id="shop-items"></div>`;
+                }
+                if (state.shopItems) {
+                    this.populateItems(state.shopItems);
+                }
+                this.updateCartUI();
+            }, 100);
+        }
         
         // For successful purchases, explicitly tell the client that 
         // we've returned to shop and are ready for a new purchase
