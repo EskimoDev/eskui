@@ -8,7 +8,9 @@ const shopEventHandlers = {
         currentScreen: 'shop', // 'shop', 'payment-method', 'payment-processing', 'payment-success', 'payment-failure'
         selectedMethod: null,
         processingTimeout: null,
-        purchaseComplete: false // Track if the current purchase is complete
+        purchaseComplete: false, // Track if the current purchase is complete
+        lastHoveredMethod: null, // Track which method was last hovered
+        clickedMethod: null // Track which method was clicked
     },
     
     showShop(data) {
@@ -373,6 +375,8 @@ const shopEventHandlers = {
     showPaymentMethodScreen() {
         // Update payment flow state
         this.paymentFlow.currentScreen = 'payment-method';
+        this.paymentFlow.lastHoveredMethod = null;
+        this.paymentFlow.clickedMethod = null;
         
         // Get shop main container
         const shopMain = document.querySelector('.shop-main');
@@ -442,6 +446,12 @@ const shopEventHandlers = {
             this.returnToShop();
         });
         
+        // This method stores tax information and payment methods prices for hover functionality
+        const taxData = {
+            baseTotal: total,
+            methods: {}
+        };
+        
         // Fetch tax information
         fetch(`https://${GetParentResourceName()}/getTaxRates`, {
             method: 'POST',
@@ -449,7 +459,7 @@ const shopEventHandlers = {
             body: JSON.stringify({})
         })
         .then(response => response.json())
-        .then(taxData => {
+        .then(fetchedTaxData => {
             // Update tax information in UI
             const cashTaxContainer = document.getElementById('cash-tax-container');
             const bankTaxContainer = document.getElementById('bank-tax-container');
@@ -457,71 +467,115 @@ const shopEventHandlers = {
             const bankTaxedPrice = document.getElementById('bank-taxed-price');
             const finalPriceElement = document.getElementById('payment-final-price');
             
-            // Calculate and display taxed prices
-            let highestTaxedTotal = total;
-            
-            if (taxData && taxData.cash && taxData.cash !== false) {
-                const taxRate = parseFloat(taxData.cash);
-                const taxAmount = Math.floor(total * (taxRate / 100));
-                const taxedTotal = total + taxAmount;
-                
-                // Update highest taxed total if applicable
-                if (taxedTotal > highestTaxedTotal) {
-                    highestTaxedTotal = taxedTotal;
+            // Calculate and store prices for each payment method
+            if (fetchedTaxData && fetchedTaxData.cash !== undefined) {
+                if (fetchedTaxData.cash !== false) {
+                    const taxRate = parseFloat(fetchedTaxData.cash);
+                    const taxAmount = Math.floor(total * (taxRate / 100));
+                    const taxedTotal = total + taxAmount;
+                    
+                    // Store for hover functionality
+                    taxData.methods.cash = {
+                        taxRate: taxRate,
+                        taxAmount: taxAmount,
+                        finalPrice: taxedTotal
+                    };
+                    
+                    cashTaxContainer.innerHTML = `
+                        <div class="payment-method-tax">
+                            <span class="payment-method-tax-icon">🧾</span>
+                            <span class="payment-method-tax-text">${taxRate}% VAT tax</span>
+                        </div>
+                    `;
+                    cashTaxContainer.style.display = 'block';
+                    
+                    // Add taxed price display
+                    cashTaxedPrice.innerHTML = `
+                        <div class="payment-method-taxed-price-display">
+                            $${taxedTotal.toLocaleString()}
+                        </div>
+                    `;
+                    cashTaxedPrice.style.display = 'block';
+                } else {
+                    // If tax is explicitly false, store just the base price
+                    taxData.methods.cash = {
+                        taxRate: 0,
+                        taxAmount: 0,
+                        finalPrice: total
+                    };
+                    
+                    cashTaxContainer.style.display = 'none';
+                    cashTaxedPrice.style.display = 'none';
                 }
-                
-                cashTaxContainer.innerHTML = `
-                    <div class="payment-method-tax">
-                        <span class="payment-method-tax-icon">🧾</span>
-                        <span class="payment-method-tax-text">${taxData.cash}% VAT tax</span>
-                    </div>
-                `;
-                cashTaxContainer.style.display = 'block';
-                
-                // Add taxed price display
-                cashTaxedPrice.innerHTML = `
-                    <div class="payment-method-taxed-price-display">
-                        $${taxedTotal.toLocaleString()}
-                    </div>
-                `;
-                cashTaxedPrice.style.display = 'block';
             } else {
+                // Default case if tax data is missing
+                taxData.methods.cash = {
+                    taxRate: 0,
+                    taxAmount: 0,
+                    finalPrice: total
+                };
+                
                 cashTaxContainer.style.display = 'none';
                 cashTaxedPrice.style.display = 'none';
             }
             
-            if (taxData && taxData.bank && taxData.bank !== false) {
-                const taxRate = parseFloat(taxData.bank);
-                const taxAmount = Math.floor(total * (taxRate / 100));
-                const taxedTotal = total + taxAmount;
-                
-                // Update highest taxed total if applicable
-                if (taxedTotal > highestTaxedTotal) {
-                    highestTaxedTotal = taxedTotal;
+            if (fetchedTaxData && fetchedTaxData.bank !== undefined) {
+                if (fetchedTaxData.bank !== false) {
+                    const taxRate = parseFloat(fetchedTaxData.bank);
+                    const taxAmount = Math.floor(total * (taxRate / 100));
+                    const taxedTotal = total + taxAmount;
+                    
+                    // Store for hover functionality
+                    taxData.methods.bank = {
+                        taxRate: taxRate,
+                        taxAmount: taxAmount,
+                        finalPrice: taxedTotal
+                    };
+                    
+                    bankTaxContainer.innerHTML = `
+                        <div class="payment-method-tax">
+                            <span class="payment-method-tax-icon">🧾</span>
+                            <span class="payment-method-tax-text">${taxRate}% VAT tax</span>
+                        </div>
+                    `;
+                    bankTaxContainer.style.display = 'block';
+                    
+                    // Add taxed price display
+                    bankTaxedPrice.innerHTML = `
+                        <div class="payment-method-taxed-price-display">
+                            $${taxedTotal.toLocaleString()}
+                        </div>
+                    `;
+                    bankTaxedPrice.style.display = 'block';
+                } else {
+                    // If tax is explicitly false, store just the base price
+                    taxData.methods.bank = {
+                        taxRate: 0,
+                        taxAmount: 0,
+                        finalPrice: total
+                    };
+                    
+                    bankTaxContainer.style.display = 'none';
+                    bankTaxedPrice.style.display = 'none';
                 }
-                
-                bankTaxContainer.innerHTML = `
-                    <div class="payment-method-tax">
-                        <span class="payment-method-tax-icon">🧾</span>
-                        <span class="payment-method-tax-text">${taxData.bank}% VAT tax</span>
-                    </div>
-                `;
-                bankTaxContainer.style.display = 'block';
-                
-                // Add taxed price display
-                bankTaxedPrice.innerHTML = `
-                    <div class="payment-method-taxed-price-display">
-                        $${taxedTotal.toLocaleString()}
-                    </div>
-                `;
-                bankTaxedPrice.style.display = 'block';
             } else {
+                // Default case if tax data is missing
+                taxData.methods.bank = {
+                    taxRate: 0,
+                    taxAmount: 0,
+                    finalPrice: total
+                };
+                
                 bankTaxContainer.style.display = 'none';
                 bankTaxedPrice.style.display = 'none';
             }
             
-            // Update the final price display with the highest taxed total
-            finalPriceElement.textContent = `Final price: $${highestTaxedTotal.toLocaleString()}`;
+            // Initially display the final price (highest taxed amount by default)
+            const initialFinalPrice = Math.max(
+                taxData.methods.cash?.finalPrice || total,
+                taxData.methods.bank?.finalPrice || total
+            );
+            finalPriceElement.textContent = `Final price: $${initialFinalPrice.toLocaleString()}`;
         })
         .catch(error => {
             console.error('Error fetching tax rates:', error);
@@ -564,8 +618,21 @@ const shopEventHandlers = {
                     <div class="payment-method-tax-container" id="cash-tax-container"></div>
                     <div class="payment-method-taxed-price" id="cash-taxed-price"></div>
                 `;
+                
+                // Add event listener for click
                 cashBtn.addEventListener('click', () => {
+                    // Save which method was clicked
+                    this.paymentFlow.clickedMethod = 'cash';
                     this.selectPaymentMethod('cash');
+                });
+                
+                // Add hover event listeners to update final price
+                cashBtn.addEventListener('mouseenter', () => {
+                    const finalPriceElement = document.getElementById('payment-final-price');
+                    if (finalPriceElement && taxData?.methods?.cash) {
+                        finalPriceElement.textContent = `Final price: $${taxData.methods.cash.finalPrice.toLocaleString()}`;
+                        this.paymentFlow.lastHoveredMethod = 'cash';
+                    }
                 });
             }
             
@@ -589,8 +656,21 @@ const shopEventHandlers = {
                     <div class="payment-method-tax-container" id="bank-tax-container"></div>
                     <div class="payment-method-taxed-price" id="bank-taxed-price"></div>
                 `;
+                
+                // Add event listener for click
                 bankBtn.addEventListener('click', () => {
+                    // Save which method was clicked
+                    this.paymentFlow.clickedMethod = 'bank';
                     this.selectPaymentMethod('bank');
+                });
+                
+                // Add hover event listeners to update final price
+                bankBtn.addEventListener('mouseenter', () => {
+                    const finalPriceElement = document.getElementById('payment-final-price');
+                    if (finalPriceElement && taxData?.methods?.bank) {
+                        finalPriceElement.textContent = `Final price: $${taxData.methods.bank.finalPrice.toLocaleString()}`;
+                        this.paymentFlow.lastHoveredMethod = 'bank';
+                    }
                 });
             }
             
@@ -601,7 +681,7 @@ const shopEventHandlers = {
                 body: JSON.stringify({})
             })
             .then(response => response.json())
-            .then(taxData => {
+            .then(fetchedTaxData => {
                 // Update tax information in UI
                 const cashTaxContainer = document.getElementById('cash-tax-container');
                 const bankTaxContainer = document.getElementById('bank-tax-container');
@@ -609,71 +689,128 @@ const shopEventHandlers = {
                 const bankTaxedPrice = document.getElementById('bank-taxed-price');
                 const finalPriceElement = document.getElementById('payment-final-price');
                 
-                // Calculate and display taxed prices
-                let highestTaxedTotal = total;
-                
-                if (taxData && taxData.cash && taxData.cash !== false) {
-                    const taxRate = parseFloat(taxData.cash);
-                    const taxAmount = Math.floor(total * (taxRate / 100));
-                    const taxedTotal = total + taxAmount;
-                    
-                    // Update highest taxed total if applicable
-                    if (taxedTotal > highestTaxedTotal) {
-                        highestTaxedTotal = taxedTotal;
+                // Calculate and store prices for each payment method
+                if (fetchedTaxData && fetchedTaxData.cash !== undefined) {
+                    if (fetchedTaxData.cash !== false) {
+                        const taxRate = parseFloat(fetchedTaxData.cash);
+                        const taxAmount = Math.floor(total * (taxRate / 100));
+                        const taxedTotal = total + taxAmount;
+                        
+                        // Store for hover functionality
+                        taxData.methods.cash = {
+                            taxRate: taxRate,
+                            taxAmount: taxAmount,
+                            finalPrice: taxedTotal
+                        };
+                        
+                        cashTaxContainer.innerHTML = `
+                            <div class="payment-method-tax">
+                                <span class="payment-method-tax-icon">🧾</span>
+                                <span class="payment-method-tax-text">${taxRate}% VAT tax</span>
+                            </div>
+                        `;
+                        cashTaxContainer.style.display = 'block';
+                        
+                        // Add taxed price display
+                        cashTaxedPrice.innerHTML = `
+                            <div class="payment-method-taxed-price-display">
+                                $${taxedTotal.toLocaleString()}
+                            </div>
+                        `;
+                        cashTaxedPrice.style.display = 'block';
+                    } else {
+                        // If tax is explicitly false, store just the base price
+                        taxData.methods.cash = {
+                            taxRate: 0,
+                            taxAmount: 0,
+                            finalPrice: total
+                        };
+                        
+                        cashTaxContainer.style.display = 'none';
+                        cashTaxedPrice.style.display = 'none';
                     }
-                    
-                    cashTaxContainer.innerHTML = `
-                        <div class="payment-method-tax">
-                            <span class="payment-method-tax-icon">🧾</span>
-                            <span class="payment-method-tax-text">${taxData.cash}% VAT tax</span>
-                        </div>
-                    `;
-                    cashTaxContainer.style.display = 'block';
-                    
-                    // Add taxed price display
-                    cashTaxedPrice.innerHTML = `
-                        <div class="payment-method-taxed-price-display">
-                            $${taxedTotal.toLocaleString()}
-                        </div>
-                    `;
-                    cashTaxedPrice.style.display = 'block';
-                } else {
-                    cashTaxContainer.style.display = 'none';
-                    cashTaxedPrice.style.display = 'none';
                 }
                 
-                if (taxData && taxData.bank && taxData.bank !== false) {
-                    const taxRate = parseFloat(taxData.bank);
-                    const taxAmount = Math.floor(total * (taxRate / 100));
-                    const taxedTotal = total + taxAmount;
-                    
-                    // Update highest taxed total if applicable
-                    if (taxedTotal > highestTaxedTotal) {
-                        highestTaxedTotal = taxedTotal;
+                if (fetchedTaxData && fetchedTaxData.bank !== undefined) {
+                    if (fetchedTaxData.bank !== false) {
+                        const taxRate = parseFloat(fetchedTaxData.bank);
+                        const taxAmount = Math.floor(total * (taxRate / 100));
+                        const taxedTotal = total + taxAmount;
+                        
+                        // Store for hover functionality
+                        taxData.methods.bank = {
+                            taxRate: taxRate,
+                            taxAmount: taxAmount,
+                            finalPrice: taxedTotal
+                        };
+                        
+                        bankTaxContainer.innerHTML = `
+                            <div class="payment-method-tax">
+                                <span class="payment-method-tax-icon">🧾</span>
+                                <span class="payment-method-tax-text">${taxRate}% VAT tax</span>
+                            </div>
+                        `;
+                        bankTaxContainer.style.display = 'block';
+                        
+                        // Add taxed price display
+                        bankTaxedPrice.innerHTML = `
+                            <div class="payment-method-taxed-price-display">
+                                $${taxedTotal.toLocaleString()}
+                            </div>
+                        `;
+                        bankTaxedPrice.style.display = 'block';
+                    } else {
+                        // If tax is explicitly false, store just the base price
+                        taxData.methods.bank = {
+                            taxRate: 0,
+                            taxAmount: 0,
+                            finalPrice: total
+                        };
+                        
+                        bankTaxContainer.style.display = 'none';
+                        bankTaxedPrice.style.display = 'none';
                     }
-                    
-                    bankTaxContainer.innerHTML = `
-                        <div class="payment-method-tax">
-                            <span class="payment-method-tax-icon">🧾</span>
-                            <span class="payment-method-tax-text">${taxData.bank}% VAT tax</span>
-                        </div>
-                    `;
-                    bankTaxContainer.style.display = 'block';
-                    
-                    // Add taxed price display
-                    bankTaxedPrice.innerHTML = `
-                        <div class="payment-method-taxed-price-display">
-                            $${taxedTotal.toLocaleString()}
-                        </div>
-                    `;
-                    bankTaxedPrice.style.display = 'block';
-                } else {
-                    bankTaxContainer.style.display = 'none';
-                    bankTaxedPrice.style.display = 'none';
                 }
                 
-                // Update the final price display with the highest taxed total
-                finalPriceElement.textContent = `Final price: $${highestTaxedTotal.toLocaleString()}`;
+                // Add event listeners for non-disabled buttons again
+                if (!cashDisabled) {
+                    const cashBtn = shopMain.querySelector('.payment-method-btn[data-method="cash"]');
+                    cashBtn.addEventListener('mouseenter', () => {
+                        const finalPriceElement = document.getElementById('payment-final-price');
+                        if (finalPriceElement && taxData?.methods?.cash) {
+                            finalPriceElement.textContent = `Final price: $${taxData.methods.cash.finalPrice.toLocaleString()}`;
+                            this.paymentFlow.lastHoveredMethod = 'cash';
+                        }
+                    });
+                }
+                
+                if (!bankDisabled) {
+                    const bankBtn = shopMain.querySelector('.payment-method-btn[data-method="bank"]');
+                    bankBtn.addEventListener('mouseenter', () => {
+                        const finalPriceElement = document.getElementById('payment-final-price');
+                        if (finalPriceElement && taxData?.methods?.bank) {
+                            finalPriceElement.textContent = `Final price: $${taxData.methods.bank.finalPrice.toLocaleString()}`;
+                            this.paymentFlow.lastHoveredMethod = 'bank';
+                        }
+                    });
+                }
+                
+                // If a method was clicked, show its final price regardless of hover
+                if (this.paymentFlow.clickedMethod && taxData?.methods?.[this.paymentFlow.clickedMethod]) {
+                    finalPriceElement.textContent = `Final price: $${taxData.methods[this.paymentFlow.clickedMethod].finalPrice.toLocaleString()}`;
+                } 
+                // If a method was last hovered, show its final price
+                else if (this.paymentFlow.lastHoveredMethod && taxData?.methods?.[this.paymentFlow.lastHoveredMethod]) {
+                    finalPriceElement.textContent = `Final price: $${taxData.methods[this.paymentFlow.lastHoveredMethod].finalPrice.toLocaleString()}`;
+                }
+                // Otherwise show initially calculated max price
+                else {
+                    const initialFinalPrice = Math.max(
+                        taxData.methods.cash?.finalPrice || total,
+                        taxData.methods.bank?.finalPrice || total
+                    );
+                    finalPriceElement.textContent = `Final price: $${initialFinalPrice.toLocaleString()}`;
+                }
             })
             .catch(error => {
                 console.error('Error fetching tax rates:', error);
