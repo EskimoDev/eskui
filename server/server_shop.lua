@@ -351,6 +351,31 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
     -- Default to cash if no payment method specified
     paymentMethod = paymentMethod or Config.MoneyTypes.cash
     
+    -- Calculate tax based on payment method
+    local taxRate = 0
+    if Config.Tax and Config.Tax[paymentMethod] then
+        if type(Config.Tax[paymentMethod]) == "string" then
+            taxRate = tonumber(Config.Tax[paymentMethod]) or 0
+        elseif type(Config.Tax[paymentMethod]) == "number" then
+            taxRate = Config.Tax[paymentMethod]
+        end
+    end
+    
+    -- Calculate original price for reference
+    local originalPrice = totalPrice
+    
+    -- Apply tax to total price if tax rate is greater than 0
+    local taxAmount = 0
+    if taxRate > 0 then
+        taxAmount = math.floor(totalPrice * (taxRate / 100))
+        totalPrice = totalPrice + taxAmount
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Applied " .. taxRate .. "% tax ($" .. taxAmount .. ") to purchase^7")
+            print("^1[ESKUI SERVER DEBUG] New total price: $" .. totalPrice .. "^7")
+        end
+    end
+    
     -- Make sure framework is initialized
     if not FrameworkInitialized then
         if Config.Debug then
@@ -522,8 +547,17 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
             print("^1[ESKUI SERVER DEBUG] ========= PURCHASE SUCCESSFUL =========^7")
         end
         
-        -- Send success message
+        -- Send success message with tax information
         TriggerClientEvent('eskui:purchaseResult', source, true, "Purchase successful", purchasedItems)
+        
+        -- Send tax notification if tax was applied
+        if taxAmount > 0 then
+            local taxMessage = "Tax of $" .. taxAmount .. " (" .. taxRate .. "%) applied to your purchase of $" .. originalPrice
+            TriggerClientEvent('eskui:taxApplied', source, taxAmount, taxRate, originalPrice, totalPrice)
+            
+            -- Send a native ESX notification about the tax
+            TriggerClientEvent('esx:showNotification', source, taxMessage)
+        end
         
     elseif Config.Framework == 'qbcore' then
         Player = QBCore.Functions.GetPlayer(source)
@@ -563,8 +597,17 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
             end
         end
         
-        -- Send success message
+        -- Send success message with tax information
         TriggerClientEvent('eskui:purchaseResult', source, true, "Purchase successful", purchasedItems)
+        
+        -- Send tax notification if tax was applied
+        if taxAmount > 0 then
+            local taxMessage = "Tax of $" .. taxAmount .. " (" .. taxRate .. "%) applied to your purchase of $" .. originalPrice
+            TriggerClientEvent('eskui:taxApplied', source, taxAmount, taxRate, originalPrice, totalPrice)
+            
+            -- Send a QBCore notification about the tax
+            TriggerClientEvent('QBCore:Notify', source, taxMessage, "success")
+        end
         
     elseif Config.Framework == 'standalone' then
         -- In standalone mode, just simulate success
@@ -576,8 +619,14 @@ AddEventHandler('eskui:processShopPurchase', function(items, totalPrice, payment
             })
         end
         
-        -- Send success message
+        -- Send success message with tax information
         TriggerClientEvent('eskui:purchaseResult', source, true, "Purchase successful (Standalone mode)", purchasedItems)
+        
+        -- Send tax notification if tax was applied
+        if taxAmount > 0 then
+            local taxMessage = "Tax of $" .. taxAmount .. " (" .. taxRate .. "%) applied to your purchase of $" .. originalPrice
+            TriggerClientEvent('eskui:taxApplied', source, taxAmount, taxRate, originalPrice, totalPrice)
+        end
     end
 end)
 
@@ -624,14 +673,15 @@ end)
 -- Print startup message
 print("^2[ESKUI] Server module initialized^7")
 
--- Add handler for getting player balances directly from server
+-- Find the player's current money and bank balance
 RegisterNetEvent('eskui:getPlayerBalances')
-AddEventHandler('eskui:getPlayerBalances', function()
+AddEventHandler('eskui:getPlayerBalances', function(responseEventName)
     local source = source
     
     if Config.Debug then
         print("^1[ESKUI SERVER DEBUG] ========= GET PLAYER BALANCES =========^7")
         print("^1[ESKUI SERVER DEBUG] Source: " .. source .. "^7")
+        print("^1[ESKUI SERVER DEBUG] Response event: " .. (responseEventName or "default") .. "^7")
     end
     
     -- Make sure framework is initialized
@@ -646,7 +696,9 @@ AddEventHandler('eskui:getPlayerBalances', function()
                 print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST FAILED =========^7")
             end
             
-            TriggerClientEvent('eskui:receivePlayerBalances', source, 0, 0)
+            -- Use the provided response event name if available
+            local eventToTrigger = responseEventName or 'eskui:receivePlayerBalances'
+            TriggerClientEvent(eventToTrigger, source, 0, 0)
             return
         end
     end
@@ -664,7 +716,9 @@ AddEventHandler('eskui:getPlayerBalances', function()
                 print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST FAILED =========^7")
             end
             
-            TriggerClientEvent('eskui:receivePlayerBalances', source, 0, 0)
+            -- Use the provided response event name if available
+            local eventToTrigger = responseEventName or 'eskui:receivePlayerBalances'
+            TriggerClientEvent(eventToTrigger, source, 0, 0)
             return
         end
         
@@ -678,7 +732,6 @@ AddEventHandler('eskui:getPlayerBalances', function()
             print("^1[ESKUI SERVER DEBUG] ESX player found: " .. xPlayer.identifier .. "^7")
             print("^1[ESKUI SERVER DEBUG] Cash balance: $" .. cashBalance .. "^7")
             print("^1[ESKUI SERVER DEBUG] Bank balance: $" .. bankBalance .. "^7")
-            print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST SUCCESSFUL =========^7")
         end
         
     elseif Config.Framework == 'qbcore' then
@@ -690,7 +743,9 @@ AddEventHandler('eskui:getPlayerBalances', function()
                 print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST FAILED =========^7")
             end
             
-            TriggerClientEvent('eskui:receivePlayerBalances', source, 0, 0)
+            -- Use the provided response event name if available
+            local eventToTrigger = responseEventName or 'eskui:receivePlayerBalances'
+            TriggerClientEvent(eventToTrigger, source, 0, 0)
             return
         end
         
@@ -704,7 +759,6 @@ AddEventHandler('eskui:getPlayerBalances', function()
             print("^1[ESKUI SERVER DEBUG] QBCore player found^7")
             print("^1[ESKUI SERVER DEBUG] Cash balance: $" .. cashBalance .. "^7")
             print("^1[ESKUI SERVER DEBUG] Bank balance: $" .. bankBalance .. "^7")
-            print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST SUCCESSFUL =========^7")
         end
         
     else
@@ -716,10 +770,64 @@ AddEventHandler('eskui:getPlayerBalances', function()
             print("^1[ESKUI SERVER DEBUG] Using standalone mode with dummy balances^7")
             print("^1[ESKUI SERVER DEBUG] Cash balance: $" .. cashBalance .. "^7")
             print("^1[ESKUI SERVER DEBUG] Bank balance: $" .. bankBalance .. "^7")
-            print("^1[ESKUI SERVER DEBUG] ========= BALANCES REQUEST SUCCESSFUL =========^7")
         end
     end
     
+    -- Use the provided response event name if available
+    local eventToTrigger = responseEventName or 'eskui:receivePlayerBalances'
+    
     -- Send balances back to client
-    TriggerClientEvent('eskui:receivePlayerBalances', source, cashBalance, bankBalance)
+    TriggerClientEvent(eventToTrigger, source, cashBalance, bankBalance)
+    
+    if Config.Debug then
+        print("^1[ESKUI SERVER DEBUG] ========= BALANCES SENT TO " .. eventToTrigger .. " =========^7")
+    end
+end)
+
+-- Add handler for getting tax rates
+RegisterNetEvent('eskui:getTaxRates')
+AddEventHandler('eskui:getTaxRates', function(responseEventName)
+    local source = source
+    
+    if Config.Debug then
+        print("^1[ESKUI SERVER DEBUG] ========= GET TAX RATES =========^7")
+        print("^1[ESKUI SERVER DEBUG] Source: " .. source .. "^7")
+        print("^1[ESKUI SERVER DEBUG] Response event: " .. (responseEventName or "default") .. "^7")
+    end
+    
+    -- Default tax rates if not configured
+    local taxRates = {
+        cash = false,
+        bank = false
+    }
+    
+    -- Get configured tax rates if available
+    if Config.Tax then
+        if Config.Tax.cash ~= nil then
+            taxRates.cash = Config.Tax.cash
+        end
+        
+        if Config.Tax.bank ~= nil then
+            taxRates.bank = Config.Tax.bank
+        end
+        
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] Tax rates from config: cash=" .. tostring(taxRates.cash) .. 
+                  ", bank=" .. tostring(taxRates.bank) .. "^7")
+        end
+    else
+        if Config.Debug then
+            print("^1[ESKUI SERVER DEBUG] No tax configuration found^7")
+        end
+    end
+    
+    -- Use the provided response event name if available, otherwise use the default
+    local eventToTrigger = responseEventName or 'eskui:receiveTaxRates'
+    
+    -- Send tax rates back to client
+    TriggerClientEvent(eventToTrigger, source, taxRates)
+    
+    if Config.Debug then
+        print("^1[ESKUI SERVER DEBUG] ========= TAX RATES SENT TO " .. eventToTrigger .. " =========^7")
+    end
 end) 

@@ -218,6 +218,12 @@ Config.Shops = {
     }
 }
 
+-- Tax configuration
+Config.Tax = {
+    cash = "5", -- 5% tax for cash payments
+    bank = false -- no tax for bank payments
+}
+
 -- Function to get shop configuration
 function Config.GetShop(shopName)
     -- Make sure Config.Shops exists

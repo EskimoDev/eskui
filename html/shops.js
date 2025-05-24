@@ -316,7 +316,7 @@ const shopEventHandlers = {
         this.showPaymentMethodScreen();
     },
     
-    // New method to show the payment method selection screen
+    // New method to show the payment method screen
     showPaymentMethodScreen() {
         // Update payment flow state
         this.paymentFlow.currentScreen = 'payment-method';
@@ -343,11 +343,15 @@ const shopEventHandlers = {
                         <span class="payment-method-icon">💵</span>
                         <span class="payment-method-label">Cash</span>
                         <span class="payment-method-balance loading">Loading...</span>
+                        <div class="payment-method-tax-container" id="cash-tax-container"></div>
+                        <div class="payment-method-taxed-price" id="cash-taxed-price"></div>
                     </button>
                     <button class="payment-method-btn loading" data-method="bank">
                         <span class="payment-method-icon">🏦</span>
                         <span class="payment-method-label">Bank</span>
                         <span class="payment-method-balance loading">Loading...</span>
+                        <div class="payment-method-tax-container" id="bank-tax-container"></div>
+                        <div class="payment-method-taxed-price" id="bank-taxed-price"></div>
                     </button>
                 </div>
                 
@@ -363,6 +367,75 @@ const shopEventHandlers = {
         // Add event listener for the cancel button
         document.getElementById('payment-cancel-btn').addEventListener('click', () => {
             this.returnToShop();
+        });
+        
+        // Fetch tax information
+        fetch(`https://${GetParentResourceName()}/getTaxRates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(taxData => {
+            // Update tax information in UI
+            const cashTaxContainer = document.getElementById('cash-tax-container');
+            const bankTaxContainer = document.getElementById('bank-tax-container');
+            const cashTaxedPrice = document.getElementById('cash-taxed-price');
+            const bankTaxedPrice = document.getElementById('bank-taxed-price');
+            
+            // Calculate and display taxed prices
+            if (taxData && taxData.cash && taxData.cash !== false) {
+                const taxRate = parseFloat(taxData.cash);
+                const taxAmount = Math.floor(total * (taxRate / 100));
+                const taxedTotal = total + taxAmount;
+                
+                cashTaxContainer.innerHTML = `
+                    <div class="payment-method-tax">
+                        <span class="payment-method-tax-icon">🧾</span>
+                        <span class="payment-method-tax-text">${taxData.cash}% VAT tax applied</span>
+                    </div>
+                `;
+                cashTaxContainer.style.display = 'block';
+                
+                // Add taxed price display
+                cashTaxedPrice.innerHTML = `
+                    <div class="payment-method-taxed-price-display">
+                        <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                    </div>
+                `;
+                cashTaxedPrice.style.display = 'block';
+            } else {
+                cashTaxContainer.style.display = 'none';
+                cashTaxedPrice.style.display = 'none';
+            }
+            
+            if (taxData && taxData.bank && taxData.bank !== false) {
+                const taxRate = parseFloat(taxData.bank);
+                const taxAmount = Math.floor(total * (taxRate / 100));
+                const taxedTotal = total + taxAmount;
+                
+                bankTaxContainer.innerHTML = `
+                    <div class="payment-method-tax">
+                        <span class="payment-method-tax-icon">🧾</span>
+                        <span class="payment-method-tax-text">${taxData.bank}% VAT tax applied</span>
+                    </div>
+                `;
+                bankTaxContainer.style.display = 'block';
+                
+                // Add taxed price display
+                bankTaxedPrice.innerHTML = `
+                    <div class="payment-method-taxed-price-display">
+                        <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                    </div>
+                `;
+                bankTaxedPrice.style.display = 'block';
+            } else {
+                bankTaxContainer.style.display = 'none';
+                bankTaxedPrice.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching tax rates:', error);
         });
         
         // Always fetch fresh player balances from the client
@@ -391,12 +464,16 @@ const shopEventHandlers = {
                     <span class="payment-method-label">Cash</span>
                     <span class="payment-method-balance insufficient">$${cashBalance.toLocaleString()}</span>
                     <span class="payment-method-insufficient">Insufficient Funds</span>
+                    <div class="payment-method-tax-container" id="cash-tax-container"></div>
+                    <div class="payment-method-taxed-price" id="cash-taxed-price"></div>
                 `;
             } else {
                 cashBtn.innerHTML = `
                     <span class="payment-method-icon">💵</span>
                     <span class="payment-method-label">Cash</span>
                     <span class="payment-method-balance">$${cashBalance.toLocaleString()}</span>
+                    <div class="payment-method-tax-container" id="cash-tax-container"></div>
+                    <div class="payment-method-taxed-price" id="cash-taxed-price"></div>
                 `;
                 cashBtn.addEventListener('click', () => {
                     this.selectPaymentMethod('cash');
@@ -412,17 +489,90 @@ const shopEventHandlers = {
                     <span class="payment-method-label">Bank</span>
                     <span class="payment-method-balance insufficient">$${bankBalance.toLocaleString()}</span>
                     <span class="payment-method-insufficient">Insufficient Funds</span>
+                    <div class="payment-method-tax-container" id="bank-tax-container"></div>
+                    <div class="payment-method-taxed-price" id="bank-taxed-price"></div>
                 `;
             } else {
                 bankBtn.innerHTML = `
                     <span class="payment-method-icon">🏦</span>
                     <span class="payment-method-label">Bank</span>
                     <span class="payment-method-balance">$${bankBalance.toLocaleString()}</span>
+                    <div class="payment-method-tax-container" id="bank-tax-container"></div>
+                    <div class="payment-method-taxed-price" id="bank-taxed-price"></div>
                 `;
                 bankBtn.addEventListener('click', () => {
                     this.selectPaymentMethod('bank');
                 });
             }
+            
+            // Restore tax information after updating HTML
+            fetch(`https://${GetParentResourceName()}/getTaxRates`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(taxData => {
+                // Update tax information in UI
+                const cashTaxContainer = document.getElementById('cash-tax-container');
+                const bankTaxContainer = document.getElementById('bank-tax-container');
+                const cashTaxedPrice = document.getElementById('cash-taxed-price');
+                const bankTaxedPrice = document.getElementById('bank-taxed-price');
+                
+                // Calculate and display taxed prices
+                if (taxData && taxData.cash && taxData.cash !== false) {
+                    const taxRate = parseFloat(taxData.cash);
+                    const taxAmount = Math.floor(total * (taxRate / 100));
+                    const taxedTotal = total + taxAmount;
+                    
+                    cashTaxContainer.innerHTML = `
+                        <div class="payment-method-tax">
+                            <span class="payment-method-tax-icon">🧾</span>
+                            <span class="payment-method-tax-text">${taxData.cash}% VAT tax applied</span>
+                        </div>
+                    `;
+                    cashTaxContainer.style.display = 'block';
+                    
+                    // Add taxed price display
+                    cashTaxedPrice.innerHTML = `
+                        <div class="payment-method-taxed-price-display">
+                            <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                        </div>
+                    `;
+                    cashTaxedPrice.style.display = 'block';
+                } else {
+                    cashTaxContainer.style.display = 'none';
+                    cashTaxedPrice.style.display = 'none';
+                }
+                
+                if (taxData && taxData.bank && taxData.bank !== false) {
+                    const taxRate = parseFloat(taxData.bank);
+                    const taxAmount = Math.floor(total * (taxRate / 100));
+                    const taxedTotal = total + taxAmount;
+                    
+                    bankTaxContainer.innerHTML = `
+                        <div class="payment-method-tax">
+                            <span class="payment-method-tax-icon">🧾</span>
+                            <span class="payment-method-tax-text">${taxData.bank}% VAT tax applied</span>
+                        </div>
+                    `;
+                    bankTaxContainer.style.display = 'block';
+                    
+                    // Add taxed price display
+                    bankTaxedPrice.innerHTML = `
+                        <div class="payment-method-taxed-price-display">
+                            <span class="payment-method-taxed-price-text">Final price: $${taxedTotal.toLocaleString()}</span>
+                        </div>
+                    `;
+                    bankTaxedPrice.style.display = 'block';
+                } else {
+                    bankTaxContainer.style.display = 'none';
+                    bankTaxedPrice.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching tax rates:', error);
+            });
             
             // Show notification if player can't afford either method
             if (cashDisabled && bankDisabled) {
@@ -514,11 +664,14 @@ const shopEventHandlers = {
         // Calculate total
         const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         
+        // Get selected payment method
+        const paymentMethod = this.paymentFlow.selectedMethod;
+        
         // Prepare checkout data
         const checkoutData = {
             items: state.cart,
             total: total,
-            paymentMethod: this.paymentFlow.selectedMethod
+            paymentMethod: paymentMethod
         };
         
         console.log("Processing payment - maintaining NUI focus");
@@ -567,53 +720,113 @@ const shopEventHandlers = {
         
         // Calculate total
         const total = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const paymentMethod = this.paymentFlow.selectedMethod;
         
-        // Replace with payment success screen
-        shopMain.innerHTML = `
-            <div class="payment-result-screen payment-success">
-                <div class="payment-result-icon">✅</div>
-                <h2>Payment Successful</h2>
-                <p>Your payment of $${total.toLocaleString()} has been processed successfully.</p>
-                <p>Thank you for your purchase!</p>
-                <div class="payment-actions">
-                    <button class="button submit" id="continue-shopping-btn">Continue Shopping</button>
-                    <button class="button cancel" id="exit-shopping-btn">Exit</button>
+        // Get tax information
+        fetch(`https://${GetParentResourceName()}/getTaxRates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        })
+        .then(response => response.json())
+        .then(taxData => {
+            // Calculate tax amount if applicable
+            let taxRate = 0;
+            let taxAmount = 0;
+            let taxMessage = '';
+            
+            if (paymentMethod && taxData && taxData[paymentMethod] && taxData[paymentMethod] !== false) {
+                taxRate = parseFloat(taxData[paymentMethod]);
+                taxAmount = Math.floor(total * (taxRate / 100));
+                taxMessage = `<p>Including ${taxRate}% VAT: $${taxAmount.toLocaleString()}</p>`;
+            }
+            
+            const finalTotal = total + taxAmount;
+            
+            // Replace with payment success screen
+            shopMain.innerHTML = `
+                <div class="payment-result-screen payment-success">
+                    <div class="payment-result-icon">✅</div>
+                    <h2>Payment Successful</h2>
+                    <p>Your payment of $${finalTotal.toLocaleString()} has been processed successfully.</p>
+                    ${taxMessage}
+                    <p>Thank you for your purchase!</p>
+                    <div class="payment-actions">
+                        <button class="button submit" id="continue-shopping-btn">Continue Shopping</button>
+                        <button class="button cancel" id="exit-shopping-btn">Exit</button>
+                    </div>
                 </div>
-            </div>
-        `;
-        
-        // Update the shop title
-        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Payment Successful';
-        
-        // Add event listeners for buttons
-        document.getElementById('continue-shopping-btn').addEventListener('click', () => {
-            // Clear the cart, this purchase is complete
-            state.cart = [];
+            `;
             
-            // Important: The money has been spent, so any cached balance data should be cleared
-            // This ensures that future checkout attempts will fetch fresh balance data
-            this.originalShopMain = null; // Force complete rebuild of shop UI
+            // Add event listeners for buttons
+            document.getElementById('continue-shopping-btn').addEventListener('click', () => {
+                // Clear the cart, this purchase is complete
+                state.cart = [];
+                
+                // Important: The money has been spent, so any cached balance data should be cleared
+                // This ensures that future checkout attempts will fetch fresh balance data
+                this.originalShopMain = null; // Force complete rebuild of shop UI
+                
+                console.log("Payment successful - returning to shop to enable new purchase");
+                
+                // Signal that this purchase is complete
+                this.paymentFlow.purchaseComplete = true;
+                
+                // Return to the shop for a new shopping experience
+                this.returnToShop();
+                
+                // Show success notification
+                notifications.create({
+                    type: 'success',
+                    title: 'Purchase Complete',
+                    message: 'Your purchase was successful!',
+                    duration: 3000
+                });
+            });
             
-            console.log("Payment successful - returning to shop to enable new purchase");
+            document.getElementById('exit-shopping-btn').addEventListener('click', () => {
+                this.exitShopping();
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching tax rates:', error);
             
-            // Signal that this purchase is complete
-            this.paymentFlow.purchaseComplete = true;
+            // Fallback to showing success screen without tax info
+            shopMain.innerHTML = `
+                <div class="payment-result-screen payment-success">
+                    <div class="payment-result-icon">✅</div>
+                    <h2>Payment Successful</h2>
+                    <p>Your payment of $${total.toLocaleString()} has been processed successfully.</p>
+                    <p>Thank you for your purchase!</p>
+                    <div class="payment-actions">
+                        <button class="button submit" id="continue-shopping-btn">Continue Shopping</button>
+                        <button class="button cancel" id="exit-shopping-btn">Exit</button>
+                    </div>
+                </div>
+            `;
             
-            // Return to the shop for a new shopping experience
-            this.returnToShop();
+            // Add event listeners for buttons
+            document.getElementById('continue-shopping-btn').addEventListener('click', () => {
+                state.cart = [];
+                this.originalShopMain = null;
+                this.paymentFlow.purchaseComplete = true;
+                this.returnToShop();
+                
+                notifications.create({
+                    type: 'success',
+                    title: 'Purchase Complete',
+                    message: 'Your purchase was successful!',
+                    duration: 3000
+                });
+            });
             
-            // Show success notification
-            notifications.create({
-                type: 'success',
-                title: 'Purchase Complete',
-                message: 'Your purchase was successful!',
-                duration: 3000
+            document.getElementById('exit-shopping-btn').addEventListener('click', () => {
+                this.exitShopping();
             });
         });
         
-        document.getElementById('exit-shopping-btn').addEventListener('click', () => {
-            this.exitShopping();
-        });
+        // Update the shop title
+        document.querySelector('#shopping-ui .titlebar-title').textContent = 'Payment Successful';
     },
     
     // New method to show payment failure screen
@@ -751,4 +964,4 @@ const shopEventHandlers = {
 };
 
 // Export functionality to global scope
-window.shopEventHandlers = shopEventHandlers; 
+window.shopEventHandlers = shopEventHandlers;

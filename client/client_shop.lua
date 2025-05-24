@@ -791,12 +791,12 @@ function GetPlayerBalances()
     -- Use a promise to make this synchronous for the NUI callback
     local p = promise.new()
     
-    -- Trigger server event to get fresh balances
-    TriggerServerEvent('eskui:getPlayerBalances')
+    -- Use a unique event name with a timestamp to avoid conflicts
+    local uniqueEventName = 'eskui:receivePlayerBalances:' .. GetGameTimer()
     
-    -- Register a one-time event handler for the response
-    local eventHandler = RegisterNetEvent('eskui:receivePlayerBalances')
-    AddEventHandler('eskui:receivePlayerBalances', function(cashAmount, bankAmount)
+    -- Register a one-time event handler with the unique name
+    RegisterNetEvent(uniqueEventName)
+    AddEventHandler(uniqueEventName, function(cashAmount, bankAmount)
         if Config.Debug then
             print("^3[ESKUI DEBUG] Received fresh balances from server:^7")
             print("^3[ESKUI DEBUG] Cash: $" .. cashAmount .. "^7")
@@ -809,14 +809,14 @@ function GetPlayerBalances()
         
         -- Resolve the promise
         p:resolve(true)
-        
-        -- Remove the event handler
-        RemoveEventHandler(eventHandler)
     end)
     
-    -- Wait for the promise to be resolved (with a timeout)
+    -- Trigger server event to get fresh balances with the unique event name
+    TriggerServerEvent('eskui:getPlayerBalances', uniqueEventName)
+    
+    -- Set a timeout for waiting for the response
     Citizen.SetTimeout(1000, function()
-        if not p:isResolved() then
+        if p and p.isResolved and not p:isResolved() then
             if Config.Debug then
                 print("^1[ESKUI DEBUG] Timeout waiting for server balances, using default values^7")
             end
@@ -877,4 +877,86 @@ RegisterNUICallback('shopReadyForNewPurchase', function(data, cb)
     
     -- Return a success response
     cb({success = true})
+end)
+
+-- Add this new function to fetch tax rates
+function GetTaxRates()
+    if Config.Debug then
+        print("^3[ESKUI DEBUG] Getting tax rates from server^7")
+    end
+    
+    -- We'll store the result in this variable
+    local taxRates = {
+        cash = false,
+        bank = false
+    }
+    
+    -- Use a promise to make this synchronous for the NUI callback
+    local p = promise.new()
+    
+    -- Use a unique event name with a timestamp to avoid conflicts
+    local uniqueEventName = 'eskui:receiveTaxRates:' .. GetGameTimer()
+    
+    -- Register a one-time event handler with the unique name
+    RegisterNetEvent(uniqueEventName)
+    AddEventHandler(uniqueEventName, function(rates)
+        if Config.Debug then
+            print("^3[ESKUI DEBUG] Received tax rates from server:^7")
+            print("^3[ESKUI DEBUG] Cash tax: " .. tostring(rates.cash) .. "^7")
+            print("^3[ESKUI DEBUG] Bank tax: " .. tostring(rates.bank) .. "^7")
+        end
+        
+        -- Update the tax rates
+        taxRates.cash = rates.cash
+        taxRates.bank = rates.bank
+        
+        -- Resolve the promise
+        p:resolve(true)
+    end)
+    
+    -- Trigger server event to get tax rates with the unique event name
+    TriggerServerEvent('eskui:getTaxRates', uniqueEventName)
+    
+    -- Set a timeout for waiting for the response
+    Citizen.SetTimeout(1000, function()
+        if p and p.isResolved and not p:isResolved() then
+            if Config.Debug then
+                print("^1[ESKUI DEBUG] Timeout waiting for tax rates, using default values^7")
+            end
+            p:resolve(false)
+        end
+    end)
+    
+    -- Wait for the promise
+    Citizen.Await(p)
+    
+    return taxRates
+end
+
+-- Add a new NUI callback to get tax rates
+RegisterNUICallback('getTaxRates', function(data, cb)
+    local taxRates = GetTaxRates()
+    cb(taxRates)
+end)
+
+-- Register tax notification event
+RegisterNetEvent('eskui:taxApplied')
+AddEventHandler('eskui:taxApplied', function(taxAmount, taxRate, originalPrice, totalPrice)
+    if Config.Debug then
+        print("^3[ESKUI DEBUG] Tax applied: $" .. taxAmount .. " (" .. taxRate .. "%)^7")
+        print("^3[ESKUI DEBUG] Original price: $" .. originalPrice .. ", Total price: $" .. totalPrice .. "^7")
+    end
+    
+    -- Show a notification about the tax
+    local message = string.format("Tax: $%s (%s%%) applied to your purchase", taxAmount, taxRate)
+    
+    -- Send the notification to the UI
+    SendNUIMessage({
+        type = 'showTaxNotification',
+        taxAmount = taxAmount,
+        taxRate = taxRate,
+        originalPrice = originalPrice,
+        totalPrice = totalPrice,
+        message = message
+    })
 end) 

@@ -455,6 +455,16 @@ window.addEventListener('message', function(event) {
                 console.log('Processing showNotification event', data);
                 // Create the notification
                 notifications.create(data);
+            },
+            showTaxNotification: () => {
+                console.log('Processing showTaxNotification event', data);
+                // Show a tax notification
+                notifications.create({
+                    type: 'info',
+                    title: 'Tax Applied',
+                    message: data.message || `Tax: $${data.taxAmount} (${data.taxRate}%) applied to your purchase of $${data.originalPrice}`,
+                    duration: 5000
+                });
             }
         };
         
