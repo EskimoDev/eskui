@@ -23,7 +23,8 @@ client_scripts {
     'client/client.lua',
     'client/client_shop.lua',
     'client/client_test.lua',
-    'client/client_interaction.lua'
+    'client/client_interaction.lua',
+    'client/client_atm.lua'
 }
 
 -- Server scripts
