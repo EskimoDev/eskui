@@ -241,8 +241,148 @@
     <!-- Interaction Prompt -->
     <iframe id="interaction-frame" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; pointer-events: none;" src="interaction.html"></iframe>
     
+    <!-- Banking UI -->
+    <div id="banking-ui" class="ui-container">
+        <div class="window banking-window">
+            <div class="titlebar">
+                <div class="titlebar-title">
+                    <div class="bank-logo">🏦</div>
+                    <span>First National Bank</span>
+                </div>
+                <div class="window-controls">
+                    <button class="close-button" onclick="closeUI()">×</button>
+                </div>
+            </div>
+            <div class="content">
+                <div class="banking-container">
+                    <!-- Welcome Header -->
+                    <div class="banking-welcome">
+                        <div class="welcome-text">
+                            <h2>Welcome back, <span id="account-holder-name">John Doe</span></h2>
+                            <p class="welcome-subtitle">Here's your account overview</p>
+                        </div>
+                        <div class="account-number">
+                            <span class="account-label">Account #</span>
+                            <span id="account-number">****-****-1234</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Cards -->
+                    <div class="account-cards">
+                        <div class="account-card primary">
+                            <div class="card-header">
+                                <div class="card-type">
+                                    <span class="card-icon">💳</span>
+                                    <span>Checking Account</span>
+                                </div>
+                                <div class="card-status active">Active</div>
+                            </div>
+                            <div class="card-balance">
+                                <span class="balance-label">Available Balance</span>
+                                <span id="checking-balance" class="balance-amount">$0.00</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="last-transaction">Last transaction: Today</span>
+                            </div>
+                        </div>
+                        
+                        <div class="account-card secondary">
+                            <div class="card-header">
+                                <div class="card-type">
+                                    <span class="card-icon">💰</span>
+                                    <span>Cash on Hand</span>
+                                </div>
+                                <div class="card-status">Physical</div>
+                            </div>
+                            <div class="card-balance">
+                                <span class="balance-label">Current Amount</span>
+                                <span id="cash-balance-display" class="balance-amount">$0.00</span>
+                            </div>
+                            <div class="card-footer">
+                                <span class="last-transaction">Immediate access</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <h3 class="section-title">Quick Actions</h3>
+                        <div class="action-grid">
+                            <button id="deposit-btn" class="action-card deposit">
+                                <div class="action-icon">📥</div>
+                                <div class="action-content">
+                                    <span class="action-title">Deposit</span>
+                                    <span class="action-subtitle">Add money to account</span>
+                                </div>
+                            </button>
+                            
+                            <button id="withdraw-btn" class="action-card withdraw">
+                                <div class="action-icon">📤</div>
+                                <div class="action-content">
+                                    <span class="action-title">Withdraw</span>
+                                    <span class="action-subtitle">Take money out</span>
+                                </div>
+                            </button>
+                            
+                            <button id="transfer-btn" class="action-card transfer">
+                                <div class="action-icon">↔️</div>
+                                <div class="action-content">
+                                    <span class="action-title">Transfer</span>
+                                    <span class="action-subtitle">Send to another account</span>
+                                </div>
+                            </button>
+                            
+                            <button id="statement-btn" class="action-card statement">
+                                <div class="action-icon">📊</div>
+                                <div class="action-content">
+                                    <span class="action-title">Statement</span>
+                                    <span class="action-subtitle">View account history</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="recent-activity">
+                        <div class="activity-header">
+                            <h3 class="section-title">Recent Activity</h3>
+                            <button class="view-all-btn">View All</button>
+                        </div>
+                        <div id="transaction-history" class="activity-list">
+                            <!-- Transactions will be dynamically populated here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Account Summary -->
+                    <div class="account-summary">
+                        <h3 class="section-title">Account Summary</h3>
+                        <div class="summary-grid">
+                            <div class="summary-item">
+                                <span class="summary-label">Total Balance</span>
+                                <span id="total-balance" class="summary-value">$0.00</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">This Month</span>
+                                <span class="summary-value">+$2,450.00</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Pending</span>
+                                <span class="summary-value">$0.00</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Available Credit</span>
+                                <span class="summary-value">$5,000.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cfx-nui-eskui/html/menus.js" type="text/javascript"></script>
     <script src="https://cfx-nui-eskui/html/shops.js" type="text/javascript"></script>
+    <script src="https://cfx-nui-eskui/html/banking.js" type="text/javascript"></script>
     <script src="https://cfx-nui-eskui/html/script.js" type="text/javascript"></script>
 </body>
 </html> 

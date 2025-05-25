@@ -43,5 +43,6 @@ files {
     'html/styles.css',
     'html/script.js',
     'html/menus.js',
-    'html/shops.js'
+    'html/shops.js',
+    'html/banking.js'
 } 

@@ -193,6 +193,70 @@ RegisterCommand('testshop', function()
     end)
 end, false)
 
+-- Test banking UI
+RegisterCommand('testbanking', function()
+    -- We'll use realistic banking data for testing
+    local bankingData = {
+        bankName = 'First National Bank',
+        accountHolder = 'John Doe',
+        accountNumber = '****-****-1234',
+        cash = 1250.75,
+        bank = 15420.50,
+        transactions = {
+            { type = 'deposit', amount = 2500.00, date = 'Today, 2:30 PM', description = 'Salary Deposit', category = 'income' },
+            { type = 'withdraw', amount = 350.00, date = 'Today, 10:15 AM', description = 'ATM Withdrawal', category = 'cash' },
+            { type = 'transfer', amount = 500.00, date = 'Yesterday, 6:45 PM', description = 'Transfer to John Smith', category = 'transfer' },
+            { type = 'deposit', amount = 150.25, date = 'Yesterday, 2:20 PM', description = 'Refund - Store Purchase', category = 'refund' },
+            { type = 'withdraw', amount = 75.50, date = '2 days ago, 8:30 AM', description = 'Coffee Shop Payment', category = 'food' },
+            { type = 'deposit', amount = 1200.00, date = '3 days ago, 4:15 PM', description = 'Freelance Payment', category = 'income' },
+            { type = 'withdraw', amount = 200.00, date = '4 days ago, 11:45 AM', description = 'Gas Station', category = 'transport' },
+            { type = 'transfer', amount = 300.00, date = '5 days ago, 7:20 PM', description = 'Rent Payment', category = 'bills' }
+        }
+    }
+    
+    -- Open the banking UI
+    SendNUIMessage({
+        type = 'showBanking',
+        data = bankingData
+    })
+    
+    -- Set NUI focus
+    SetNuiFocus(true, true)
+    
+    print("^2[ESKUI] Banking UI opened with test data^7")
+end, false)
+
+-- Register NUI callback for banking actions
+RegisterNUICallback('bankingAction', function(data, cb)
+    if data.action and data.amount then
+        -- Log the banking action for testing
+        print(string.format("Banking action: %s amount: $%s", data.action, data.amount))
+        
+        -- Show feedback in chat
+        TriggerEvent('chat:addMessage', {
+            color = {149, 107, 213},
+            args = {"ESKUI Banking", string.format("%s: $%s", 
+                data.action:gsub("^%l", string.upper), -- Capitalize first letter
+                data.amount
+            )}
+        })
+        
+        -- In a real implementation, this would call server-side events to handle the banking action
+        
+        -- Respond to the callback
+        cb({ success = true })
+    else
+        cb({ success = false, message = "Invalid banking action data" })
+    end
+end)
+
+-- Register NUI callback for closing the banking UI
+RegisterNUICallback('close', function(data, cb)
+    -- Reset NUI focus when UI is closed
+    SetNuiFocus(false, false)
+    cb({})
+end)
+
 -- Add command suggestions
 TriggerEvent('chat:addSuggestion', '/testamount', 'Test ESKUI amount input')
 TriggerEvent('chat:addSuggestion', '/testlist', 'Test ESKUI list selection')
@@ -201,4 +265,5 @@ TriggerEvent('chat:addSuggestion', '/testsubmenu', 'Test ESKUI submenu functiona
 TriggerEvent('chat:addSuggestion', '/notify', 'Show a test notification', {
     { name = "type", help = "Notification type (info, success, error, warning)" }
 })
-TriggerEvent('chat:addSuggestion', '/testshop', 'Test ESKUI shop interface') 
+TriggerEvent('chat:addSuggestion', '/testshop', 'Test ESKUI shop interface')
+TriggerEvent('chat:addSuggestion', '/testbanking', 'Test ESKUI banking interface') 

@@ -532,6 +532,10 @@ window.addEventListener('message', function(event) {
                 console.log('Processing showShop event');
                 shopEventHandlers.showShop(data);
             },
+            showBanking: () => {
+                console.log('Processing showBanking event');
+                bankingEventHandlers.showBanking(data);
+            },
             toggleDarkMode: () => toggleDarkMode(),
             showNotification: () => {
                 console.log('Processing showNotification event', data);
