@@ -487,20 +487,69 @@ function Framework.GetPlayerData()
 end
 
 -- Notification system integration
-function Framework.ShowNotification(message, type)
+function Framework.ShowNotification(message, type, title, duration)
+    -- Set defaults
     type = type or 'info'
+    title = title or 'Notification'
+    duration = duration or 3000
     
-    if FrameworkName == 'esx' and ESX then
-        ESX.ShowNotification(message)
-    elseif FrameworkName == 'qbcore' and QBCore then
-        QBCore.Functions.Notify(message, type)
-    else
-        -- Use ESKUI's notification system
+    -- Check which notification system to use
+    if not Config.NotificationSystem then
+        Config.NotificationSystem = 'eskui' -- Default to eskui if not set
+    end
+    
+    if Config.NotificationSystem == 'framework' then
+        -- Use the framework's native notification system
+        if FrameworkName == 'esx' and ESX then
+            ESX.ShowNotification(message)
+        elseif FrameworkName == 'qbcore' and QBCore then
+            QBCore.Functions.Notify(message, type)
+        else
+            -- Fallback to eskui if framework not available
+            exports['eskui']:ShowNotification({
+                type = type,
+                title = title,
+                message = message,
+                duration = duration
+            })
+        end
+    elseif Config.NotificationSystem == 'eskui' then
+        -- Use eskui's notification system
         exports['eskui']:ShowNotification({
             type = type,
-            title = 'Shop System',
+            title = title,
             message = message,
-            duration = 3000
+            duration = duration
+        })
+    elseif Config.NotificationSystem == 'custom' and Config.CustomNotification then
+        -- Use custom notification system from config
+        if Config.CustomNotification.resource and Config.CustomNotification.func then
+            local params = message
+            
+            -- If params function exists, use it to format parameters
+            if Config.CustomNotification.params and type(Config.CustomNotification.params) == 'function' then
+                params = Config.CustomNotification.params(type, title, message, duration)
+            end
+            
+            -- Call the custom notification export
+            exports[Config.CustomNotification.resource][Config.CustomNotification.func](params)
+        else
+            -- Fallback to eskui if custom config is incomplete
+            print("^1[ESKUI] ERROR: Custom notification config incomplete, using eskui instead^7")
+            exports['eskui']:ShowNotification({
+                type = type,
+                title = title,
+                message = message,
+                duration = duration
+            })
+        end
+    else
+        -- Fallback to eskui for any other value
+        exports['eskui']:ShowNotification({
+            type = type,
+            title = title,
+            message = message,
+            duration = duration
         })
     end
 end 

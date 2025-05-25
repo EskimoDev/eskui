@@ -51,13 +51,8 @@ end
 -- Function to use the ATM
 function UseATM()
     -- For now, just show a notification (placeholder)
-    -- Using eskUI's notification system directly
-    exports['eskui']:ShowNotification({
-        type = 'info',
-        title = 'ATM',
-        message = 'You have accessed the ATM. Balance: $' .. math.random(100, 5000),
-        duration = 3000
-    })
+    -- Using Framework.ShowNotification with proper parameters
+    Framework.ShowNotification('You have accessed the ATM. Balance: $' .. math.random(100, 5000), 'info', 'ATM', 3000)
     
     -- Here you would typically trigger your ATM menu or other ATM functionality
     -- This is a placeholder
@@ -136,21 +131,11 @@ if Config.Debug then
     RegisterCommand('testatm', function()
         local isLookingAtATM, atmEntity, atmCoords = IsLookingAtATM()
         if isLookingAtATM then
-            -- Using eskUI's notification system directly
-            exports['eskui']:ShowNotification({
-                type = 'success',
-                title = 'ATM Detected',
-                message = 'Found ATM entity: ' .. atmEntity,
-                duration = 3000
-            })
+            -- Using Framework.ShowNotification with proper parameters
+            Framework.ShowNotification('Found ATM entity: ' .. atmEntity, 'success', 'ATM Detected', 3000)
         else
-            -- Using eskUI's notification system directly
-            exports['eskui']:ShowNotification({
-                type = 'error',
-                title = 'No ATM Found',
-                message = 'You are not looking at an ATM',
-                duration = 3000
-            })
+            -- Using Framework.ShowNotification with proper parameters
+            Framework.ShowNotification('You are not looking at an ATM', 'error', 'No ATM Found', 3000)
         end
     end, false)
     
