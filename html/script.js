@@ -332,9 +332,18 @@ const uiHandlers = {
         
         // Notify that UI is now visible
         notifyUIVisibilityChange(true);
-    }
+    },
     
     // Shop UI handlers moved to shops.js
+    showBanking: () => {
+        console.log('Processing showBanking event');
+        bankingEventHandlers.showBanking(data);
+    },
+    showStatement: () => {
+        console.log('Processing showStatement event');
+        bankingEventHandlers.showStatement(data);
+    },
+    toggleDarkMode: () => toggleDarkMode()
 };
 
 // Notification system
@@ -536,6 +545,10 @@ window.addEventListener('message', function(event) {
                 console.log('Processing showBanking event');
                 bankingEventHandlers.showBanking(data);
             },
+            showStatement: () => {
+                console.log('Processing showStatement event');
+                bankingEventHandlers.showStatement(data);
+            },
             toggleDarkMode: () => toggleDarkMode(),
             showNotification: () => {
                 console.log('Processing showNotification event', data);
@@ -551,6 +564,15 @@ window.addEventListener('message', function(event) {
                     message: data.message || `Tax: $${data.taxAmount} (${data.taxRate}%) applied to your purchase of $${data.originalPrice}`,
                     duration: 5000
                 });
+            },
+            triggerTransfer: () => {
+                console.log('Processing triggerTransfer event');
+                // Call the banking event handler's showTransferUI method
+                if (bankingEventHandlers && typeof bankingEventHandlers.showTransferUI === 'function') {
+                    bankingEventHandlers.showTransferUI();
+                } else {
+                    console.error('Banking event handlers not found or showTransferUI is not a function');
+                }
             }
         };
         

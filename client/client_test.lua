@@ -257,6 +257,40 @@ RegisterNUICallback('close', function(data, cb)
     cb({})
 end)
 
+-- Test banking transfer UI
+RegisterCommand('testtransfer', function()
+    -- Hide banking UI if it's open
+    SendNUIMessage({type = 'hide', containerId = 'banking-ui'})
+    
+    -- Wait a moment to ensure UI is properly hidden
+    Citizen.Wait(100)
+    
+    -- Show the transfer UI directly
+    SendNUIMessage({
+        type = 'showBanking',
+        data = {
+            bankName = 'First National Bank',
+            accountHolder = 'John Doe',
+            accountNumber = '****-****-1234',
+            cash = 1250.75,
+            bank = 15420.50
+        }
+    })
+    
+    -- Set NUI focus
+    SetNuiFocus(true, true)
+    
+    -- Wait a moment to ensure banking UI is shown
+    Citizen.Wait(300)
+    
+    -- Directly trigger the transfer UI display
+    SendNUIMessage({
+        type = 'triggerTransfer'
+    })
+    
+    print("^2[ESKUI] Banking Transfer UI opened with test data^7")
+end, false)
+
 -- Add command suggestions
 TriggerEvent('chat:addSuggestion', '/testamount', 'Test ESKUI amount input')
 TriggerEvent('chat:addSuggestion', '/testlist', 'Test ESKUI list selection')
@@ -266,4 +300,5 @@ TriggerEvent('chat:addSuggestion', '/notify', 'Show a test notification', {
     { name = "type", help = "Notification type (info, success, error, warning)" }
 })
 TriggerEvent('chat:addSuggestion', '/testshop', 'Test ESKUI shop interface')
-TriggerEvent('chat:addSuggestion', '/testbanking', 'Test ESKUI banking interface') 
+TriggerEvent('chat:addSuggestion', '/testbanking', 'Test ESKUI banking interface')
+TriggerEvent('chat:addSuggestion', '/testtransfer', 'Test ESKUI banking transfer interface') 

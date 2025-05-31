@@ -58,6 +58,10 @@ const bankingEventHandlers = {
         // Update total balance
         const total = cash + bank;
         document.getElementById('total-balance').textContent = `$${this.formatCurrency(total)}`;
+        
+        // Store the values for later use
+        this.currentCash = cash;
+        this.currentBank = bank;
     },
     
     // Populate transaction history
@@ -133,7 +137,7 @@ const bankingEventHandlers = {
         const transferBtn = document.getElementById('transfer-btn');
         if (transferBtn) {
             transferBtn.onclick = () => {
-                this.showActionMenu('transfer');
+                this.showTransferUI();
             };
         }
         
@@ -158,6 +162,9 @@ const bankingEventHandlers = {
         if (closeBtn) {
             closeBtn.onclick = closeUI;
         }
+        
+        // Transfer UI event listeners
+        this.setupTransferEventListeners();
     },
     
     // Show action menu (deposit, withdraw, transfer)
@@ -190,14 +197,366 @@ const bankingEventHandlers = {
         };
     },
     
+    // Show the transfer UI
+    showTransferUI() {
+        // Hide banking UI and show transfer UI
+        ui.hide('banking-ui');
+        state.currentUI = 'transfer';
+        ui.show('transfer-ui');
+        
+        // Update the account balance display
+        document.getElementById('transfer-from-balance').textContent = `$${this.formatCurrency(this.currentBank || 0)}`;
+        
+        // Reset the transfer form
+        document.getElementById('transfer-recipient-id').value = '';
+        document.getElementById('transfer-amount').value = '';
+        document.getElementById('transfer-description').value = '';
+        
+        // Ensure the main transfer form is visible (not the success screen)
+        document.querySelector('.transfer-container .transfer-success').style.display = 'none';
+        document.querySelector('.transfer-container .transfer-form').style.display = 'flex';
+        document.querySelector('.transfer-container .transfer-header').style.display = 'flex';
+        document.querySelector('.transfer-container .transfer-actions').style.display = 'flex';
+        
+        // Add ESC handler for transfer UI
+        ui.addEscapeHandler(() => this.closeTransferUI());
+        
+        // Notify that transfer UI is now visible
+        notifyUIVisibilityChange(true);
+    },
+    
+    // Setup event listeners for the transfer UI
+    setupTransferEventListeners() {
+        // Cancel button
+        const cancelBtn = document.getElementById('transfer-cancel-btn');
+        if (cancelBtn) {
+            cancelBtn.onclick = () => {
+                this.closeTransferUI();
+            };
+        }
+        
+        // Confirm button
+        const confirmBtn = document.getElementById('transfer-confirm-btn');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                this.processTransfer();
+            };
+        }
+        
+        // Done button (on success screen)
+        const doneBtn = document.getElementById('transfer-done-btn');
+        if (doneBtn) {
+            doneBtn.onclick = () => {
+                this.closeTransferUI();
+            };
+        }
+        
+        // Close button
+        const closeBtn = document.querySelector('#transfer-ui .close-button');
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                this.closeTransferUI();
+            };
+        }
+    },
+    
+    // Process the transfer
+    processTransfer() {
+        const recipientId = document.getElementById('transfer-recipient-id').value;
+        const amount = document.getElementById('transfer-amount').value;
+        const description = document.getElementById('transfer-description').value || 'Transfer';
+        
+        // Basic validation
+        if (!recipientId || isNaN(recipientId) || parseInt(recipientId) <= 0) {
+            this.showTransferError('Please enter a valid recipient ID');
+            return;
+        }
+        
+        if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+            this.showTransferError('Please enter a valid amount');
+            return;
+        }
+        
+        const transferAmount = parseFloat(amount);
+        
+        // Check if player has enough money
+        if (transferAmount > (this.currentBank || 0)) {
+            this.showTransferError('You do not have enough money in your account');
+            return;
+        }
+        
+        // Format the data
+        const transferData = {
+            action: 'transfer',
+            recipientId: parseInt(recipientId),
+            amount: transferAmount,
+            description: description
+        };
+        
+        // In a real implementation, this would send the data to the server
+        console.log('Transfer data:', transferData);
+        
+        // For demonstration, show success screen
+        this.showTransferSuccess(transferData);
+        
+        // In a real implementation, you would wait for server response before showing success
+        // ui.closeAndSendData('transfer-ui', 'bankingTransfer', transferData);
+    },
+    
+    // Show transfer success screen
+    showTransferSuccess(data) {
+        // Hide the form and show success screen
+        document.querySelector('.transfer-container .transfer-form').style.display = 'none';
+        document.querySelector('.transfer-container .transfer-header').style.display = 'none';
+        document.querySelector('.transfer-container .transfer-actions').style.display = 'none';
+        document.querySelector('.transfer-container .transfer-success').style.display = 'flex';
+        
+        // Update success screen data
+        document.getElementById('success-amount').textContent = this.formatCurrency(data.amount);
+        document.getElementById('success-recipient').textContent = data.recipientId;
+        
+        // Set current date/time
+        const now = new Date();
+        const formattedTime = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('success-date').textContent = `Today, ${formattedTime}`;
+        
+        // Update local balances for display
+        if (this.currentBank) {
+            this.currentBank -= data.amount;
+        }
+        
+        // Simulated transaction for the history
+        const newTransaction = {
+            type: 'transfer',
+            amount: data.amount,
+            date: `Today, ${formattedTime}`,
+            description: `Transfer to ID: ${data.recipientId}`,
+            category: 'transfer'
+        };
+        
+        // Store the transaction for when we return to banking UI
+        if (!this.pendingTransactions) this.pendingTransactions = [];
+        this.pendingTransactions.unshift(newTransaction);
+    },
+    
+    // Show transfer error notification
+    showTransferError(message) {
+        notifications.create({
+            type: 'error',
+            title: 'Transfer Failed',
+            message: message,
+            duration: 4000
+        });
+    },
+    
+    // Close the transfer UI and return to banking
+    closeTransferUI() {
+        ui.hide('transfer-ui');
+        state.currentUI = 'banking';
+        ui.show('banking-ui');
+        
+        // If we have pending transactions, update the transaction history
+        if (this.pendingTransactions && this.pendingTransactions.length > 0) {
+            this.populateTransactions(this.pendingTransactions);
+            this.pendingTransactions = [];
+            
+            // Update balances
+            this.updateBalances(this.currentCash || 0, this.currentBank || 0);
+        }
+        
+        // Add ESC handler for banking
+        ui.addEscapeHandler(() => closeUI());
+        
+        // Notify that banking UI is now visible
+        notifyUIVisibilityChange(true);
+    },
+    
     // Show statement (placeholder)
     showStatement() {
-        notifications.create({
-            type: 'info',
-            title: 'Account Statement',
-            message: 'Your monthly statement has been generated and will be available shortly.',
-            duration: 3000
+        // Hide banking UI and show statement UI
+        ui.hide('banking-ui');
+        state.currentUI = 'statement';
+        ui.show('statement-ui');
+        
+        // Populate statement with data
+        this.populateStatement();
+        
+        // Setup statement event listeners
+        this.setupStatementEventListeners();
+        
+        // Add ESC handler for statement
+        ui.addEscapeHandler(() => closeUI());
+        
+        // Notify that statement UI is now visible
+        notifyUIVisibilityChange(true);
+    },
+    
+    // Populate statement with transaction data
+    populateStatement() {
+        // Sample transaction data for the statement
+        const statementTransactions = [
+            { date: '2024-12-31', description: 'Year-end Bonus', type: 'deposit', amount: 5000.00, balance: 15420.50 },
+            { date: '2024-12-30', description: 'Grocery Store', type: 'withdraw', amount: 125.75, balance: 10420.50 },
+            { date: '2024-12-29', description: 'Gas Station', type: 'withdraw', amount: 65.00, balance: 10546.25 },
+            { date: '2024-12-28', description: 'Salary Deposit', type: 'deposit', amount: 2500.00, balance: 10611.25 },
+            { date: '2024-12-27', description: 'Transfer to Savings', type: 'transfer', amount: 500.00, balance: 8111.25 },
+            { date: '2024-12-26', description: 'Restaurant', type: 'withdraw', amount: 85.50, balance: 8611.25 },
+            { date: '2024-12-25', description: 'Christmas Gift', type: 'withdraw', amount: 200.00, balance: 8696.75 },
+            { date: '2024-12-24', description: 'ATM Withdrawal', type: 'withdraw', amount: 100.00, balance: 8896.75 },
+            { date: '2024-12-23', description: 'Freelance Payment', type: 'deposit', amount: 750.00, balance: 8996.75 },
+            { date: '2024-12-22', description: 'Coffee Shop', type: 'withdraw', amount: 12.50, balance: 8246.75 },
+            { date: '2024-12-21', description: 'Online Purchase', type: 'withdraw', amount: 89.99, balance: 8259.25 },
+            { date: '2024-12-20', description: 'Rent Payment', type: 'transfer', amount: 1200.00, balance: 8349.24 },
+            { date: '2024-12-19', description: 'Utility Bill', type: 'withdraw', amount: 150.00, balance: 9549.24 },
+            { date: '2024-12-18', description: 'Refund - Store Return', type: 'deposit', amount: 45.75, balance: 9699.24 },
+            { date: '2024-12-17', description: 'Pharmacy', type: 'withdraw', amount: 25.50, balance: 9653.49 },
+            { date: '2024-12-16', description: 'Salary Deposit', type: 'deposit', amount: 2500.00, balance: 9678.99 },
+            { date: '2024-12-15', description: 'Movie Theater', type: 'withdraw', amount: 35.00, balance: 7178.99 },
+            { date: '2024-12-14', description: 'Gas Station', type: 'withdraw', amount: 70.00, balance: 7213.99 },
+            { date: '2024-12-13', description: 'Grocery Store', type: 'withdraw', amount: 145.25, balance: 7283.99 },
+            { date: '2024-12-12', description: 'ATM Withdrawal', type: 'withdraw', amount: 200.00, balance: 7429.24 }
+        ];
+        
+        this.populateStatementTable(statementTransactions);
+        this.setupStatementFilters(statementTransactions);
+    },
+    
+    // Populate the statement transaction table
+    populateStatementTable(transactions) {
+        const tbody = document.getElementById('statement-transactions-body');
+        tbody.innerHTML = '';
+        
+        transactions.forEach(transaction => {
+            const row = document.createElement('tr');
+            
+            // Format date
+            const date = new Date(transaction.date);
+            const formattedDate = date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
+            });
+            
+            // Determine amount class and prefix
+            let amountClass = '';
+            let amountPrefix = '';
+            if (transaction.type === 'deposit') {
+                amountClass = 'amount-positive';
+                amountPrefix = '+';
+            } else {
+                amountClass = 'amount-negative';
+                amountPrefix = '-';
+            }
+            
+            row.innerHTML = `
+                <td>${formattedDate}</td>
+                <td>${transaction.description}</td>
+                <td><span class="transaction-type ${transaction.type}">${transaction.type}</span></td>
+                <td class="${amountClass}">${amountPrefix}$${this.formatCurrency(transaction.amount)}</td>
+                <td>$${this.formatCurrency(transaction.balance)}</td>
+            `;
+            
+            tbody.appendChild(row);
         });
+    },
+    
+    // Setup statement filters and sorting
+    setupStatementFilters(transactions) {
+        const typeFilter = document.getElementById('transaction-type-filter');
+        const sortFilter = document.getElementById('transaction-sort');
+        
+        if (typeFilter) {
+            typeFilter.addEventListener('change', () => {
+                this.filterAndSortTransactions(transactions);
+            });
+        }
+        
+        if (sortFilter) {
+            sortFilter.addEventListener('change', () => {
+                this.filterAndSortTransactions(transactions);
+            });
+        }
+    },
+    
+    // Filter and sort transactions based on user selection
+    filterAndSortTransactions(transactions) {
+        const typeFilter = document.getElementById('transaction-type-filter');
+        const sortFilter = document.getElementById('transaction-sort');
+        
+        let filteredTransactions = [...transactions];
+        
+        // Apply type filter
+        if (typeFilter && typeFilter.value !== 'all') {
+            filteredTransactions = filteredTransactions.filter(t => t.type === typeFilter.value);
+        }
+        
+        // Apply sorting
+        if (sortFilter) {
+            switch (sortFilter.value) {
+                case 'date-desc':
+                    filteredTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    break;
+                case 'date-asc':
+                    filteredTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    break;
+                case 'amount-desc':
+                    filteredTransactions.sort((a, b) => b.amount - a.amount);
+                    break;
+                case 'amount-asc':
+                    filteredTransactions.sort((a, b) => a.amount - b.amount);
+                    break;
+            }
+        }
+        
+        this.populateStatementTable(filteredTransactions);
+    },
+    
+    // Setup statement event listeners
+    setupStatementEventListeners() {
+        // Download PDF button
+        const downloadBtn = document.querySelector('.statement-btn.download');
+        if (downloadBtn) {
+            downloadBtn.onclick = () => {
+                notifications.create({
+                    type: 'info',
+                    title: 'Download Started',
+                    message: 'Your statement PDF is being generated and will download shortly.',
+                    duration: 3000
+                });
+            };
+        }
+        
+        // Print button
+        const printBtn = document.querySelector('.statement-btn.print');
+        if (printBtn) {
+            printBtn.onclick = () => {
+                notifications.create({
+                    type: 'info',
+                    title: 'Print Dialog',
+                    message: 'Opening print dialog for your statement.',
+                    duration: 2000
+                });
+            };
+        }
+        
+        // Close button
+        const closeBtn = document.querySelector('#statement-ui .close-button');
+        if (closeBtn) {
+            closeBtn.onclick = closeUI;
+        }
+    },
+    
+    // Return to banking from statement
+    returnToBanking() {
+        ui.hide('statement-ui');
+        state.currentUI = 'banking';
+        ui.show('banking-ui');
+        
+        // Add ESC handler for banking
+        ui.addEscapeHandler(() => closeUI());
+        
+        // Notify that banking UI is now visible
+        notifyUIVisibilityChange(true);
     },
     
     // Show all transactions (placeholder)

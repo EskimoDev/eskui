@@ -380,6 +380,209 @@
         </div>
     </div>
     
+    <!-- Statement UI -->
+    <div id="statement-ui" class="ui-container">
+        <div class="window statement-window">
+            <div class="titlebar">
+                <div class="titlebar-title">
+                    <div class="statement-logo">📊</div>
+                    <span>Account Statement</span>
+                </div>
+                <div class="window-controls">
+                    <button class="close-button" onclick="closeUI()">×</button>
+                </div>
+            </div>
+            <div class="content">
+                <div class="statement-container">
+                    <!-- Statement Header -->
+                    <div class="statement-header">
+                        <div class="statement-info">
+                            <h2>Monthly Statement</h2>
+                            <p class="statement-period">Statement Period: <span id="statement-period">December 1, 2024 - December 31, 2024</span></p>
+                            <p class="statement-account">Account: <span id="statement-account-number">****-****-1234</span></p>
+                        </div>
+                        <div class="statement-actions">
+                            <button class="statement-btn download">
+                                <span class="btn-icon">📥</span>
+                                Download PDF
+                            </button>
+                            <button class="statement-btn print">
+                                <span class="btn-icon">🖨️</span>
+                                Print
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Account Summary -->
+                    <div class="statement-summary">
+                        <h3 class="statement-section-title">Account Summary</h3>
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <div class="summary-card-header">
+                                    <span class="summary-card-title">Opening Balance</span>
+                                    <span class="summary-card-date">Dec 1, 2024</span>
+                                </div>
+                                <div class="summary-card-amount">$12,450.75</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-card-header">
+                                    <span class="summary-card-title">Total Deposits</span>
+                                    <span class="summary-card-count">8 transactions</span>
+                                </div>
+                                <div class="summary-card-amount positive">+$8,750.25</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-card-header">
+                                    <span class="summary-card-title">Total Withdrawals</span>
+                                    <span class="summary-card-count">12 transactions</span>
+                                </div>
+                                <div class="summary-card-amount negative">-$5,780.00</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-card-header">
+                                    <span class="summary-card-title">Closing Balance</span>
+                                    <span class="summary-card-date">Dec 31, 2024</span>
+                                </div>
+                                <div class="summary-card-amount">$15,420.50</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Details -->
+                    <div class="statement-transactions">
+                        <div class="statement-transactions-header">
+                            <h3 class="statement-section-title">Transaction Details</h3>
+                            <div class="statement-filters">
+                                <select class="statement-filter-select" id="transaction-type-filter">
+                                    <option value="all">All Transactions</option>
+                                    <option value="deposit">Deposits</option>
+                                    <option value="withdraw">Withdrawals</option>
+                                    <option value="transfer">Transfers</option>
+                                </select>
+                                <select class="statement-filter-select" id="transaction-sort">
+                                    <option value="date-desc">Date (Newest First)</option>
+                                    <option value="date-asc">Date (Oldest First)</option>
+                                    <option value="amount-desc">Amount (Highest First)</option>
+                                    <option value="amount-asc">Amount (Lowest First)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="statement-table-container">
+                            <table class="statement-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="statement-transactions-body">
+                                    <!-- Transactions will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div class="statement-footer">
+                        <div class="statement-footer-actions">
+                            <button class="button cancel" onclick="closeUI()">Close</button>
+                            <button class="button submit" onclick="bankingEventHandlers.returnToBanking()">Back to Banking</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Banking Transfer UI -->
+    <div id="transfer-ui" class="ui-container" style="display: none;">
+        <div class="window banking-window">
+            <div class="titlebar">
+                <div class="titlebar-title">
+                    <div class="bank-logo">🏦</div>
+                    <span>Money Transfer</span>
+                </div>
+                <div class="window-controls">
+                    <div class="close-button">✕</div>
+                </div>
+            </div>
+            <div class="content">
+                <div class="banking-container">
+                    <div class="transfer-container">
+                        <div class="transfer-header">
+                            <h2>Send Money</h2>
+                            <div class="transfer-subtitle">Transfer funds to another account</div>
+                        </div>
+                        
+                        <div class="transfer-form">
+                            <div class="transfer-form-row">
+                                <div class="transfer-label">From Account</div>
+                                <div class="transfer-account-selector">
+                                    <div class="transfer-account selected">
+                                        <div class="transfer-account-icon">💳</div>
+                                        <div class="transfer-account-details">
+                                            <div class="transfer-account-name">Checking Account</div>
+                                            <div class="transfer-account-balance" id="transfer-from-balance">$0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="transfer-form-row">
+                                <div class="transfer-label">Recipient ID</div>
+                                <div class="transfer-input-wrapper">
+                                    <input type="number" id="transfer-recipient-id" placeholder="Enter Recipient ID" min="1" class="transfer-input">
+                                    <div class="transfer-input-icon">👤</div>
+                                </div>
+                            </div>
+                            
+                            <div class="transfer-form-row">
+                                <div class="transfer-label">Amount</div>
+                                <div class="transfer-input-wrapper">
+                                    <input type="number" id="transfer-amount" placeholder="Enter Amount" min="1" class="transfer-input">
+                                    <div class="transfer-input-icon">💲</div>
+                                </div>
+                            </div>
+                            
+                            <div class="transfer-form-row">
+                                <div class="transfer-label">Description (Optional)</div>
+                                <div class="transfer-input-wrapper">
+                                    <input type="text" id="transfer-description" placeholder="Enter a description" maxlength="50" class="transfer-input">
+                                    <div class="transfer-input-icon">📝</div>
+                                </div>
+                            </div>
+                            
+                            <div class="transfer-notice">
+                                <div class="transfer-notice-icon">ℹ️</div>
+                                <div class="transfer-notice-text">Transfers are immediate and cannot be reversed. Please verify the recipient ID before confirming.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="transfer-actions">
+                            <button class="transfer-btn cancel" id="transfer-cancel-btn">Cancel</button>
+                            <button class="transfer-btn confirm" id="transfer-confirm-btn">Transfer Money</button>
+                        </div>
+                    </div>
+                    
+                    <div class="transfer-success" style="display: none;">
+                        <div class="transfer-success-icon">✅</div>
+                        <h2>Transfer Successful</h2>
+                        <div class="transfer-success-details">
+                            <div class="transfer-success-amount">$<span id="success-amount">0.00</span></div>
+                            <div class="transfer-success-recipient">To ID: <span id="success-recipient">0</span></div>
+                            <div class="transfer-success-date" id="success-date">Today, 12:00 PM</div>
+                        </div>
+                        <button class="transfer-btn done" id="transfer-done-btn">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cfx-nui-eskui/html/menus.js" type="text/javascript"></script>
     <script src="https://cfx-nui-eskui/html/shops.js" type="text/javascript"></script>
     <script src="https://cfx-nui-eskui/html/banking.js" type="text/javascript"></script>
